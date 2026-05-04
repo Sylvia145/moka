@@ -9,7 +9,8 @@ import subprocess
 import textwrap
 from functools import partial
 
-from .workspace import IGNORED_PATH_NAMES, clip
+from ..core.workspace import IGNORED_PATH_NAMES, clip
+from .base import RegisteredTool
 
 BASE_TOOL_SPECS = {
     "list_files": {
@@ -65,13 +66,25 @@ def build_tool_registry(agent):
     # 工具不是动态发现的，而是显式注册的。
     # 这样模型看到的是一个有边界、可审计的动作集合。
     tools = {
-        name: {**spec, "run": partial(_TOOL_RUNNERS[name], agent)}
+        name: RegisteredTool(
+            name=name,
+            schema=spec["schema"],
+            description=spec["description"],
+            risky=bool(spec["risky"]),
+            runner=partial(_TOOL_RUNNERS[name], agent),
+        )
         for name, spec in BASE_TOOL_SPECS.items()
     }
     # 子 agent 是刻意做成受限能力的：一旦深度耗尽，
     # 就连 delegate 这个工具都不再暴露给模型。
     if agent.depth < agent.max_depth:
-        tools["delegate"] = {**DELEGATE_TOOL_SPEC, "run": partial(tool_delegate, agent)}
+        tools["delegate"] = RegisteredTool(
+            name="delegate",
+            schema=DELEGATE_TOOL_SPEC["schema"],
+            description=DELEGATE_TOOL_SPEC["description"],
+            risky=bool(DELEGATE_TOOL_SPEC["risky"]),
+            runner=partial(tool_delegate, agent),
+        )
     return tools
 
 
@@ -265,7 +278,7 @@ def tool_delegate(agent, args):
     if not task:
         raise ValueError("task must not be empty")
 
-    from .runtime import Pico
+    from ..core.runtime import Pico
 
     child = Pico(
         model_client=agent.model_client,

@@ -8,12 +8,12 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import memory as memorylib
-from .models import FakeModelClient
-from .runtime import Pico, SessionStore
-from .run_store import RunStore
-from .task_state import STOP_REASON_FINAL_ANSWER_RETURNED
-from .workspace import WorkspaceContext
+from ..features import memory as memorylib
+from ..providers import FakeModelClient
+from ..core.runtime import Pico, SessionStore
+from ..core.run_store import RunStore
+from ..core.task_state import STOP_REASON_FINAL_ANSWER_RETURNED
+from ..core.workspace import WorkspaceContext
 
 BENCHMARK_SCHEMA_VERSION = 1
 DEFAULT_BENCHMARK_PATH = Path("benchmarks/coding_tasks.json")

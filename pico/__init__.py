@@ -1,19 +1,21 @@
 from .cli import build_agent, build_arg_parser, build_welcome, main
-from .models import AnthropicCompatibleModelClient, FakeModelClient, OllamaModelClient, OpenAICompatibleModelClient
-from .runtime import MiniAgent, Pico, SessionStore
-from .workspace import WorkspaceContext
+from .core.engine import Engine
+from .providers import AnthropicCompatibleModelClient, FakeModelClient, OpenAICompatibleModelClient
+from .core.runtime import Pico, SessionStore
+from .core.session_events import SessionEventBus
+from .core.workspace import WorkspaceContext
 
 __all__ = [
     "AnthropicCompatibleModelClient",
+    "Engine",
     "FakeModelClient",
     "Pico",
     "build_agent",
     "build_arg_parser",
     "build_welcome",
     "main",
-    "MiniAgent",
-    "OllamaModelClient",
     "OpenAICompatibleModelClient",
+    "SessionEventBus",
     "SessionStore",
     "WorkspaceContext",
 ]

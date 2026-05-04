@@ -18,8 +18,7 @@
 - 模块入口是 `python -m pico`
 - 会话保存在 `.pico/sessions/`
 - 每次运行的工件保存在 `.pico/runs/<run_id>/`
-- 支持四类模型后端：
-  - Ollama
+- 支持三类模型后端：
   - OpenAI 兼容 Responses API
   - Anthropic 兼容 Messages API
   - DeepSeek Anthropic 兼容 API
@@ -95,14 +94,6 @@ cp .env.example .env
 ```
 
 然后把要使用的 provider key 填进去。`.env` 已经被 `.gitignore` 忽略，不要提交真实 key。
-
-### Ollama
-
-```bash
-ollama serve
-ollama pull qwen3.5:4b
-uv run pico --provider ollama --model qwen3.5:4b
-```
 
 ### OpenAI 兼容接口
 

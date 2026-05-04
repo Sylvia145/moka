@@ -11,6 +11,8 @@ from http.client import RemoteDisconnected
 import urllib.error
 import urllib.request
 
+from .base import ModelResult
+
 OPENAI_COMPATIBLE_USER_AGENT = "pico/0.1"
 
 
@@ -29,56 +31,11 @@ class FakeModelClient:
             raise RuntimeError("fake model ran out of outputs")
         return self.outputs.pop(0)
 
-
-class OllamaModelClient:
-    def __init__(self, model, host, temperature, top_p, timeout):
-        self.model = model
-        self.host = host.rstrip("/")
-        self.temperature = temperature
-        self.top_p = top_p
-        self.timeout = timeout
-        self.supports_prompt_cache = False
-        self.last_completion_metadata = {}
-
-    def complete(self, prompt, max_new_tokens, **kwargs):
-        # Ollama 当前不支持我们这里接入的 prompt cache 语义，
-        # 所以 runtime 传下来的缓存参数会被忽略。
-        self.last_completion_metadata = {}
-        payload = {
-            "model": self.model,
-            "prompt": prompt,
-            "stream": False,
-            "raw": False,
-            "think": False,
-            "options": {
-                "num_predict": max_new_tokens,
-                "temperature": self.temperature,
-                "top_p": self.top_p,
-            },
-        }
-        request = urllib.request.Request(
-            self.host + "/api/generate",
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
+    def complete_result(self, prompt, max_new_tokens, **kwargs):
+        return ModelResult(
+            text=self.complete(prompt, max_new_tokens, **kwargs),
+            metadata=dict(self.last_completion_metadata),
         )
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                data = json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            body = exc.read().decode("utf-8", errors="replace")
-            raise RuntimeError(f"Ollama request failed with HTTP {exc.code}: {body}") from exc
-        except urllib.error.URLError as exc:
-            raise RuntimeError(
-                "Could not reach Ollama.\n"
-                "Make sure `ollama serve` is running and the model is available.\n"
-                f"Host: {self.host}\n"
-                f"Model: {self.model}"
-            ) from exc
-
-        if data.get("error"):
-            raise RuntimeError(f"Ollama error: {data['error']}")
-        return data.get("response", "")
 
 
 def _normalize_versioned_base_url(base_url):

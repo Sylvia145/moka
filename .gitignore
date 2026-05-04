@@ -21,7 +21,6 @@ dist/
 htmlcov/
 
 # Temporary files
-.mini-coding-agent
 *.tmp
 *.temp
 *.swp
@@ -41,7 +40,12 @@ readme_intro_locked/
 !.env.example
 
 # Local docs not intended for publication
-docs/
+docs/**
+!docs/
+!docs/review-pack/
+!docs/review-pack/README.md
+!docs/architecture/
+!docs/architecture/agent-harness-v1-overview.md
 
 # OS files
 .DS_Store
