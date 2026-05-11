@@ -21,9 +21,6 @@ MAX_ENTRYPOINT_LINES = 200
 ENTRYPOINT_NAME = "MEMORY.md"
 LOCK_FILE_NAME = ".consolidate-lock"
 HOLDER_STALE_S = 3600
-SESSION_SCAN_INTERVAL_S = 600
-
-_last_session_scan_at = 0.0
 
 DURABLE_MEMORY_INTENT_PATTERN = re.compile(r"(?i)\b(capture|remember|save|store|persist|note)\b")
 DURABLE_MEMORY_INTENT_ZH_PATTERN = re.compile(r"(记住|保存|记录|沉淀|长期记忆|持久记忆)")
@@ -88,6 +85,55 @@ def append_to_daily_log(memory_dir, entry, today=None):
     with path.open("a", encoding="utf-8") as file:
         file.write(f"- [{timestamp}] {entry}\n")
     return path
+
+
+def default_memory_maintenance_audit(auto_dream=True):
+    return {
+        "memory_tags_appended": [],
+        "auto_dream": {
+            "enabled": bool(auto_dream),
+            "triggered": False,
+            "skip_reason": "",
+            "session_count": 0,
+            "session_ids": [],
+            "changed_files": [],
+        },
+        "errors": [],
+    }
+
+
+def _agent_relative_path(agent, path):
+    try:
+        return Path(path).resolve().relative_to(agent.root).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def _memory_file_snapshot(agent):
+    memory_dir = Path(agent.memory_dir)
+    if not memory_dir.exists():
+        return {}
+    snapshot = {}
+    for path in memory_dir.rglob("*"):
+        if not path.is_file() or path.name == LOCK_FILE_NAME:
+            continue
+        relative = _agent_relative_path(agent, path)
+        try:
+            snapshot[relative] = hashlib.sha256(path.read_bytes()).hexdigest()
+        except OSError:
+            continue
+    return snapshot
+
+
+def _changed_memory_files(before, after):
+    return sorted(path for path in set(before) | set(after) if before.get(path) != after.get(path))
+
+
+def _emit_memory_trace(agent, event, payload):
+    task_state = getattr(agent, "current_task_state", None)
+    if task_state is None:
+        return None
+    return agent.emit_trace(task_state, event, payload)
 
 
 def load_memory_index_text(memory_dir):
@@ -170,80 +216,180 @@ def list_sessions_since(since_ts, sessions_dir=None, current_session_id=""):
 
 
 def should_auto_dream(memory_dir, min_hours, min_sessions, current_session_id, sessions_dir=None):
-    global _last_session_scan_at
+    return evaluate_auto_dream_gate(memory_dir, min_hours, min_sessions, current_session_id, sessions_dir=sessions_dir)["should_run"]
 
+
+def evaluate_auto_dream_gate(memory_dir, min_hours, min_sessions, current_session_id, sessions_dir=None):
     last = read_last_consolidated_at(memory_dir)
     current = datetime.now().timestamp()
     hours_since = (current - last) / 3600 if last > 0 else float("inf")
+    session_ids = list_sessions_since(last, sessions_dir=sessions_dir, current_session_id=current_session_id)
+    result = {
+        "should_run": False,
+        "skip_reason": "",
+        "session_count": len(session_ids),
+        "session_ids": session_ids,
+    }
     if hours_since < float(min_hours):
-        return False
-    session_count = len(list_sessions_since(last, sessions_dir=sessions_dir, current_session_id=current_session_id))
-    if session_count >= int(min_sessions):
-        _last_session_scan_at = current
-        return True
-    if current - _last_session_scan_at < SESSION_SCAN_INTERVAL_S:
-        return False
-    _last_session_scan_at = current
-    return False
+        result["skip_reason"] = "interval_gate"
+        return result
+    if len(session_ids) < int(min_sessions):
+        result["skip_reason"] = "session_gate"
+        return result
+    result["should_run"] = True
+    return result
 
 
 def build_memory_system_section(memory_dir):
     index = load_memory_index_text(memory_dir)
+    if index:
+        index_section = f"## Current Memory Index ({ENTRYPOINT_NAME})\n{index}\n"
+    else:
+        index_section = "No durable memories consolidated yet.\n"
     section = f"""# Auto Memory
 
 You have a persistent, file-based memory system at `{Path(memory_dir)}/`.
-Use it for durable facts that should survive future sessions. Keep short-lived task state in working memory instead.
+This directory already exists. Write to it directly with memory-safe file tools; do not create a second memory store.
 
-Memory types:
-- user: stable user role, goals, preferences, and collaboration style.
-- feedback: corrections from the user that should change future behavior.
-- project: ongoing project facts or decisions not directly derivable from code or git.
-- reference: pointers to external resources and why they matter.
-
-Do not save secrets, transient task status, raw command output, stack traces, ordinary code facts, or anything already obvious from the repository.
-
-How memory enters the system:
+## Critical memory contract
 - `/remember <text>` appends a note to the daily log.
-- `<memory>...</memory>` in a final answer is appended to the daily log after the turn.
-- `/dream` consolidates daily logs into `{ENTRYPOINT_NAME}` and topic files.
+- `/memory` prints the durable memory index.
+- `/dream` consolidates daily logs into memory files and updates `{ENTRYPOINT_NAME}`.
+- Structured memory files must use frontmatter: `name`, `description`, and `type`.
+- Allowed `type` values are `user`, `feedback`, `project`, and `reference`.
+- MEMORY.md is an index, not a memory. Keep it under {MAX_ENTRYPOINT_LINES} lines.
+- If the user asks you to forget something, find and remove the relevant entry.
 
-`{ENTRYPOINT_NAME}` is an index, not a dump. Keep each entry short and point to topic files.
+{index_section}
+Build this memory system over time so future sessions can understand who the user is, how they prefer to collaborate, what behavior to avoid or repeat, and the context behind long-running work.
+
+If the user explicitly asks you to remember something, save it immediately using whichever type fits best. If they ask you to forget something, find and remove the relevant entry instead of adding a contradiction.
+
+## Types of memory
+
+There are four discrete types of memory:
+
+### user
+Information about the user's role, goals, responsibilities, knowledge, and collaboration preferences.
+**When to save:** When you learn stable details about the user's role, goals, responsibilities, preferences, or knowledge.
+
+### feedback
+Guidance or correction the user has given you that should change future behavior.
+**When to save:** Any time the user corrects your approach in a way applicable to future conversations.
+**Body structure:** Lead with the rule, then a **Why:** line and a **How to apply:** line.
+
+### project
+Information about ongoing work, goals, initiatives, bugs, incidents, or decisions not directly derivable from code or git history.
+**When to save:** When you learn who is doing what, why, or by when. Always convert relative dates to absolute dates.
+**Body structure:** Lead with the fact or decision, then **Why:** and **How to apply:** lines.
+
+### reference
+Pointers to where information lives in external systems and why it matters.
+**When to save:** When you learn about a resource, external system, document, issue tracker, dataset, or link that future sessions should know how to find.
+
+## What NOT to save
+- Code patterns, architecture, file paths, or APIs that are derivable from reading the project
+- Git history or recent changes; git is authoritative
+- Debugging solutions where the fix is already in code or commit history
+- Secrets, credentials, tokens, private keys, or secret-shaped values
+- Raw command output, stack traces, or long logs
+- Ephemeral task details, current blockers, next steps, or transient conversation context
+
+## How to save memories
+
+**Option A — <memory> tags (quick notes):**
+Wrap text in `<memory>...</memory>` tags in your final answer. These are automatically extracted and appended to the daily log.
+
+**Option B - Write files directly (structured memories):**
+Write a `.md` file under `{Path(memory_dir)}/` with this frontmatter:
+
+```markdown
+---
+name: {{{{memory name}}}}
+description: {{{{one-line description — used to decide relevance later}}}}
+type: {{{{user | feedback | project | reference}}}}
+---
+
+{{{{memory content}}}}
+```
+
+Then add a pointer to that file in `{Path(memory_dir)}/{ENTRYPOINT_NAME}`. MEMORY.md is an index, not a memory; it should contain only links with brief descriptions. Keep it under {MAX_ENTRYPOINT_LINES} lines.
+
+## When to access memories
+- When specific known memories seem relevant to the task at hand
+- When the user seems to be referring to work from a prior conversation
+- You MUST access memory when the user explicitly asks you to recall or remember
+
+## Slash commands
+- `/remember <text>` appends a note to the daily log.
+- `/memory` prints the durable memory index.
+- `/dream` consolidates daily logs into memory files and updates `{ENTRYPOINT_NAME}`.
 """
-    if index:
-        section += f"\n## Current Memory Index ({ENTRYPOINT_NAME})\n{index}\n"
-    else:
-        section += "\nNo durable memories consolidated yet.\n"
     return section
 
 
 def build_dream_prompt(memory_dir, transcript_dir="", session_ids=None):
     session_ids = session_ids or []
+    extra_parts = [
+        "Tool constraints for this run: shell execution is not required. Writes must stay inside the memory directory. Read/search/list tools may be used to inspect existing memories and transcripts."
+    ]
+    if session_ids:
+        extra_parts.append("Sessions since last consolidation:\n" + "\n".join(f"- {session_id}" for session_id in session_ids))
+    extra_section = "\n\n## Additional context\n\n" + "\n\n".join(extra_parts)
     transcript_line = ""
     if transcript_dir:
-        transcript_line = f"\nSession transcripts: `{transcript_dir}`. Search narrowly; do not read everything.\n"
-    sessions_line = ""
-    if session_ids:
-        sessions_line = "\nSessions since last consolidation:\n" + "\n".join(f"- {session_id}" for session_id in session_ids)
+        transcript_line = (
+            f"\nSession transcripts: `{transcript_dir}` (large JSONL files — search narrowly, do not read whole files).\n"
+        )
 
     return f"""# Dream: Memory Consolidation
 
-You are consolidating Pico's repo-local file memory.
+You are performing a dream: a reflective pass over Pico's memory files. Synthesize recent signal into durable, well-organized memory files so future sessions can orient quickly.
 
 Memory directory: `{Path(memory_dir)}`
+This directory already exists. Write to it directly; do not create a second memory store.
 {transcript_line}
 Daily logs live under `logs/YYYY/MM/YYYY-MM-DD.md`.
 The memory index is `{ENTRYPOINT_NAME}`.
-{sessions_line}
 
-Rules:
-- Read `{ENTRYPOINT_NAME}` if it exists.
-- Review recent daily logs and relevant topic files.
-- Write durable facts into topic files under the memory directory.
-- Update `{ENTRYPOINT_NAME}` as a concise index only.
-- Do not store secrets, raw command output, stack traces, or transient task state.
-- Merge near-duplicates and prune stale contradictions.
+## Phase 1 - Orient
 
-Return a short final summary after updating memory files."""
+- List files in `{Path(memory_dir)}/` to see what already exists.
+- Read `{ENTRYPOINT_NAME}` if it exists to understand the current index.
+- Skim existing topic files so you improve them instead of creating duplicates.
+- If `logs/` or session transcript files exist, review recent entries first.
+
+## Phase 2 - Gather recent signal
+
+Look for new information worth persisting. Sources in rough priority order:
+
+1. Daily logs (`logs/YYYY/MM/YYYY-MM-DD.md`) - these are the append-only memory intake stream.
+2. Existing memories that drifted - facts that contradict what you now know.
+3. Transcript search - if you need specific context, use narrow grep-style terms:
+   `grep -rn "<narrow term>" {transcript_dir}/ --include="*.jsonl" | tail -50`
+
+Do not exhaustively read transcripts. Look only for things you already suspect matter.
+
+## Phase 3 - Consolidate
+
+For each thing worth remembering, write or update a memory file using the memory file format and type conventions from the Auto Memory section. Use the memory file format and type conventions as the source of truth for what to save, how to structure it, and what NOT to save.
+
+Focus on:
+- Merging new signal into existing topic files rather than creating near-duplicates.
+- Converting relative dates ("yesterday", "last week") to absolute dates so they remain interpretable after time passes.
+- Deleting contradicted facts; if current evidence disproves an old memory, fix it at the source.
+- Keeping secrets, raw command output, stack traces, and transient task state out of memory files.
+
+## Phase 4 - Prune and index
+
+Update `{ENTRYPOINT_NAME}` so it stays under {MAX_ENTRYPOINT_LINES} lines and under ~25KB. It is an index, not a dump; each entry should be one line under ~150 characters, like `- [Title](file.md) — one-line hook`. Never write memory content directly into it.
+
+- Remove pointers to memories that are now stale, wrong, or superseded.
+- Demote verbose index entries into topic files.
+- Add pointers to newly important memories.
+- Resolve contradictions by fixing the wrong memory file, not by adding a second contradictory entry.
+
+Return a brief summary of what you consolidated, updated, or pruned. If nothing changed, say so.{extra_section}"""
 
 
 def reject_durable_reason(note_text, redacted_value="<redacted>"):
@@ -315,6 +461,7 @@ def run_dream(agent, quiet=False, session_ids=None):
 
     ensure_memory_dir(agent.memory_dir)
     session_ids = list(session_ids or [])
+    before_snapshot = _memory_file_snapshot(agent)
     dream_prompt = build_dream_prompt(agent.memory_dir, transcript_dir=str(agent.session_store.root), session_ids=session_ids)
     try:
         memory_scope = Path(agent.memory_dir).resolve().relative_to(agent.root)
@@ -337,33 +484,57 @@ def run_dream(agent, quiet=False, session_ids=None):
     dream_agent.refresh_prefix(force=True)
     result = dream_agent.ask(dream_prompt)
     record_consolidation(agent.memory_dir)
-    agent.session_event_bus.emit("dream_consolidated", {"quiet": bool(quiet), "session_ids": session_ids, "memory_dir": str(agent.memory_dir)})
+    changed_files = _changed_memory_files(before_snapshot, _memory_file_snapshot(agent))
+    agent.last_dream_changed_files = changed_files
+    agent.session_event_bus.emit(
+        "dream_consolidated",
+        {"quiet": bool(quiet), "session_ids": session_ids, "memory_dir": str(agent.memory_dir), "changed_files": changed_files},
+    )
     agent.memory.state = normalize_memory_state(agent.memory.state, agent.root)
     agent.session["memory"] = agent.memory.to_dict()
     return result
 
 
 def maintain_memory_after_turn(agent, final_answer):
+    audit = default_memory_maintenance_audit(auto_dream=agent.auto_dream)
+    agent.last_memory_maintenance = audit
     for entry in extract_memory_tags(final_answer):
-        append_to_daily_log(agent.memory_dir, entry)
+        path = append_to_daily_log(agent.memory_dir, entry)
+        payload = {"source": "final_answer", "path": _agent_relative_path(agent, path), "chars": len(entry)}
+        audit["memory_tags_appended"].append(payload)
+        agent.session_event_bus.emit("memory_note_appended", payload)
     if not agent.auto_dream:
-        return None
-    if not should_auto_dream(
+        audit["auto_dream"]["skip_reason"] = "disabled"
+        _emit_memory_trace(agent, "memory_auto_dream_skipped", dict(audit["auto_dream"]))
+        return audit
+    gate = evaluate_auto_dream_gate(
         agent.memory_dir,
         min_hours=agent.dream_interval_hours,
         min_sessions=agent.dream_min_sessions,
         current_session_id=agent.session["id"],
         sessions_dir=agent.session_store.root,
-    ):
-        return None
+    )
+    audit["auto_dream"]["session_count"] = gate["session_count"]
+    audit["auto_dream"]["session_ids"] = list(gate["session_ids"])
+    if not gate["should_run"]:
+        audit["auto_dream"]["skip_reason"] = gate["skip_reason"]
+        _emit_memory_trace(agent, "memory_auto_dream_skipped", dict(audit["auto_dream"]))
+        return audit
     previous_mtime = read_last_consolidated_at(agent.memory_dir)
     if not try_acquire_lock(agent.memory_dir):
-        return None
-    session_ids = list_sessions_since(previous_mtime, sessions_dir=agent.session_store.root, current_session_id=agent.session["id"])
+        audit["auto_dream"]["skip_reason"] = "lock_held"
+        _emit_memory_trace(agent, "memory_auto_dream_skipped", dict(audit["auto_dream"]))
+        return audit
+    session_ids = list(gate["session_ids"])
+    agent.session_event_bus.emit("auto_dream_started", {"session_ids": session_ids, "session_count": len(session_ids)})
+    _emit_memory_trace(agent, "memory_auto_dream_started", {"session_ids": session_ids, "session_count": len(session_ids)})
     try:
-        result = run_dream(agent, quiet=True, session_ids=session_ids)
+        run_dream(agent, quiet=True, session_ids=session_ids)
+        audit["auto_dream"]["triggered"] = True
+        audit["auto_dream"]["changed_files"] = list(getattr(agent, "last_dream_changed_files", []))
+        _emit_memory_trace(agent, "memory_auto_dream_finished", dict(audit["auto_dream"]))
         release_lock(agent.memory_dir)
-        return result
+        return audit
     except Exception:
         lock_path = Path(agent.memory_dir) / LOCK_FILE_NAME
         if lock_path.exists():

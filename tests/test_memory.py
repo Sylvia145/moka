@@ -160,6 +160,25 @@ def test_kairos_daily_log_index_policy_and_memory_tag_helpers(tmp_path):
     assert extract_memory_tags("x <memory>alpha</memory> y <memory> beta </memory>") == ["alpha", "beta"]
 
 
+def test_kairos_memory_system_section_defines_file_contract_and_forget_policy(tmp_path):
+    memory_root = tmp_path / ".pico" / "memory"
+
+    policy = build_memory_system_section(memory_root)
+
+    assert "There are four discrete types of memory" in policy
+    for memory_type in ("### user", "### feedback", "### project", "### reference"):
+        assert memory_type in policy
+    assert "If the user explicitly asks you to remember something, save it immediately" in policy
+    assert "If they ask you to forget something, find and remove the relevant entry" in policy
+    assert "name: {{memory name}}" in policy
+    assert "description: {{one-line description" in policy
+    assert "type: {{user | feedback | project | reference}}" in policy
+    assert "MEMORY.md is an index, not a memory" in policy
+    assert "Keep it under 200 lines" in policy
+    assert "You MUST access memory when the user explicitly asks you to recall or remember" in policy
+    assert "Code patterns, architecture, file paths" in policy
+
+
 def test_dream_prompt_targets_repo_local_memory_assets(tmp_path):
     memory_root = tmp_path / ".pico" / "memory"
 
@@ -170,6 +189,26 @@ def test_dream_prompt_targets_repo_local_memory_assets(tmp_path):
     assert "MEMORY.md" in prompt
     assert "logs/YYYY/MM/YYYY-MM-DD.md" in prompt
     assert "s1" in prompt and "s2" in prompt
+
+
+def test_dream_prompt_uses_four_phase_filesystem_maintenance_flow(tmp_path):
+    memory_root = tmp_path / ".pico" / "memory"
+    transcript_dir = tmp_path / ".pico" / "sessions"
+
+    prompt = build_dream_prompt(memory_root, transcript_dir=str(transcript_dir), session_ids=["s1"])
+
+    assert "Phase 1" in prompt and "Orient" in prompt
+    assert "Phase 2" in prompt and "Gather recent signal" in prompt
+    assert "Phase 3" in prompt and "Consolidate" in prompt
+    assert "Phase 4" in prompt and "Prune and index" in prompt
+    assert "grep -rn" in prompt
+    assert "--include=\"*.jsonl\"" in prompt
+    assert "Use the memory file format and type conventions" in prompt
+    assert "Converting relative dates" in prompt
+    assert f"under {200} lines" in prompt
+    assert "under ~25KB" in prompt
+    assert "Never write memory content directly into it" in prompt
+    assert "Remove pointers to memories that are now stale, wrong, or superseded" in prompt
 
 
 def test_consolidation_lock_can_be_reacquired_after_release(tmp_path):

@@ -1,4 +1,4 @@
-from .cli import build_agent, build_arg_parser, build_welcome, main
+from .cli import build_agent, build_arg_parser, build_welcome, interaction_mode, main
 from .core.engine import Engine
 from .providers import AnthropicCompatibleModelClient, OpenAICompatibleModelClient
 from .core.runtime import Pico, SessionStore
@@ -12,6 +12,7 @@ __all__ = [
     "build_agent",
     "build_arg_parser",
     "build_welcome",
+    "interaction_mode",
     "main",
     "OpenAICompatibleModelClient",
     "SessionEventBus",

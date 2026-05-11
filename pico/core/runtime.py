@@ -177,6 +177,8 @@ class Pico:
         self.last_durable_promotions = []
         self.last_durable_rejections = []
         self.last_durable_superseded = []
+        self.last_memory_maintenance = memorylib.default_memory_maintenance_audit(auto_dream=self.auto_dream)
+        self.last_dream_changed_files = []
         self._last_tool_result_metadata = {}
         self._last_prefix_refresh = {"workspace_changed": False, "prefix_changed": False}
 
@@ -650,6 +652,11 @@ class Pico:
 
     def remember_durable_note(self, text):
         path = memorylib.append_to_daily_log(self.memory_dir, text)
+        if path:
+            self.session_event_bus.emit(
+                "memory_note_appended",
+                {"source": "slash_command", "path": memorylib._agent_relative_path(self, path), "chars": len(str(text).strip())},
+            )
         return path
 
     def memory_command_text(self):
@@ -860,6 +867,7 @@ class Pico:
             "durable_promotions": list(self.last_durable_promotions),
             "durable_rejections": list(self.last_durable_rejections),
             "durable_superseded": list(self.last_durable_superseded),
+            "memory_maintenance": dict(self.last_memory_maintenance),
             "redacted_env": self.detected_secret_env_summary(),
             "compactions": list(self.session.get("compactions", [])),
             "artifact_graph": dict(task_state.artifact_graph),

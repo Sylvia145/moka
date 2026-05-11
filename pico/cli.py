@@ -249,6 +249,8 @@ def build_arg_parser():
     parser.add_argument("--max-steps", type=int, default=6, help="Maximum tool/model iterations per request.")
     parser.add_argument("--max-new-tokens", type=int, default=512, help="Maximum model output tokens per step.")
     parser.add_argument("--temperature", type=float, default=0.2, help="Sampling temperature sent to the provider.")
+    parser.add_argument("--tui", action="store_true", help="Start the Textual terminal UI.")
+    parser.add_argument("--repl", action="store_true", help="Use the plain line-oriented REPL instead of the TUI.")
     return parser
 
 
@@ -286,6 +288,16 @@ def handle_repl_command(agent, user_input):
     return False, False, ""
 
 
+def interaction_mode(args):
+    if args.prompt:
+        return "one_shot"
+    if getattr(args, "repl", False):
+        return "repl"
+    if getattr(args, "tui", False) or sys.stdin.isatty():
+        return "tui"
+    return "repl"
+
+
 def main(argv=None):
     args = build_arg_parser().parse_args(argv)
     try:
@@ -294,11 +306,18 @@ def main(argv=None):
         print(str(exc), file=sys.stderr)
         return 2
 
+    mode = interaction_mode(args)
+    if mode == "tui":
+        from .tui.app import PicoTuiApp
+
+        PicoTuiApp(agent).run()
+        return 0
+
     model = getattr(agent.model_client, "model", getattr(args, "model", DEFAULT_OPENAI_MODEL))
     host = getattr(agent.model_client, "base_url", getattr(args, "base_url", DEFAULT_OPENAI_BASE_URL))
     print(build_welcome(agent, model=model, host=host))
 
-    if args.prompt:
+    if mode == "one_shot":
         # one-shot 模式：只跑一次 ask，不进入 REPL 循环。
         prompt = " ".join(args.prompt).strip()
         if prompt:

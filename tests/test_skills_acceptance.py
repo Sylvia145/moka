@@ -99,8 +99,11 @@ def test_memory_slash_commands_use_kairos_assets(tmp_path):
     assert should_exit is False
     assert "Saved to daily log" in output
     log_files = list((tmp_path / ".pico" / "memory" / "logs").rglob("*.md"))
+    events = agent.session_store.event_path(agent.session["id"]).read_text(encoding="utf-8")
     assert len(log_files) == 1
     assert "I prefer concise reports" in log_files[0].read_text(encoding="utf-8")
+    assert "memory_note_appended" in events
+    assert "slash_command" in events
 
     handled, should_exit, output = handle_repl_command(agent, "/memory")
     assert handled is True

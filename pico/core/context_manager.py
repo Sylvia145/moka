@@ -100,8 +100,6 @@ class ContextManager:
             relevant_memory_enabled = self.agent.feature_enabled("relevant_memory")
             context_reduction_enabled = self.agent.feature_enabled("context_reduction")
         memory_text = "Memory:\n- disabled" if not memory_enabled else str(self.agent.memory_text())
-        if memory_enabled and hasattr(self.agent, "memory_dir"):
-            memory_text += "\n\n" + memorylib.build_memory_system_section(self.agent.memory_dir)
         section_texts = {
             "prefix": str(getattr(self.agent, "prefix", "")),
             "memory": memory_text,
@@ -116,6 +114,8 @@ class ContextManager:
             checkpoint_text = str(self.agent.render_checkpoint_text() or "").strip()
         if checkpoint_text:
             section_texts["memory"] += "\n\n" + checkpoint_text
+        if memory_enabled and hasattr(self.agent, "memory_dir"):
+            section_texts["memory"] += "\n\n" + memorylib.build_memory_system_section(self.agent.memory_dir)
         selected_notes = []
         if memory_enabled and relevant_memory_enabled and hasattr(self.agent, "memory") and hasattr(self.agent.memory, "retrieval_candidates"):
             selected_notes = self.agent.memory.retrieval_candidates(user_message, limit=RELEVANT_MEMORY_LIMIT)

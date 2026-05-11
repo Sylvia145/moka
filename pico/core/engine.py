@@ -391,7 +391,12 @@ class Engine:
         try:
             agent.maintain_memory_after_turn(final_answer)
         except Exception as exc:
+            audit = getattr(agent, "last_memory_maintenance", {"errors": []})
+            errors = audit.setdefault("errors", [])
+            errors.append(str(exc))
+            agent.last_memory_maintenance = audit
             agent.session_event_bus.emit(
                 "memory_maintenance_failed",
                 {"run_id": task_state.run_id, "error": clip(str(exc), 300)},
             )
+            agent.emit_trace(task_state, "memory_maintenance_failed", {"error": clip(str(exc), 300)})

@@ -1535,8 +1535,36 @@ def test_final_memory_tags_are_appended_to_daily_log(tmp_path):
     assert agent.ask("Remember this if useful") == "Done. <memory>Preference: keep reports concise.</memory>"
 
     log_files = list((tmp_path / ".pico" / "memory" / "logs").rglob("*.md"))
+    report = json.loads(agent.run_store.report_path(agent.current_task_state).read_text(encoding="utf-8"))
+    events = agent.session_store.event_path(agent.session["id"]).read_text(encoding="utf-8")
+    trace = agent.run_store.trace_path(agent.current_task_state).read_text(encoding="utf-8")
+
     assert len(log_files) == 1
     assert "Preference: keep reports concise." in log_files[0].read_text(encoding="utf-8")
+    assert report["memory_maintenance"]["memory_tags_appended"][0]["source"] == "final_answer"
+    assert report["memory_maintenance"]["memory_tags_appended"][0]["path"].startswith(".pico/memory/logs/")
+    assert report["memory_maintenance"]["auto_dream"]["triggered"] is False
+    assert "memory_note_appended" in events
+    assert "memory_auto_dream_skipped" in trace
+
+
+def test_memory_maintenance_report_explains_auto_dream_skip_reason(tmp_path):
+    agent = build_agent(tmp_path, ["<final>Done.</final>"])
+
+    assert agent.ask("Finish without enough sessions") == "Done."
+
+    report = json.loads(agent.run_store.report_path(agent.current_task_state).read_text(encoding="utf-8"))
+    trace = agent.run_store.trace_path(agent.current_task_state).read_text(encoding="utf-8")
+
+    assert report["memory_maintenance"]["auto_dream"] == {
+        "enabled": True,
+        "triggered": False,
+        "skip_reason": "session_gate",
+        "session_count": 0,
+        "session_ids": [],
+        "changed_files": [],
+    }
+    assert "memory_auto_dream_skipped" in trace
 
 
 def test_memory_maintenance_failure_does_not_mask_final_answer(tmp_path, monkeypatch):
@@ -1548,8 +1576,12 @@ def test_memory_maintenance_failure_does_not_mask_final_answer(tmp_path, monkeyp
     monkeypatch.setattr(agent, "maintain_memory_after_turn", fail_memory_maintenance)
 
     assert agent.ask("Finish the task") == "Done."
+    report = json.loads(agent.run_store.report_path(agent.current_task_state).read_text(encoding="utf-8"))
     events = agent.session_store.event_path(agent.session["id"]).read_text(encoding="utf-8")
+    trace = agent.run_store.trace_path(agent.current_task_state).read_text(encoding="utf-8")
+    assert report["memory_maintenance"]["errors"] == ["memory disk is unavailable"]
     assert "memory_maintenance_failed" in events
+    assert "memory_maintenance_failed" in trace
 
 
 def test_memory_dir_is_workspace_relative_and_repo_local(tmp_path):
@@ -1591,7 +1623,15 @@ def test_auto_dream_runs_after_session_gate(tmp_path):
 
     agent.ask("Finish and trigger memory maintenance")
 
+    report = json.loads(agent.run_store.report_path(agent.current_task_state).read_text(encoding="utf-8"))
+    trace = agent.run_store.trace_path(agent.current_task_state).read_text(encoding="utf-8")
+
     assert "Project memory" in (tmp_path / ".pico" / "memory" / "MEMORY.md").read_text(encoding="utf-8")
+    assert report["memory_maintenance"]["auto_dream"]["triggered"] is True
+    assert report["memory_maintenance"]["auto_dream"]["session_count"] == 2
+    assert report["memory_maintenance"]["auto_dream"]["changed_files"] == [".pico/memory/MEMORY.md"]
+    assert "memory_auto_dream_finished" in trace
+    assert ".pico/memory/MEMORY.md" in trace
 
 
 def test_explicit_memory_promotion_accepts_bullet_prefixed_labels(tmp_path):
