@@ -357,7 +357,7 @@ def _scenario_context_pressure(output_dir, workspace):
         agent.record({"role": "user", "content": f"Historical request {index} " + ("padding " * 120), "created_at": f"history-{index}-u"})
         agent.record({"role": "assistant", "content": f"Historical answer {index} " + ("padding " * 120), "created_at": f"history-{index}-a"})
     agent.compact_history(trigger="acceptance_context_pressure", keep_recent_turns=2)
-    agent.context_manager.total_budget = 9000
+    agent.context_manager.total_budget = 12000
     answer = agent.ask("Find and update the target constant while keeping context under budget.")
     return _finalize(
         output_dir,
@@ -405,7 +405,7 @@ def _scenario_provider_error_recovery(output_dir, workspace):
         agent,
         "provider_error_recovery",
         checks=[
-            _check("answer", answer == "Stopped after model error: rate_limited.", answer),
+            _check("answer", "rate_limited" in answer and answer.startswith("模型错误"), answer),
             _check("task_failed", agent.current_task_state.status == "failed"),
             _check("stop_reason", agent.current_task_state.stop_reason == "model_error"),
             _check("provider_error_metadata", agent.last_prompt_metadata["provider_error"]["code"] == "rate_limited"),

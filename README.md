@@ -4,77 +4,95 @@
 
 **轻量、本地、有记忆的终端 coding agent**
 
-跑在终端里 · 看得见每一步 · 跨 session 记住你
+pico 跑在本地仓库里，接上一个模型 provider，就能读代码、跑命令、改文件、
+保留运行证据，并把有价值的上下文沉淀成本地记忆。
 
 </div>
 
----
-
-### **亮点：分层记忆 + auto-dream 跨 session 整合**
-
-> 大部分 coding agent 重启一次就忘干净。pico 把每次会话的关键信号沉淀到本地 `.pico/memory/`，后台 auto-dream 会把它们整理成长期可检索的 topic 文件。下一次启动 pico，它认得这个仓库。
-
-![pico repl](assets/screenshots/pico-repl.png)
-
-[完整记忆系统文档 →](docs/memory.md)
+<p align="center">
+  <img src="assets/screenshots/pico-tui-intro.png" alt="pico TUI 启动界面" width="960">
+</p>
 
 ---
 
-## 特性
+## pico 是什么
 
-### 核心
+pico 是一个本地终端里的 coding agent，运行在你的仓库上下文里。一次 agent 运行会被拆成几个可观察的部分：
 
-- **交互式 REPL** — 流式输出、内置命令补全、`/resume` 续接历史会话
-- **8 个内置工具** — `list_files` `read_file` `search` `run_shell` `write_file` `patch_file` `ask_user` `agent`
-- **Plan mode** — 计划阶段读代码、起 explore 子 agent，写操作隔离到执行阶段
-- **审批模式** — `ask` / `auto` / `never`，写操作和 shell 默认要确认
-- **会话持久化** — 自动保存对话，事件流写入 `.pico/sessions/`
-- **上下文预算** — 60K 字符按 prefix/memory/skills/relevant_memory/history 切，超额自动压缩
-- **三种 provider 协议** — Anthropic Messages API / OpenAI Responses API / DeepSeek
+- **provider profile**：决定调用哪个模型、哪个 endpoint、用什么协议。
+- **context**：把系统提示、仓库信息、skills、记忆和最近对话装进 prompt。
+- **tools**：文件读取、搜索、shell、写文件、patch、子 agent 都走统一工具协议。
+- **approval / sandbox**：写操作和 shell 命令可以被审批或沙箱限制。
+- **session / run evidence**：对话、事件流、trace、report 都写到本地 `.pico/`。
+- **memory / dream**：把 daily log 整理成长期 topic，下次 session 可以继续用。
 
-### 进阶
+pico 关注本地 coding agent 的工程边界：配置清楚、任务能续接、结果能复盘。
 
-| 特性 | 说明 | 文档 |
-|------|------|------|
-| **分层记忆** | working memory + daily logs + durable topics + auto-dream | [docs →](docs/memory.md) |
-| **Auto-dream** | 后台触发，把零散日志整合成 4 类 durable topic | [docs →](docs/memory.md) |
-| **Skills** | `/review` `/test` `/commit` `/simplify` 等 slash workflow | [docs →](docs/skills.md) |
-| **Sandbox** | bubblewrap 隔离 `run_shell` | [docs →](docs/sandbox.md) |
-| **Workspace fingerprint** | 工作区指纹 + prompt cache 友好的 prefix 复用 | — |
-| **Runs/ 审计** | 每次运行写 `task_state.json` + `trace.jsonl` + `report.json` | — |
+## 界面
 
----
+TUI 直接连接同一个 runtime。输入框、工具结果、状态栏、slash command 和补全都来自当前 session。
 
-## 快速开始
+| 工具和子 agent | Skills、help 和命令补全 |
+| --- | --- |
+| ![pico TUI 工具表](assets/screenshots/pico-tui-tools.png) | ![pico TUI skills 和 help](assets/screenshots/pico-tui-skills-help.png) |
 
-### 前置
+| Memory 和 durable topics | Slash command 工作区 |
+| --- | --- |
+| ![pico TUI memory 和 skills](assets/screenshots/pico-tui-memory-skills.png) | ![pico TUI slash command 补全](assets/screenshots/pico-tui-latest.png) |
 
-- Python 3.10+
-- 三种 provider 任选一个 API key：[Anthropic](https://console.anthropic.com/) / OpenAI 兼容 / [DeepSeek](https://platform.deepseek.com)
+## 安装
 
-### 安装
+要求：Python 3.10+，以及至少一个可用的模型 provider key。
+
+一键安装：
 
 ```bash
-# 一键安装（推荐）
 curl -fsSL https://raw.githubusercontent.com/martin-los/pico/main/install.sh | bash
+```
 
-# 或手动
+源码安装：
+
+```bash
 git clone https://github.com/martin-los/pico.git
 cd pico
 pip install -e .
 ```
 
-### 配置 API key
-
-最简单的方式是环境变量：
+开发 checkout 里也可以直接跑：
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...     # 使用 Claude
-export OPENAI_API_KEY=sk-...             # 使用 GPT
-export DEEPSEEK_API_KEY=sk-...           # 使用 DeepSeek
+uv run pico
 ```
 
-或者在项目根写一个 `.pico.toml`：
+## 配置 provider
+
+pico 启动前先解析一个 **provider profile**。一个 profile 主要由四项组成：
+
+| 字段 | 作用 |
+| --- | --- |
+| `protocol` | 请求协议，目前支持 `openai` 和 `anthropic`。 |
+| `api_key` | 发给 provider 的 key。 |
+| `base_url` | provider endpoint。 |
+| `model` | 本次请求使用的模型名。 |
+
+配置合并优先级是：
+
+```text
+CLI 参数 > 环境变量 > 项目 .pico.toml > 全局 ~/.config/pico/config.toml > 代码默认值
+```
+
+### 方式一：项目 `.pico.toml`
+
+这是最推荐的配置方式，适合每个仓库独立指定 provider：
+
+```bash
+cp .pico.toml.example .pico.toml
+$EDITOR .pico.toml
+```
+
+`.pico.toml` 默认被 `.gitignore` 忽略，不要把真实 key 提交进 git。
+
+最小可用示例：
 
 ```toml
 provider = "deepseek"
@@ -85,190 +103,218 @@ api_key = "sk-..."
 base_url = "https://api.deepseek.com/anthropic"
 model = "deepseek-v4-pro"
 
+[providers.openai]
+protocol = "openai"
+api_key = "sk-..."
+base_url = "https://www.right.codes/codex/v1"
+model = "gpt-5.4"
+
 [providers.anthropic]
 protocol = "anthropic"
 api_key = "sk-ant-..."
-base_url = "https://api.anthropic.com"
+base_url = "https://www.right.codes/claude/v1"
 model = "claude-sonnet-4-6"
 ```
 
-完整配置参考 [docs/configuration.md](docs/configuration.md)。
+注意：`provider = "deepseek"` 只是选择 profile 名字，真正决定请求格式的是
+`protocol`。例如 DeepSeek 可以通过 Anthropic-compatible endpoint 使用，所以这里写
+`protocol = "anthropic"`。
 
-### 运行
+### 方式二：环境变量
+
+不想把 key 写进 TOML 时，用环境变量：
 
 ```bash
-pico                                      # 交互式 REPL
-pico "找出测试失败的根因并提议修复"        # 一次性任务
-pico --provider deepseek                  # 切换 provider
-pico --resume latest                      # 续接上一个 session
-pico --approval auto                      # 跳过写操作审批
-pico --cwd /path/to/repo                  # 切换工作目录
+export PICO_PROVIDER=deepseek
+export DEEPSEEK_API_KEY=sk-...
+export DEEPSEEK_BASE_URL=https://api.deepseek.com/anthropic
+export DEEPSEEK_MODEL=deepseek-v4-pro
+
+pico
 ```
 
-### 第一次会话
+常用 provider 变量：
+
+| Provider | 变量 |
+| --- | --- |
+| DeepSeek | `DEEPSEEK_API_KEY`, `DEEPSEEK_BASE_URL`, `DEEPSEEK_MODEL` |
+| OpenAI-compatible | `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL` |
+| Anthropic-compatible | `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL` |
+
+也可以用通用覆盖变量：
+
+```bash
+export PICO_API_KEY=sk-...
+export PICO_BASE_URL=https://api.openai.com/v1
+export PICO_MODEL=gpt-5.4
+```
+
+### 方式三：命令行临时覆盖
+
+临时换 provider 或模型：
+
+```bash
+pico --provider openai --model gpt-5.4 --base-url https://api.openai.com/v1
+pico --provider deepseek --approval ask --max-steps 80
+pico --config /path/to/custom.toml --cwd /path/to/repo
+```
+
+完整配置说明见 [docs/configuration.md](docs/configuration.md)。
+
+## 启动
+
+常用入口：
+
+```bash
+pico                              # 默认 Textual TUI
+pico --repl                       # 普通终端 REPL
+pico "找出测试失败的根因"          # one-shot 任务
+pico --resume latest              # 续接最近 session
+pico --cwd /path/to/repo          # 指定工作目录
+```
+
+常用运行参数：
+
+```bash
+pico --approval ask               # shell / 写文件前询问
+pico --approval auto              # 普通操作自动通过
+pico --approval never             # 非交互模式
+pico --sandbox best_effort        # 尽量隔离 shell 命令
+pico --no-auto-dream              # 关闭后台 memory 整合
+```
+
+## 日常用法
+
+进入 TUI 或 REPL 后可以直接输入自然语言，也可以用 slash command：
 
 ```text
-$ pico
-+============================================+
-|        /\___/\\                            |
-|       (  o o  )    pico                    |
-|       /   ^   \\   local coding agent      |
-|      /|       |\\  calm shell, ready       |
-+============================================+
-| WORKSPACE  /you/project                    |
-| MODEL      claude-sonnet-4-6               |
-| APPROVAL   ask    SESSION  20260513-...    |
-+============================================+
-
-> 列出仓库根目录下的 Python 包
-↳ list_files(.) ✓
-找到 3 个包: src/, tests/, scripts/
-
-> 读 src/__init__.py 然后告诉我导出哪些符号
-↳ read_file(src/__init__.py) ✓
-导出 4 个：Agent, Workspace, Session, run_agent。
-
-> /remember 这个项目用 Anthropic API，密钥从 .env 加载
-Saved to daily log.
-
+> /help
+> /skills
+> 找出测试失败的根因
+> /plan 重构 provider 配置加载逻辑
+> /review
+> /test tests/test_config.py
+> /remember 这个项目用 DeepSeek 的 Anthropic-compatible endpoint
 > /dream
-Consolidation complete. 写入 topics/user-preferences.md 与 MEMORY.md。
-
-> /exit
 ```
 
-下次重新打开 pico 时，`MEMORY.md` 里已经有这条偏好；模型在新 session 中会主动用上。
+常用命令：
 
----
+| 命令 | 作用 |
+| --- | --- |
+| `/help` | 查看内置命令。 |
+| `/skills` | 列出可用 skills。 |
+| `/session` | 查看当前 session、events、run 路径。 |
+| `/history` | 列出历史 session。 |
+| `/resume latest` | 续接最近 session。 |
+| `/context` | 查看 prompt context 使用情况。 |
+| `/usage` | 查看 provider、model、token 元数据。 |
+| `/memory` | 查看 durable memory 索引。 |
+| `/working-memory` | 查看当前 session 工作记忆。 |
+| `/remember <text>` | 保存一条 durable note 到 daily log。 |
+| `/dream` | 把 daily log 整合成 durable memory topics。 |
+| `/plan <topic>` | 进入 plan mode。 |
+| `/plan-exit` | 退出 plan mode。 |
+| `/agents` | 查看子 agent 状态。 |
+| `/model <name>` | 当前 session 临时切模型。 |
+| `/compact` | 压缩较早的对话历史。 |
+| `/clear` | 开一个新的空 session。 |
+| `/exit` | 退出 pico。 |
 
-## 工具
+## pico 能做什么
 
-| 工具 | 用途 | 审批 |
-|------|------|------|
-| `list_files` | 列目录 | 自动通过 |
-| `read_file` | 读文件按行区间 | 自动通过 |
-| `search` | rg / fallback 搜索 | 自动通过 |
-| `run_shell` | 执行 shell 命令 | 默认询问 |
-| `write_file` | 写文件 | 默认询问 |
-| `patch_file` | 精确字符串替换 | 默认询问 |
-| `ask_user` | 反向问用户 | 自动通过 |
-| `agent` | 起子 agent（Explore / worker） | 自动通过 |
+| 能力 | 说明 |
+| --- | --- |
+| TUI / REPL / one-shot | 同一个 runtime，通过不同入口使用。 |
+| 工具执行 | 文件列表、读文件、搜索、shell、写文件、patch、ask_user、子 agent、todo。 |
+| Plan mode | 先读代码和拆计划，再进入可写执行阶段。 |
+| 子 agent | 启动 bounded Explore / Worker 任务。 |
+| Skills | 复用 `/review`、`/test`、`/commit`、`/simplify` 等工作流。 |
+| Memory | working memory、daily logs、durable topics、auto-dream。 |
+| Evidence | session JSON、event stream、run trace、task state、report。 |
+| Sandbox | 对 `run_shell` 做可选隔离。 |
 
-Plan mode 多出 `enter_plan_mode` / `exit_plan_mode`；todo ledger 多出 `todo_add` / `todo_update` / `todo_list`。
+## 本地文件
 
----
-
-## 数据路径
-
-| 数据 | 位置 |
-|------|------|
-| 会话历史 | `.pico/sessions/<id>.json` |
-| 事件流 | `.pico/sessions/<id>.events.jsonl` |
-| 每次运行的工件 | `.pico/runs/<run_id>/` |
-| 工作记忆 | session JSON 的 `memory` 字段 |
-| 持久记忆 | `.pico/memory/` |
-| 记忆索引 | `.pico/memory/MEMORY.md` |
-| Daily logs | `.pico/memory/logs/YYYY/MM/YYYY-MM-DD.md` |
-| Topic 文件 | `.pico/memory/topics/*.md` |
+| 数据 | 路径 |
+| --- | --- |
 | 项目配置 | `.pico.toml` |
 | 全局配置 | `~/.config/pico/config.toml` |
-| 用户技能 | `~/.pico/skills/<name>/SKILL.md` |
-| 项目技能 | `skills/<name>/SKILL.md` 或 `.pico/skills/<name>/SKILL.md` |
-
----
-
-## 常用 slash 命令
-
-| 命令 | 说明 |
-|------|------|
-| `/help` | 查看全部内置命令 |
-| `/memory` | 显示 `MEMORY.md` 索引 |
-| `/working-memory` | 显示当前 session 工作记忆 |
-| `/remember <text>` | 追加一条记忆到今天的 daily log |
-| `/dream` | 立即整合 daily log 到 topic 文件 |
-| `/skills` | 列出可用技能 |
-| `/review` `/test` `/commit` `/simplify` | 内置技能 |
-| `/plan <topic>` | 进入 plan mode |
-| `/plan-exit` | 退出 plan mode |
-| `/resume <id\|latest>` | 续接历史 session |
-| `/history` | 显示最近 session |
-| `/session` | 显示当前 session 路径和状态 |
-| `/context` | 显示上下文预算用量 |
-| `/usage` | 显示 token / call 统计 |
-| `/compact` | 手动压缩历史 |
-| `/clear` | 清空当前 session 状态开新 session |
-| `/exit` | 退出 |
-
----
+| 会话历史 | `.pico/sessions/<id>.json` |
+| 事件流 | `.pico/sessions/<id>.events.jsonl` |
+| 运行证据 | `.pico/runs/<run_id>/` |
+| 记忆索引 | `.pico/memory/MEMORY.md` |
+| Daily logs | `.pico/memory/logs/YYYY/MM/YYYY-MM-DD.md` |
+| Durable topics | `.pico/memory/topics/*.md` |
+| 用户 skills | `~/.pico/skills/<name>/SKILL.md` |
+| 项目 skills | `skills/<name>/SKILL.md` 或 `.pico/skills/<name>/SKILL.md` |
 
 ## 项目结构
 
-```
+```text
 pico/
-├── core/                  # 控制平面
-│   ├── runtime.py         # Pico 主类（会话、记忆、prompt 装配）
-│   ├── engine.py          # 单轮 turn 循环
-│   ├── context_manager.py # prompt 预算切片 / 压缩
-│   ├── tool_policy.py     # 工具策略（read-before-write 等）
-│   ├── tool_profiles.py   # 工具组（default / dream / readonly / worker / plan）
-│   ├── worker_manager.py  # 子 agent 生命周期
-│   └── session_store.py   # 会话持久化
-│
-├── features/              # 可插拔特性
-│   ├── memory.py          # 分层记忆 + auto-dream
-│   ├── skills.py          # 技能加载
-│   ├── skills_bundled.py  # 内置 /review /test /commit /simplify
-│   └── sandbox/           # bubblewrap 隔离
-│
-├── tools/                 # 工具实现
-│   ├── registry.py        # 工具注册
-│   ├── agents.py          # agent / send_message / task_stop
-│   ├── ask_user.py        # 反向问用户
-│   ├── plan.py            # plan mode 工具
-│   └── todos.py           # todo ledger
-│
+├── cli.py                 # CLI 参数、启动模式、REPL 命令
+├── config/                # provider profile、TOML、env 解析
+├── core/                  # runtime、engine、session、workers、context
+├── features/              # memory、skills、sandbox
+├── providers/             # OpenAI-compatible / Anthropic-compatible client
+├── tools/                 # tool registry 和具体工具
 ├── tui/                   # Textual TUI
-├── providers/             # Anthropic / OpenAI 协议客户端
-└── cli.py                 # CLI 入口
+└── evaluation/            # run evidence、metrics、evaluation helpers
 ```
-
----
-
-## 默认值
-
-| 项 | 默认 | 说明 |
-|----|------|------|
-| `--max-steps` | 50 | 单轮最多模型 / 工具迭代次数 |
-| `--max-new-tokens` | 按 provider 推断 | Anthropic 32000, OpenAI/DeepSeek 8192 |
-| `--temperature` | 0.2 | 采样温度 |
-| `--approval` | `ask` | 写操作默认询问 |
-| `--sandbox` | `off` | 默认不沙盒，可设 `best_effort` 或 `required` |
-| `--dream-interval` | 24（小时） | auto-dream 最小间隔 |
-| `--dream-min-sessions` | 5 | auto-dream 触发所需最少新 session |
-
----
 
 ## 测试
 
 ```bash
 pip install -e ".[dev]"
-pytest tests/ -q                       # 单元测试
-pytest tests/test_release_smoke.py     # release 烟测（需 API key）
-```
+pytest tests/ -q
 
----
+# 真实 provider 烟测需要 key
+PICO_LIVE_SMOKE=1 pytest tests/test_release_smoke.py -q
+```
 
 ## 文档
 
-| 主题 | 链接 |
-|------|------|
-| 配置（API key / TOML / CLI flag） | [docs/configuration.md](docs/configuration.md) |
-| 分层记忆 + auto-dream | [docs/memory.md](docs/memory.md) |
-| Skills（自定义工作流） | [docs/skills.md](docs/skills.md) |
-| Sandbox（命令隔离） | [docs/sandbox.md](docs/sandbox.md) |
+| 入口 | 内容 |
+| --- | --- |
+| [配置](docs/configuration.md) | provider profile、`.pico.toml`、环境变量和 sandbox 配置。 |
+| [分层记忆 + auto-dream](docs/memory.md) | working memory、daily logs、durable topics 和后台整合。 |
+| [Skills](docs/skills.md) | `SKILL.md` 目录结构、内置技能和自定义 workflow。 |
+| [Sandbox](docs/sandbox.md) | `run_shell` 隔离模式、backend 选择和文件系统边界。 |
 
----
+### v3 发布包
 
-## 许可证
+| 入口 | 内容 |
+| --- | --- |
+| [Release pack](release/v3/README.md) | v3 发布材料入口。 |
+| [Changelog](release/v3/CHANGELOG.md) | v3 变更摘要。 |
+| [Review pack](release/v3/REVIEW.md) | 项目 pitch、架构地图、边界和评审材料。 |
+| [Testing](release/v3/TESTING.md) | v3 测试范围和执行摘要。 |
+| [真人场景测试包](release/v3/testing/README.md) | 50 个真实使用场景的测试入口。 |
+| [测试设计](release/v3/testing/01-test-design.md) | 场景设计、覆盖面和验收口径。 |
+| [执行记录](release/v3/testing/02-execution-record.md) | 全量执行结果和失败修复记录。 |
+| [Runner 与证据](release/v3/testing/03-runner-and-evidence.md) | 测试 runner、输出目录和证据文件说明。 |
+| [场景检查清单](release/v3/testing/04-scenario-checklist.md) | 50 个场景的逐项状态。 |
+
+### v3 学习文档
+
+按这个顺序读，能从整体架构一路落到模块和测试：
+
+| 顺序 | 文档 |
+| --- | --- |
+| 0 | [阅读索引](release/v3/learning/00-reading-map.md) |
+| 1 | [总体架构](release/v3/learning/01-overall-architecture.md) |
+| 2 | [Runtime 和 Engine](release/v3/learning/02-runtime-engine.md) |
+| 3 | [上下文、记忆和压缩](release/v3/learning/03-context-memory-compact.md) |
+| 4 | [工具、权限和沙箱](release/v3/learning/04-tools-permissions-sandbox.md) |
+| 5 | [子 agent、计划模式和 Todo](release/v3/learning/05-workers-plan-todo.md) |
+| 6 | [Provider 和配置](release/v3/learning/06-providers-config.md) |
+| 7 | [Skills、命令、CLI 和 TUI](release/v3/learning/07-skills-commands-cli-tui.md) |
+| 8 | [Session、Run 和 Evaluation](release/v3/learning/08-session-run-evaluation.md) |
+| 9 | [模块地图](release/v3/learning/09-module-map.md) |
+| 10 | [模块学习指南](release/v3/learning/10-module-learning-guide.md) |
+| 11 | [Dream 后台记忆整合](release/v3/learning/11-dream-memory-consolidation.md) |
+
+## License
 
 MIT

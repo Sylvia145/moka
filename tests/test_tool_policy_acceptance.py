@@ -39,6 +39,33 @@ def test_patch_requires_prior_fresh_read_and_allows_after_read(tmp_path):
     assert (tmp_path / "README.md").read_text(encoding="utf-8") == "hello pico\n"
 
 
+def test_rejected_patch_can_be_retried_after_informing_read(tmp_path):
+    agent = build_agent(
+        tmp_path,
+        [
+            '<tool name="patch_file" path="README.md"><old_text>world</old_text><new_text>pico</new_text></tool>',
+            '<tool>{"name":"read_file","args":{"path":"README.md","start":1,"end":1}}</tool>',
+            '<tool name="patch_file" path="README.md"><old_text>world</old_text><new_text>pico</new_text></tool>',
+            "<final>done</final>",
+        ],
+        max_steps=4,
+    )
+
+    assert agent.ask("retry a patch only after reading the target file") == "done"
+    assert (tmp_path / "README.md").read_text(encoding="utf-8") == "hello pico\n"
+
+    trace = read_jsonl(agent.current_run_dir / "trace.jsonl")
+    patch_events = [
+        event
+        for event in trace
+        if event["event"] == "tool_executed" and event.get("name") == "patch_file"
+    ]
+    assert [event.get("tool_error_code") for event in patch_events] == [
+        "prior_read_required",
+        "",
+    ]
+
+
 def test_write_file_allows_new_file_but_requires_read_before_overwrite(tmp_path):
     agent = build_agent(tmp_path)
 
@@ -63,6 +90,33 @@ def test_patch_allows_self_authored_file_without_extra_read(tmp_path):
 
     assert patched == "patched scripts/check.py"
     assert (tmp_path / "scripts" / "check.py").read_text(encoding="utf-8") == "assert True\n"
+
+
+def test_repeated_mutating_file_tool_cannot_overwrite_later_patch(tmp_path):
+    agent = build_agent(
+        tmp_path,
+        [
+            '<tool name="write_file" path="scripts/check.py"><content>VALUE = False\n</content></tool>',
+            '<tool name="patch_file" path="scripts/check.py"><old_text>False</old_text><new_text>True</new_text></tool>',
+            '<tool name="write_file" path="scripts/check.py"><content>VALUE = False\n</content></tool>',
+            "<final>done</final>",
+        ],
+        max_steps=4,
+    )
+
+    assert agent.ask("write then patch then accidentally repeat the same write") == "done"
+    assert (tmp_path / "scripts" / "check.py").read_text(encoding="utf-8") == "VALUE = True\n"
+
+    trace = read_jsonl(agent.current_run_dir / "trace.jsonl")
+    write_events = [
+        event
+        for event in trace
+        if event["event"] == "tool_executed" and event.get("name") == "write_file"
+    ]
+    assert [event.get("tool_error_code") for event in write_events] == [
+        "",
+        "repeated_identical_call",
+    ]
 
 
 def test_shell_search_like_commands_are_rejected_by_policy(tmp_path):

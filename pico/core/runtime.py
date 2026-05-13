@@ -30,6 +30,7 @@ from .runtime_secrets import REDACTED_VALUE, RuntimeSecretsMixin
 from .session_events import SessionEventBus
 from .session_lifecycle import clear_runtime_session, resume_runtime_session
 from .session_store import SessionStore as SessionStore  # noqa: F401
+from .tool_repetition import is_repeated_tool_call
 from .tool_profiles import build_tool_profiles
 from .todo_ledger import TodoLedger
 from .turn_history import TurnHistoryBuilder
@@ -817,17 +818,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         return tool_executor.run_tool(self, name, args)
 
     def repeated_tool_call(self, name, args):
-        # agent 很常见的一种坏循环，是在没有新信息的情况下反复发起同一调用。
-        # 这里提前挡掉这种循环，避免真实 session 反复 read/search 到 step limit。
-        tool_events = [
-            item for item in self.session["history"] if item["role"] == "tool"
-        ]
-        matches = [
-            item
-            for item in tool_events
-            if item["name"] == name and item["args"] == args
-        ]
-        return len(matches) >= 2
+        return is_repeated_tool_call(self.session["history"], name, args)
 
     @staticmethod
     def new_task_id():

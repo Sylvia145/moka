@@ -3,6 +3,7 @@
 import re
 
 from .tool_policy import ToolPolicyChecker
+from .tool_repetition import repeated_tool_call_metadata
 from .workspace import clip
 
 INLINE_TOOL_OUTPUT_LIMIT = 1000
@@ -41,6 +42,9 @@ def run_tool(agent, name, args):
             "diff_summary": [],
         }
         return message
+    if agent.repeated_tool_call(name, args):
+        agent._last_tool_result_metadata = repeated_tool_call_metadata(tool)
+        return f"error: repeated identical tool call for {name}; choose a different tool or return a final answer"
     decision = agent.permission_checker.check(tool, args)
     _emit_permission_decision(agent, tool, args, decision)
     if not decision.allowed:
@@ -70,19 +74,6 @@ def run_tool(agent, name, args):
         }
         agent.record_process_note_for_tool(name, agent._last_tool_result_metadata)
         return policy.message
-    if agent.repeated_tool_call(name, args):
-        agent._last_tool_result_metadata = {
-            "tool_status": "rejected",
-            "tool_error_code": "repeated_identical_call",
-            "security_event_type": "",
-            "risk_level": "high" if tool.risky else "low",
-            "read_only": tool.read_only,
-            "affected_paths": [],
-            "workspace_changed": False,
-            "diff_summary": [],
-        }
-        return f"error: repeated identical tool call for {name}; choose a different tool or return a final answer"
-
     before_snapshot = agent.capture_workspace_snapshot() if tool.risky else {}
     after_snapshot = before_snapshot
     try:

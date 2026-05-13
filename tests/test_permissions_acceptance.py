@@ -2,6 +2,7 @@ import json
 
 from pico.testing import ScriptedModelClient
 from pico import Pico, SessionStore, WorkspaceContext
+from pico.cli import handle_repl_command
 from pico.core.permissions import PermissionDecision
 from pico.features.sandbox.config import SandboxConfig
 
@@ -144,6 +145,43 @@ def test_plan_mode_switches_tool_profile_and_allows_only_active_plan_file(tmp_pa
     )
 
 
+def test_repeated_plan_mode_denial_is_blocked_before_hitting_step_limit(tmp_path):
+    bad_call = '<tool name="write_file" path="src.py"><content>print("no")\n</content></tool>'
+    agent = build_agent(
+        tmp_path,
+        [
+            bad_call,
+            bad_call,
+            bad_call,
+            '<tool name="write_file" path=".pico/plans/repeat-plan.md"><content># Plan\n- Retry stopped.\n</content></tool>',
+            "<final>Plan ready.</final>",
+        ],
+        max_steps=6,
+    )
+    agent.enter_plan_mode("repeat")
+
+    assert agent.ask("verify repeated plan-mode denial handling") == "Plan ready."
+    assert not (tmp_path / "src.py").exists()
+
+    trace = [
+        json.loads(line)
+        for line in (agent.current_run_dir / "trace.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    write_events = [
+        event
+        for event in trace
+        if event["event"] == "tool_executed" and event.get("name") == "write_file"
+    ]
+
+    assert [event.get("tool_error_code") for event in write_events[:3]] == [
+        "plan_mode_path_mismatch",
+        "repeated_identical_call",
+        "repeated_identical_call",
+    ]
+    assert write_events[3]["status"] == "ok"
+
+
 def test_plan_mode_does_not_allow_retargeting_active_plan_with_enter_tool(tmp_path):
     agent = build_agent(tmp_path)
 
@@ -165,4 +203,17 @@ def test_plan_mode_rejects_arbitrary_workspace_plan_path(tmp_path):
     )
 
     assert "plan path must stay under .pico/plans/" in rejected
+    assert agent.runtime_mode == "default"
+
+
+def test_repl_plan_command_reports_bad_plan_path_without_crashing(tmp_path):
+    agent = build_agent(tmp_path)
+
+    handled, should_exit, output = handle_repl_command(
+        agent, "/plan auth .pico/plans/../escape.md"
+    )
+
+    assert handled is True
+    assert should_exit is False
+    assert output == "error: plan path must stay under .pico/plans/"
     assert agent.runtime_mode == "default"

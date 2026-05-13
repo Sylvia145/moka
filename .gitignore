@@ -48,11 +48,6 @@ docs/**
 !docs/memory.md
 !docs/skills.md
 !docs/sandbox.md
-!docs/internal/
-!docs/internal/review-pack/
-!docs/internal/review-pack/README.md
-!docs/internal/architecture/
-!docs/internal/architecture/agent-harness-v1-overview.md
 
 # OS files
 .DS_Store

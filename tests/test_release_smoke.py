@@ -9,10 +9,8 @@ public release:
 These tests use ScriptedModelClient (deterministic) by default so CI always runs.
 Set PICO_LIVE_SMOKE=1 with a provider configured to run them against a real model.
 """
-import json
 import os
 import textwrap
-from pathlib import Path
 
 import pytest
 

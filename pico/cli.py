@@ -397,7 +397,10 @@ def handle_repl_command(agent, user_input):
         if " " in topic:
             topic, _, path = topic.partition(" ")
             path = path.strip() or None
-        plan_path = agent.enter_plan_mode(topic, path=path)
+        try:
+            plan_path = agent.enter_plan_mode(topic, path=path)
+        except ValueError as exc:
+            return True, False, f"error: {exc}"
         return True, False, f"mode: plan\nplan path: {plan_path}"
     if user_input == "/plan-exit":
         agent.exit_plan_mode()
