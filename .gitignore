@@ -50,6 +50,7 @@ docs/**
 !docs/
 !docs/configuration.md
 !docs/memory.md
+!docs/project-guide.md
 !docs/skills.md
 !docs/sandbox.md
 

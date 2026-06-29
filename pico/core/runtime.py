@@ -487,7 +487,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         # 它是谁、工具怎么调用、当前仓库是什么状态，都写在这里。
         text = textwrap.dedent(
             f"""\
-            You are pico, a small local coding agent working inside a local repository.
+            You are Moka, a small local coding agent working inside a local repository.
 
             Rules:
             - Use tools instead of guessing about the workspace.

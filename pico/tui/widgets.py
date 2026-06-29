@@ -8,15 +8,8 @@ from textual.containers import VerticalScroll
 from textual.widget import Widget
 from textual.widgets import Collapsible, Input, Markdown, Static
 
+from ..branding import PRODUCT_ART, PRODUCT_NAME
 from ..commands.slash import SlashCommand, suggest_commands
-
-
-PICO_MARK = [
-    r"        /\___/\\",
-    r"       (  o o  )",
-    r"       /   ^   \\",
-    r"      /|       |\\",
-]
 
 
 def format_tool_args(name: str, args: dict | None) -> str:
@@ -66,12 +59,12 @@ class WelcomeBanner(Static):
         accent = "#9ec5fe"
         rows = [
             Text.assemble(
-                Text("pico", style=f"bold {accent}"),
+                Text(PRODUCT_NAME, style=f"bold {accent}"),
                 Text("  local coding agent", style=muted),
             ),
             Text(""),
         ]
-        rows.extend(Text(line, style=accent) for line in PICO_MARK)
+        rows.extend(Text(line, style=accent) for line in PRODUCT_ART)
         rows.extend(
             [
                 Text(""),
@@ -148,7 +141,7 @@ class AssistantMessage(Static):
         self.content = content
 
     def compose(self):
-        yield Static("pico", classes="message-label")
+        yield Static(PRODUCT_NAME, classes="message-label")
         yield Markdown(self.content)
 
     def update_content(self, content: str) -> None:
@@ -538,7 +531,7 @@ class InputBar(Static):
 
     def __init__(self) -> None:
         super().__init__()
-        self.input = Input(placeholder="Ask pico or type /help")
+        self.input = Input(placeholder=f"Ask {PRODUCT_NAME} or type /help")
         self.history: list[str] = []
         self.history_index = 0
         self._slash_suggestions: list[SlashCommand] = []
@@ -554,7 +547,9 @@ class InputBar(Static):
     def set_busy(self, busy: bool) -> None:
         self.input.disabled = bool(busy)
         self.input.placeholder = (
-            "pico is working..." if busy else "Ask pico or type /help"
+            f"{PRODUCT_NAME} is working..."
+            if busy
+            else f"Ask {PRODUCT_NAME} or type /help"
         )
 
     def history_prev(self) -> None:

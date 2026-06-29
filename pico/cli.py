@@ -14,6 +14,13 @@ import textwrap
 from pathlib import Path
 from urllib.parse import urlparse
 
+from .branding import (
+    PRODUCT_ART,
+    PRODUCT_NAME,
+    PRODUCT_NAME_LOWER,
+    PRODUCT_STATUS,
+    PRODUCT_SUBTITLE,
+)
 from .commands.slash import command_help_text, parse_subagent_args, resolve_command
 from .config import (
     DEFAULT_PROVIDER,
@@ -21,15 +28,15 @@ from .config import (
     load_project_env,
     resolve_project_sandbox_config,
 )
+from .core.model_router import ModelClientRouter
+from .core.runtime import Pico, SessionStore
+from .core.workspace import WorkspaceContext, middle, now
 from .features import memory as memorylib
 from .features import skills as skillslib
 from .features.skills_runtime import invoke_skill
 from .providers import AnthropicCompatibleModelClient, OpenAICompatibleModelClient
 from .providers.errors import sanitize_url
 from .providers.runtime import ProviderClientClasses, build_provider_runtime
-from .core.model_router import ModelClientRouter
-from .core.runtime import Pico, SessionStore
-from .core.workspace import WorkspaceContext, middle, now
 
 DEFAULT_SECRET_ENV_NAMES = (
     "PICO_API_KEY",
@@ -48,15 +55,10 @@ DEFAULT_SECRET_ENV_NAMES = (
     "GH_PAT",
 )
 
-WELCOME_ART = (
-    "        /\\___/\\\\",
-    "       (  o o  )",
-    "       /   ^   \\\\",
-    "      /|       |\\\\",
-)
-WELCOME_NAME = "pico"
-WELCOME_SUBTITLE = "local coding agent"
-WELCOME_STATUS = "calm shell, ready for work"
+WELCOME_ART = PRODUCT_ART
+WELCOME_NAME = PRODUCT_NAME
+WELCOME_SUBTITLE = PRODUCT_SUBTITLE
+WELCOME_STATUS = PRODUCT_STATUS
 HELP_DETAILS = (
     command_help_text()
     + "\n\n"
@@ -275,10 +277,10 @@ def build_arg_parser():
     parser.add_argument(
         "--repo-root",
         default=None,
-        help="Override the repository root used for Pico state and relative paths.",
+        help="Override the repository root used for Moka state and relative paths.",
     )
     parser.add_argument(
-        "--config", default=None, help="Path to a Pico TOML config file."
+        "--config", default=None, help="Path to a Moka TOML config file."
     )
     parser.add_argument(
         "--provider",
@@ -829,7 +831,7 @@ def main(argv=None):
         # 因此 session history 和 working memory 会跨轮延续。
         _drain_idle_worker_notifications(agent)
         try:
-            user_input = input("\npico> ").strip()
+            user_input = input(f"\n{PRODUCT_NAME_LOWER}> ").strip()
         except (EOFError, KeyboardInterrupt):
             print("")
             return 0
