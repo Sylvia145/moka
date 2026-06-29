@@ -1,23 +1,25 @@
 <div align="center">
 
-# pico
+# Moka
 
 **轻量、本地、有记忆的终端 coding agent**
 
-pico 跑在本地仓库里，接上一个模型 provider，就能读代码、跑命令、改文件、
+Moka 跑在本地仓库里，接上一个模型 provider，就能读代码、跑命令、改文件、
 保留运行证据，并把有价值的上下文沉淀成本地记忆。
+
+Moka 是基于 pico 二次开发的终端 coding agent，保留稳定内核并持续改进交互、兼容入口和工程体验。
 
 </div>
 
 <p align="center">
-  <img src="assets/screenshots/pico-tui-intro.png" alt="pico TUI 启动界面" width="960">
+  <img src="assets/screenshots/moka-tui-intro.png" alt="Moka TUI 启动界面" width="960">
 </p>
 
 ---
 
-## pico 是什么
+## Moka 是什么
 
-pico 是一个本地终端里的 coding agent，运行在你的仓库上下文里。一次 agent 运行会被拆成几个可观察的部分：
+Moka 是一个本地终端里的 coding agent，运行在你的仓库上下文里。一次 agent 运行会被拆成几个可观察的部分：
 
 - **provider profile**：决定调用哪个模型、哪个 endpoint、用什么协议。
 - **context**：把系统提示、仓库信息、skills、记忆和最近对话装进 prompt。
@@ -26,7 +28,7 @@ pico 是一个本地终端里的 coding agent，运行在你的仓库上下文�
 - **session / run evidence**：对话、事件流、trace、report 都写到本地 `.pico/`。
 - **memory / dream**：把 daily log 整理成长期 topic，下次 session 可以继续用。
 
-pico 关注本地 coding agent 的工程边界：配置清楚、任务能续接、结果能复盘。
+Moka 关注本地 coding agent 的工程边界：配置清楚、任务能续接、结果能复盘。
 
 ## 界面
 
@@ -34,11 +36,11 @@ TUI 直接连接同一个 runtime。输入框、工具结果、状态栏、slash
 
 | 工具和子 agent | Skills、help 和命令补全 |
 | --- | --- |
-| ![pico TUI 工具表](assets/screenshots/pico-tui-tools.png) | ![pico TUI skills 和 help](assets/screenshots/pico-tui-skills-help.png) |
+| ![Moka TUI 工具表](assets/screenshots/moka-tui-tools.png) | ![Moka TUI skills 和 help](assets/screenshots/moka-tui-skills-help.png) |
 
 | Memory 和 durable topics | Slash command 工作区 |
 | --- | --- |
-| ![pico TUI memory 和 skills](assets/screenshots/pico-tui-memory-skills.png) | ![pico TUI slash command 补全](assets/screenshots/pico-tui-latest.png) |
+| ![Moka TUI memory 和 skills](assets/screenshots/moka-tui-memory-skills.png) | ![Moka TUI slash command 补全](assets/screenshots/moka-tui-latest.png) |
 
 ## 安装
 
@@ -47,26 +49,26 @@ TUI 直接连接同一个 runtime。输入框、工具结果、状态栏、slash
 一键安装：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/martin-los/pico/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Sylvia145/moka/main/install.sh | bash
 ```
 
 源码安装：
 
 ```bash
-git clone https://github.com/martin-los/pico.git
-cd pico
+git clone https://github.com/Sylvia145/moka.git
+cd moka
 pip install -e .
 ```
 
 开发 checkout 里也可以直接跑：
 
 ```bash
-uv run pico
+uv run moka
 ```
 
 ## 配置 provider
 
-pico 启动前先解析一个 **provider profile**。一个 profile 主要由四项组成：
+Moka 启动前先解析一个 **provider profile**。一个 profile 主要由四项组成：
 
 | 字段 | 作用 |
 | --- | --- |
@@ -130,7 +132,7 @@ export DEEPSEEK_API_KEY=sk-...
 export DEEPSEEK_BASE_URL=https://api.deepseek.com/anthropic
 export DEEPSEEK_MODEL=deepseek-v4-pro
 
-pico
+moka
 ```
 
 常用 provider 变量：
@@ -157,9 +159,9 @@ export PICO_MODEL=gpt-5.4
 临时换 provider 或模型：
 
 ```bash
-pico --provider openai --model gpt-5.4 --base-url https://api.openai.com/v1
-pico --provider deepseek --approval ask --max-steps 80
-pico --config /path/to/custom.toml --cwd /path/to/repo
+moka --provider openai --model gpt-5.4 --base-url https://api.openai.com/v1
+moka --provider deepseek --approval ask --max-steps 80
+moka --config /path/to/custom.toml --cwd /path/to/repo
 ```
 
 完整配置说明见 [docs/configuration.md](docs/configuration.md)。
@@ -169,21 +171,21 @@ pico --config /path/to/custom.toml --cwd /path/to/repo
 常用入口：
 
 ```bash
-pico                              # 默认 Textual TUI
-pico --repl                       # 普通终端 REPL
-pico "找出测试失败的根因"          # one-shot 任务
-pico --resume latest              # 续接最近 session
-pico --cwd /path/to/repo          # 指定工作目录
+moka                              # 默认 Textual TUI
+moka --repl                       # 普通终端 REPL
+moka "找出测试失败的根因"          # one-shot 任务
+moka --resume latest              # 续接最近 session
+moka --cwd /path/to/repo          # 指定工作目录
 ```
 
 常用运行参数：
 
 ```bash
-pico --approval ask               # shell / 写文件前询问
-pico --approval auto              # 普通操作自动通过
-pico --approval never             # 非交互模式
-pico --sandbox best_effort        # 尽量隔离 shell 命令
-pico --no-auto-dream              # 关闭后台 memory 整合
+moka --approval ask               # shell / 写文件前询问
+moka --approval auto              # 普通操作自动通过
+moka --approval never             # 非交互模式
+moka --sandbox best_effort        # 尽量隔离 shell 命令
+moka --no-auto-dream              # 关闭后台 memory 整合
 ```
 
 ## 日常用法
@@ -222,9 +224,9 @@ pico --no-auto-dream              # 关闭后台 memory 整合
 | `/model <name>` | 当前 session 临时切模型。 |
 | `/compact` | 压缩较早的对话历史。 |
 | `/clear` | 开一个新的空 session。 |
-| `/exit` | 退出 pico。 |
+| `/exit` | 退出 Moka。 |
 
-## pico 能做什么
+## Moka 能做什么
 
 | 能力 | 说明 |
 | --- | --- |
@@ -238,6 +240,10 @@ pico --no-auto-dream              # 关闭后台 memory 整合
 | Sandbox | 对 `run_shell` 做可选隔离。 |
 
 ## 本地文件
+
+Moka 当前保留 pico 内核的配置和数据命名，以兼容已有工作区；`.pico/`、`.pico.toml`、
+`PICO_*` 环境变量以及 `pico` Python 导入路径属于稳定的内部技术标识。推荐用户通过
+`moka` 或 `moka-tui` 启动，原有 `pico` 和 `pico-tui` 命令继续可用。
 
 | 数据 | 路径 |
 | --- | --- |
@@ -280,12 +286,15 @@ PICO_LIVE_SMOKE=1 pytest tests/test_release_smoke.py -q
 
 | 入口 | 内容 |
 | --- | --- |
+| [项目导览与迭代指南](docs/project-guide.md) | 面向新成员的系统心智模型、源码阅读路线、当前基线与迭代优先级。 |
 | [配置](docs/configuration.md) | provider profile、`.pico.toml`、环境变量和 sandbox 配置。 |
 | [分层记忆 + auto-dream](docs/memory.md) | working memory、daily logs、durable topics 和后台整合。 |
 | [Skills](docs/skills.md) | `SKILL.md` 目录结构、内置技能和自定义 workflow。 |
 | [Sandbox](docs/sandbox.md) | `run_shell` 隔离模式、backend 选择和文件系统边界。 |
 
 ### v3 发布包
+
+以下内容记录改名前的 pico v3 阶段，作为历史发布和验证证据保留原文。
 
 | 入口 | 内容 |
 | --- | --- |

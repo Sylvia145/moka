@@ -73,6 +73,23 @@ def rendered_text(widget) -> str:
     return getattr(rendered, "plain", str(rendered))
 
 
+def test_tui_uses_moka_branding():
+    from pico.tui.app import PicoTuiApp
+    from pico.tui.widgets import AssistantMessage, InputBar, WelcomeBanner
+
+    welcome = WelcomeBanner(model_name="test-model", cwd="/tmp/demo", approval="auto")
+    bar = InputBar()
+    assistant_label = next(iter(AssistantMessage("hello").compose()))
+
+    assert "Moka" in rendered_text(welcome)
+    assert "|      |]" in rendered_text(welcome)
+    assert rendered_text(assistant_label) == "Moka"
+    assert bar.input.placeholder == "Ask Moka or type /help"
+    bar.set_busy(True)
+    assert bar.input.placeholder == "Moka is working..."
+    assert PicoTuiApp.TITLE == "Moka"
+
+
 def test_cli_defaults_interactive_tty_mode_to_tui(monkeypatch):
     from pico.cli import build_arg_parser, interaction_mode
 
@@ -119,6 +136,15 @@ def test_cli_accepts_explicit_tui_flag():
     assert args.tui is True
     assert interaction_mode(args) == "tui"
     assert args.cwd == "/tmp/workspace"
+
+
+def test_tui_entrypoint_uses_moka_error_message(capsys):
+    from pico.tui.main import main
+
+    result = main(["one-shot prompts are unsupported"])
+
+    assert result == 2
+    assert "Moka TUI does not accept one-shot prompts" in capsys.readouterr().err
 
 
 def test_status_bar_shows_runtime_identity(tmp_path):
@@ -364,7 +390,7 @@ async def test_tui_chat_stream_uses_terminal_transcript_layout(tmp_path):
 
     agent = build_agent(
         tmp_path,
-        ["<final>我是 pico。\n\n- 读代码\n- 跑命令\n- 改文件</final>"],
+        ["<final>我是 Moka。\n\n- 读代码\n- 跑命令\n- 改文件</final>"],
     )
     app = PicoTuiApp(agent)
 
@@ -372,7 +398,7 @@ async def test_tui_chat_stream_uses_terminal_transcript_layout(tmp_path):
         bar = app.query_one(InputBar)
         bar.input.value = "你是谁"
         await pilot.press("enter")
-        text = await wait_for_assistant(app, pilot, "我是 pico。")
+        text = await wait_for_assistant(app, pilot, "我是 Moka。")
 
         chat = app.query_one(ChatLog)
         user = app.query_one(UserMessage)
@@ -380,7 +406,7 @@ async def test_tui_chat_stream_uses_terminal_transcript_layout(tmp_path):
         await wait_for_layout(user, pilot)
         await wait_for_layout(assistant, pilot)
 
-        assert "我是 pico。" in text
+        assert "我是 Moka。" in text
         assert chat.styles.scrollbar_size_horizontal == 0
         assert chat.styles.scrollbar_size_vertical == 1
         assert chat.styles.scrollbar_background.hex.lower() == "#0f1117"

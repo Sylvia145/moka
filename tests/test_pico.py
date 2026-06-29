@@ -287,13 +287,24 @@ def test_welcome_screen_keeps_box_shape_for_long_paths(tmp_path):
     assert len(lines) >= 5
     assert len({len(line) for line in lines}) == 1
     assert "..." in welcome
-    assert "(  o o  )" in welcome
-    assert "pico" in welcome
+    assert "( (" in welcome
+    assert "|      |]" in welcome
+    assert "Moka" in welcome
+    assert "pico" not in welcome.lower()
     assert "local coding agent" in welcome
     assert "// READY" not in welcome
     assert "SLASH" not in welcome
     assert "READY      " not in welcome
     assert "commands: Commands:" not in welcome
+
+
+def test_runtime_system_prompt_uses_moka_identity(tmp_path):
+    agent = build_agent(tmp_path, [])
+
+    prompt = agent.prompt("Who are you?")
+
+    assert "You are Moka" in prompt
+    assert "You are pico" not in prompt
 
 
 def test_openai_compatible_client_posts_expected_responses_payload():
@@ -1941,6 +1952,17 @@ def test_package_import_surface_includes_cli_entrypoints():
     assert callable(pico_pkg.main)
     assert callable(pico_pkg.build_agent)
     assert callable(pico_pkg.build_arg_parser)
+
+
+def test_pyproject_exposes_moka_and_legacy_console_scripts():
+    pyproject = (Path(__file__).parents[1] / "pyproject.toml").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'moka = "pico.cli:main"' in pyproject
+    assert 'moka-tui = "pico.tui.main:main"' in pyproject
+    assert 'pico = "pico.cli:main"' in pyproject
+    assert 'pico-tui = "pico.tui.main:main"' in pyproject
 
 
 def test_module_execution_help_works():

@@ -34,6 +34,10 @@
 
 11. `11-dream-memory-consolidation.md`
 
+如需确认学习资料与当前实现是否同步，查阅：
+
+12. `12-document-audit-change-log.md`
+
 ## 文档覆盖关系
 
 | 文档 | 主要回答的问题 | Pico 模块 |
@@ -49,6 +53,7 @@
 | `09-module-map.md` | 每个源码文件在系统里属于哪一层 | 整个 `pico/` 包和主要测试文件 |
 | `10-module-learning-guide.md` | 从最小 Agent 过渡到 Pico v3，每个模块为什么要存在 | `core/`、`tools/`、`features/`、`providers/`、`commands/`、`tui/`、`evaluation/` |
 | `11-dream-memory-consolidation.md` | Dream 后台记忆整合解决什么问题、怎么实现、差距在哪里 | `features/memory.py`、`core/runtime.py`、`core/context_manager.py`、`.pico/memory/` |
+| `12-document-audit-change-log.md` | 学习文档与当前实现的核查记录、已知差异和维护规则 | `pico/`、`tests/`、`scripts/` |
 
 ## 一张系统图
 

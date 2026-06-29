@@ -9,6 +9,7 @@ from textual.binding import Binding
 from textual.css.query import NoMatches
 from textual.events import Key
 
+from ..branding import PRODUCT_NAME, PRODUCT_SUBTITLE
 from ..cli import HELP_DETAILS, handle_repl_command
 from .widgets import (
     AskUserPrompt,
@@ -21,7 +22,6 @@ from .widgets import (
     WelcomeBanner,
     format_tool_args,
 )
-
 
 PICO_TUI_CSS = """
 Screen {
@@ -40,6 +40,8 @@ class PicoTuiApp(App):
     """
 
     CSS = PICO_TUI_CSS
+    TITLE = PRODUCT_NAME
+    SUB_TITLE = PRODUCT_SUBTITLE
     BINDINGS = [
         Binding("enter", "submit_input", "Send", priority=True, show=False),
         Binding("ctrl+l", "clear_screen", "Clear"),
