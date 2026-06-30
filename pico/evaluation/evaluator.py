@@ -281,6 +281,7 @@ def summarize_rows(rows):
     total_tasks = len(rows)
     within_budget = sum(1 for row in rows if row.get("within_budget"))
     verifier_passes = sum(1 for row in rows if row.get("verifier_passed"))
+    trajectory_compliant = sum(1 for row in rows if row.get("trajectory", {}).get("compliant"))
     return {
         "total_tasks": total_tasks,
         "passed": passed,
@@ -290,7 +291,35 @@ def summarize_rows(rows):
         "verifier_passes": verifier_passes,
         "within_budget_rate": (within_budget / total_tasks) if total_tasks else 0.0,
         "verifier_pass_rate": (verifier_passes / total_tasks) if total_tasks else 0.0,
+        "trajectory_compliant": trajectory_compliant,
+        "trajectory_compliance_rate": (trajectory_compliant / total_tasks) if total_tasks else 0.0,
         "failure_category_counts": failure_category_counts,
+    }
+
+
+def _trajectory_contract(task):
+    trajectory = dict(task.get("trajectory", {}) or {})
+    return {
+        "required_tools": list(trajectory.get("required_tools", [])),
+        "forbidden_tools": list(trajectory.get("forbidden_tools", [])),
+        "max_tool_steps": int(trajectory.get("max_tool_steps", task["step_budget"])),
+    }
+
+
+def _score_trajectory(trace_path, task, tool_steps):
+    events = [json.loads(line) for line in Path(trace_path).read_text(encoding="utf-8").splitlines() if line.strip()]
+    tools = [str(event.get("name", "")) for event in events if event.get("event") == "tool_executed"]
+    contract = _trajectory_contract(task)
+    required_missing = [name for name in contract["required_tools"] if name not in tools]
+    forbidden_called = [name for name in contract["forbidden_tools"] if name in tools]
+    within_contract_budget = int(tool_steps) <= contract["max_tool_steps"]
+    return {
+        "contract": contract,
+        "tools_called": tools,
+        "required_missing": required_missing,
+        "forbidden_called": forbidden_called,
+        "within_contract_budget": within_contract_budget,
+        "compliant": not required_missing and not forbidden_called and within_contract_budget,
     }
 
 
@@ -508,6 +537,7 @@ class BenchmarkEvaluator:
         task_state_path = agent.run_store.task_state_path(task_state)
         report_path = agent.run_store.report_path(task_state)
         report = agent.run_store.load_report(task_state.run_id)
+        trajectory = _score_trajectory(run_dir / "trace.jsonl", task, task_state.tool_steps)
 
         artifact_path = _artifact_path_for_task(task)
         artifact_file = fixture_copy_root / artifact_path
@@ -575,6 +605,7 @@ class BenchmarkEvaluator:
             "initial_episodic_notes_empty": initial_episodic_notes_empty,
             "task_state": task_state.to_dict(),
             "report": report,
+            "trajectory": trajectory,
         }
 
     def _failure_category(
