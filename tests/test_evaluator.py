@@ -123,6 +123,8 @@ def test_run_fixed_benchmark_reports_metadata_and_success_definition(tmp_path):
         "verifier_passes": 12,
         "within_budget_rate": 1.0,
         "verifier_pass_rate": 1.0,
+        "trajectory_compliant": 12,
+        "trajectory_compliance_rate": 1.0,
         "failure_category_counts": {},
     }
     assert artifact["failure_category_counts"] == {}
@@ -218,6 +220,7 @@ def test_summarize_rows_counts_failure_categories():
                 "verifier_passed": True,
                 "expected_artifact_exists": True,
                 "non_failure_stop_reason": True,
+                "trajectory": {"compliant": True},
             },
             {
                 "status": "fail",
@@ -226,6 +229,7 @@ def test_summarize_rows_counts_failure_categories():
                 "expected_artifact_exists": False,
                 "non_failure_stop_reason": False,
                 "failure_category": "verifier_failed",
+                "trajectory": {"compliant": False},
             },
             {
                 "status": "fail",
@@ -234,6 +238,7 @@ def test_summarize_rows_counts_failure_categories():
                 "expected_artifact_exists": True,
                 "non_failure_stop_reason": False,
                 "failure_category": "budget_exceeded",
+                "trajectory": {"compliant": False},
             },
         ]
     )
@@ -248,3 +253,32 @@ def test_summarize_rows_counts_failure_categories():
         "budget_exceeded": 1,
         "verifier_failed": 1,
     }
+    assert summary["trajectory_compliance_rate"] == 1 / 3
+
+
+def test_trajectory_score_detects_missing_and_forbidden_tools(tmp_path):
+    import pico.evaluation.evaluator as evaluator_module
+
+    trace_path = tmp_path / "trace.jsonl"
+    trace_path.write_text(
+        '{"event":"tool_executed","name":"read_file"}\n'
+        '{"event":"tool_executed","name":"run_shell"}\n',
+        encoding="utf-8",
+    )
+
+    score = evaluator_module._score_trajectory(
+        trace_path,
+        {
+            "allowed_tools": ["read_file", "patch_file"],
+            "step_budget": 3,
+            "trajectory": {
+                "required_tools": ["read_file", "patch_file"],
+                "forbidden_tools": ["run_shell"],
+            },
+        },
+        tool_steps=2,
+    )
+
+    assert score["required_missing"] == ["patch_file"]
+    assert score["forbidden_called"] == ["run_shell"]
+    assert score["compliant"] is False

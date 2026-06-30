@@ -20,3 +20,9 @@ Agent 的最终回答正确，不代表工具选择、权限行为、步骤数�
 - verifier 过松或过严；
 - 模型失败和基础设施失败混淆；
 - Windows 命令或路径影响实验可复现性。
+
+## 实际实现与发现
+
+- 在既有 `BenchmarkEvaluator` 中读取真实 `trace.jsonl`，为每个任务输出调用工具序列、缺失必需工具、禁止工具调用和轨迹合规结果，并在 artifact summary 中聚合合规率。
+- 初版错误地将 `allowed_tools` 作为必需工具集合，导致只读恢复任务被误判。修正为仅由任务显式 `trajectory.required_tools` 约束；前七个修改类任务声明 `read_file`、`patch_file` 为必需工具，`run_shell` 为禁止工具。
+- 直接重复使用固定 artifact workspace 时，Windows 的原子写入可能遇到文件占用；探针改为每次使用独立临时 workspace。该行为将在后续报告 runner 中保持。

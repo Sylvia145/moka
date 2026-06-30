@@ -10,7 +10,8 @@
       "step_budget": 4,
       "expected_artifact": "README.md opening sentence is locked benchmark workspace text",
       "verifier": "python3 -c \"from pathlib import Path; text = Path('README.md').read_text(encoding='utf-8'); assert 'This fixture is a locked benchmark workspace.' in text\"",
-      "category": "documentation"
+      "category": "documentation",
+      "trajectory": {"required_tools": ["read_file", "patch_file"], "forbidden_tools": ["run_shell"]}
     },
     {
       "id": "readme_schema_note",
@@ -20,7 +21,8 @@
       "step_budget": 4,
       "expected_artifact": "README.md contains the schema and baseline note",
       "verifier": "python3 -c \"from pathlib import Path; text = Path('README.md').read_text(encoding='utf-8'); assert 'schema and baseline are fixed' in text\"",
-      "category": "documentation"
+      "category": "documentation",
+      "trajectory": {"required_tools": ["read_file", "patch_file"], "forbidden_tools": ["run_shell"]}
     },
     {
       "id": "sample_beta_locked",
@@ -30,7 +32,8 @@
       "step_budget": 4,
       "expected_artifact": "sample.txt contains beta-locked",
       "verifier": "python3 -c \"from pathlib import Path; text = Path('sample.txt').read_text(encoding='utf-8'); assert 'beta-locked' in text and '\\nbeta\\n' not in text\"",
-      "category": "text-edit"
+      "category": "text-edit",
+      "trajectory": {"required_tools": ["read_file", "patch_file"], "forbidden_tools": ["run_shell"]}
     },
     {
       "id": "sample_gamma_locked",
@@ -40,7 +43,8 @@
       "step_budget": 4,
       "expected_artifact": "sample.txt contains gamma-locked",
       "verifier": "python3 -c \"from pathlib import Path; text = Path('sample.txt').read_text(encoding='utf-8'); assert 'gamma-locked' in text\"",
-      "category": "text-edit"
+      "category": "text-edit",
+      "trajectory": {"required_tools": ["read_file", "patch_file"], "forbidden_tools": ["run_shell"]}
     },
     {
       "id": "invalid_patch_recovery",
@@ -50,7 +54,8 @@
       "step_budget": 5,
       "expected_artifact": "README.md reflects recovery after invalid patch args",
       "verifier": "python3 -c \"from pathlib import Path; text = Path('README.md').read_text(encoding='utf-8'); assert 'recovered after invalid patch args' in text\"",
-      "category": "tool-boundary"
+      "category": "tool-boundary",
+      "trajectory": {"required_tools": ["read_file", "patch_file"], "forbidden_tools": ["run_shell"]}
     },
     {
       "id": "path_escape_recovery",
@@ -60,7 +65,8 @@
       "step_budget": 5,
       "expected_artifact": "sample.txt reflects recovery after path escape rejection",
       "verifier": "python3 -c \"from pathlib import Path; text = Path('sample.txt').read_text(encoding='utf-8'); assert 'alpha-guarded' in text\"",
-      "category": "tool-boundary"
+      "category": "tool-boundary",
+      "trajectory": {"required_tools": ["read_file", "patch_file"], "forbidden_tools": ["run_shell"]}
     },
     {
       "id": "repeated_read_recovery",
@@ -70,7 +76,8 @@
       "step_budget": 6,
       "expected_artifact": "sample.txt reflects recovery after repeated identical read rejection",
       "verifier": "python3 -c \"from pathlib import Path; text = Path('sample.txt').read_text(encoding='utf-8'); assert 'repeat-guarded' in text\"",
-      "category": "tool-boundary"
+      "category": "tool-boundary",
+      "trajectory": {"required_tools": ["read_file", "patch_file"], "forbidden_tools": ["run_shell"]}
     },
     {
       "id": "context_reduction_checkpoint",
