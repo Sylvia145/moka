@@ -170,6 +170,8 @@ def test_bound_tool_methods_call_tools_module(tmp_path):
 
     assert "toolkit-shell" in shell_result
     fake_run.assert_called_once()
+    assert fake_run.call_args.kwargs["encoding"] == "utf-8"
+    assert fake_run.call_args.kwargs["errors"] == "replace"
     assert agent.tool_run_shell.__func__.__module__ == "pico.core.runtime"
 
 

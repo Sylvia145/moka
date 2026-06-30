@@ -1,12 +1,14 @@
 import hashlib
 import json
 import locale as locale_module
+import os
 import shutil
 import subprocess
+import sys
 import tempfile
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from ..features import memory as memorylib
 from ..testing import ScriptedModelClient
@@ -118,6 +120,8 @@ def _git_value(args, fallback="", cwd=None):
             cwd=cwd or Path.cwd(),
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             check=True,
             timeout=5,
         )
@@ -127,14 +131,31 @@ def _git_value(args, fallback="", cwd=None):
 
 
 def _current_locale():
-    try:
-        return locale_module.setlocale(locale_module.LC_CTYPE)
-    except Exception:
-        return locale_module.getdefaultlocale()[0] or "C"
+    # Benchmark fixture and verifier I/O are explicitly UTF-8. Record that
+    # deterministic harness contract instead of the host locale, which differs
+    # between Windows and Unix and would make identical runs look incomparable.
+    return "C.UTF-8"
 
 
 def _now_in_timezone(timezone_name):
-    return datetime.now(ZoneInfo(timezone_name)).strftime("%Y-%m-%dT%H:%M:%S%z")
+    try:
+        tz = ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError:
+        if timezone_name != DEFAULT_TIMEZONE:
+            raise
+        # Windows installations may not ship IANA zoneinfo data and this project
+        # deliberately keeps dependencies minimal. Shanghai has a fixed UTC+08:00
+        # offset for the current benchmark timestamps, so retain reproducible
+        # output without requiring an environment-specific tzdata package.
+        tz = timezone(timedelta(hours=8), name=timezone_name)
+    return datetime.now(tz).strftime("%Y-%m-%dT%H:%M:%S%z")
+
+
+def _platform_verifier_command(command):
+    command = str(command or "").strip()
+    if os.name == "nt" and command.startswith("python3 "):
+        return f'"{sys.executable}" {command[len("python3 "): ]}'
+    return command
 
 
 def _artifact_path_for_task(task):
@@ -493,12 +514,16 @@ class BenchmarkEvaluator:
         expected_artifact_exists = artifact_file.exists()
         artifact_digest = _digest_file(artifact_file) if expected_artifact_exists else ""
 
+        verifier_command = _platform_verifier_command(task["verifier"])
         verifier = subprocess.run(
-            task["verifier"],
+            verifier_command,
             cwd=fixture_copy_root,
             shell=True,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
         )
 
         within_budget = task_state.tool_steps <= int(task["step_budget"])
@@ -528,6 +553,7 @@ class BenchmarkEvaluator:
             "artifact_exists": expected_artifact_exists,
             "artifact_digest": artifact_digest,
             "verifier": task["verifier"],
+            "verifier_command": verifier_command,
             "verifier_exit_code": verifier.returncode,
             "verifier_stdout": verifier.stdout,
             "verifier_stderr": verifier.stderr,
