@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -54,3 +55,15 @@ def test_off_sandbox_keeps_plain_subprocess_behavior(tmp_path):
     result = runner.run("pwd", cwd=tmp_path, env=os.environ.copy(), timeout=5)
 
     assert Path(result.stdout.strip()) == tmp_path
+
+
+def test_plain_runner_uses_utf8_with_replacement_for_captured_output(tmp_path):
+    fake_run = Mock(
+        return_value=type("Result", (), {"returncode": 0, "stdout": "ok", "stderr": ""})()
+    )
+    runner = SandboxRunner(SandboxConfig(mode="off"), run=fake_run)
+
+    runner.run("echo hi", cwd=tmp_path, env={}, timeout=5)
+
+    assert fake_run.call_args.kwargs["encoding"] == "utf-8"
+    assert fake_run.call_args.kwargs["errors"] == "replace"

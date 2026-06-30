@@ -13,6 +13,28 @@ from pico.evaluation.evaluator import (
 )
 
 
+def test_now_in_default_timezone_falls_back_without_system_zoneinfo(monkeypatch):
+    import pico.evaluation.evaluator as evaluator_module
+
+    def missing_zoneinfo(_name):
+        raise evaluator_module.ZoneInfoNotFoundError("missing")
+
+    monkeypatch.setattr(evaluator_module, "ZoneInfo", missing_zoneinfo)
+
+    captured_at = evaluator_module._now_in_timezone("Asia/Shanghai")
+
+    assert captured_at.endswith("+0800")
+
+
+def test_platform_verifier_command_uses_current_python_on_windows(monkeypatch):
+    import pico.evaluation.evaluator as evaluator_module
+
+    monkeypatch.setattr(evaluator_module.os, "name", "nt")
+    command = evaluator_module._platform_verifier_command("python3 -c \"print('ok')\"")
+
+    assert command.startswith(f'"{evaluator_module.sys.executable}" ')
+
+
 def test_load_benchmark_validates_fixed_schema():
     benchmark = load_benchmark(Path("benchmarks/coding_tasks.json"))
 

@@ -28,6 +28,7 @@ htmlcov/
 *~
 
 # Local scratch space
+.local-notes/
 tmp/
 .worktrees/
 .pico/

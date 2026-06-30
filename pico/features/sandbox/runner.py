@@ -41,7 +41,14 @@ class SandboxRunner:
         argv = self._bubblewrap_argv(backend_path, command, Path(cwd), config)
         run_process = self.run_process or subprocess.run
         return run_process(
-            argv, cwd=cwd, capture_output=True, text=True, timeout=timeout, env=env
+            argv,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+            env=env,
         )
 
     def _plain(self, command, *, cwd, env, timeout):
@@ -52,6 +59,8 @@ class SandboxRunner:
             shell=True,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=timeout,
             env=env,
         )
