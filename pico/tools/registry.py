@@ -163,6 +163,15 @@ def validate_tool(agent, name, args):
         except ValidationError as exc:
             raise ValueError(first_error_message(exc)) from exc
 
+    if name.startswith("mcp__"):
+        tool = agent.tools.get(name)
+        schema = dict(getattr(tool, "schema", {}) or {})
+        if schema.get("type") == "object" and not isinstance(args, dict):
+            raise ValueError("MCP tool arguments must be an object")
+        missing = [field for field in schema.get("required", []) if field not in args]
+        if missing:
+            raise ValueError(f"missing required MCP arguments: {', '.join(missing)}")
+
     # Workspace-aware checks that require the agent (path safety, file state).
     if name == "list_files":
         path = agent.path(args.get("path", "."))
