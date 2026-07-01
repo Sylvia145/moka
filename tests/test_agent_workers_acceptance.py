@@ -171,6 +171,36 @@ def test_task_stop_requests_child_runtime_abort(tmp_path):
     assert agent.worker_manager.to_dict()["items"][0]["status"] == "stopped"
 
 
+def test_worker_timeout_requests_abort_and_keeps_timeout_terminal_state(tmp_path):
+    started = threading.Event()
+    release = threading.Event()
+    child_client = BlockingModelClient(["<final>Late completion.</final>"], started, release)
+    agent = build_agent(tmp_path, [], model_client_factory=lambda: child_client)
+
+    payload = json.loads(
+        agent.run_tool(
+            "agent",
+            {
+                "description": "Timeout worker",
+                "prompt": "Wait until timeout",
+                "subagent_type": "Explore",
+                "timeout_seconds": 1,
+            },
+        )
+    )
+
+    assert payload["status"] == "started"
+    assert started.wait(timeout=1)
+    deadline = time.monotonic() + 3
+    while time.monotonic() < deadline:
+        if agent.worker_manager.to_dict()["items"][0]["status"] == "timed_out":
+            break
+        time.sleep(0.01)
+
+    assert child_client.abort_count == 1
+    assert agent.worker_manager.to_dict()["items"][0]["status"] == "timed_out"
+
+
 def test_clear_session_stops_running_background_workers(tmp_path):
     started = threading.Event()
     release = threading.Event()
@@ -240,6 +270,7 @@ def test_explore_agent_runs_real_readonly_child_session_and_records_notification
     )
     assert report["workers"]["items"][0]["id"] == "agent_1"
     assert report["workers"]["items"][0]["subagent_type"] == "Explore"
+    assert report["workers"]["items"][0]["result_contract"]["run_id"]
 
 
 def test_worker_agent_can_be_continued_with_same_child_context_and_write_scope(

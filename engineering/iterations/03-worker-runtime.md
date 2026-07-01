@@ -15,3 +15,7 @@
 ## 非目标
 
 不实现分布式队列、线程强杀、自动冲突解决、远程 worker 或崩溃后的自动续跑。
+
+## 实际问题
+
+结构化结果首次接入时，child task state 尚未创建就被读取，造成后台 worker 异常并让主 Agent 提前结束。详见 [INC-0003](../incidents/INC-0003-worker-result-state-order.md)。

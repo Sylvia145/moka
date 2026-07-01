@@ -49,6 +49,7 @@ def tool_agent(agent, args):
             args["prompt"],
             subagent_type=args.get("subagent_type", "worker"),
             write_scope=args.get("write_scope", []),
+            timeout_seconds=args.get("timeout_seconds", 60),
         )
     )
 
