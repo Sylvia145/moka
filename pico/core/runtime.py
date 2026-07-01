@@ -103,6 +103,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         allowed_tools=None,
         final_readiness_mode="warn",
         before_final_hooks=None,
+        mcp_servers=None,
     ):
         self.model_client = model_client
         self.model_client_factory = model_client_factory
@@ -145,6 +146,10 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         self.dream_interval_hours = float(dream_interval_hours)
         self.dream_min_sessions = int(dream_min_sessions)
         self.allowed_tools = self._normalize_allowed_tools(allowed_tools)
+        self.mcp_clients = {
+            config.name: __import__("pico.tools.mcp", fromlist=["McpStdioClient"]).McpStdioClient(config)
+            for config in (mcp_servers or ())
+        }
         self.final_readiness_mode = str(final_readiness_mode or "warn")
         self.before_final_hooks = tuple(before_final_hooks or ())
         self.run_store = run_store or RunStore(
@@ -414,7 +419,11 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         del bucket[:-limit]
 
     def build_tools(self):
-        return toolkit.build_tool_registry(self)
+        tools = toolkit.build_tool_registry(self)
+        from ..tools.mcp import build_mcp_tools
+
+        tools.update(build_mcp_tools(self))
+        return tools
 
     @staticmethod
     def _normalize_allowed_tools(allowed_tools):
