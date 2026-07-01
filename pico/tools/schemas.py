@@ -145,6 +145,7 @@ class AgentArgs(BaseModel):
     prompt: str
     subagent_type: str = "worker"
     write_scope: Union[List[str], str, None] = None
+    timeout_seconds: int = 60
 
     @field_validator("description")
     @classmethod
@@ -172,6 +173,13 @@ class AgentArgs(BaseModel):
     def valid_write_scope(cls, v: object) -> object:
         if v is not None and not isinstance(v, (list, str)):
             raise ValueError("write_scope must be a list of workspace paths")
+        return v
+
+    @field_validator("timeout_seconds")
+    @classmethod
+    def timeout_in_range(cls, v: int) -> int:
+        if v < 1 or v > 600:
+            raise ValueError("timeout_seconds must be in [1, 600]")
         return v
 
 

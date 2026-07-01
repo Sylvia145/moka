@@ -21,6 +21,7 @@ class WorkerTask:
     thread: threading.Thread | None = None
     stop_requested: bool = False
     state: dict = field(default_factory=dict)
+    timeout_seconds: int = 60
 
 
 class WorkerManager:
@@ -35,11 +36,11 @@ class WorkerManager:
     def state(self):
         return self.runtime.session.setdefault("workers", {"next_id": 1, "items": []})
 
-    def spawn(self, description, prompt, subagent_type="worker", write_scope=None):
+    def spawn(self, description, prompt, subagent_type="worker", write_scope=None, timeout_seconds=60):
         subagent_type = _clean_type(subagent_type)
         if self.runtime.runtime_mode == "plan" and subagent_type != "Explore":
             raise ValueError("plan mode only allows Explore agents")
-        task = self._new_task(description, subagent_type, write_scope)
+        task = self._new_task(description, subagent_type, write_scope, timeout_seconds)
         self._tasks[task.id] = task
         if self._can_run_background():
             self._start_background(task, prompt, action="spawn")
@@ -109,7 +110,7 @@ class WorkerManager:
             "items": [dict(item) for item in self.state.get("items", [])],
         }
 
-    def _new_task(self, description, subagent_type, write_scope):
+    def _new_task(self, description, subagent_type, write_scope, timeout_seconds):
         with self._lock:
             worker_id = f"agent_{int(self.state.get('next_id', 1))}"
             self.state["next_id"] = int(self.state.get("next_id", 1)) + 1
@@ -125,6 +126,7 @@ class WorkerManager:
             "tool_steps": 0,
             "attempts": 0,
             "duration_ms": 0,
+            "timeout_seconds": int(timeout_seconds),
             "notification_drained": False,
             "created_at": now(),
             "updated_at": now(),
@@ -132,7 +134,7 @@ class WorkerManager:
         with self._lock:
             self.state.setdefault("items", []).append(item)
             self._save()
-        return WorkerTask(worker_id, item["description"], subagent_type, scope, child)
+        return WorkerTask(worker_id, item["description"], subagent_type, scope, child, timeout_seconds=int(timeout_seconds))
 
     def _can_run_background(self):
         return getattr(self.runtime, "model_client_factory", None) is not None
@@ -146,6 +148,18 @@ class WorkerManager:
         )
         task.thread = thread
         thread.start()
+        threading.Thread(target=self._watch_timeout, args=(task,), daemon=True).start()
+
+    def _watch_timeout(self, task):
+        if not threading.Event().wait(task.timeout_seconds):
+            item = self._get_item(task.id)
+            if item.get("status") == "running":
+                self._request_stop(task)
+                with self._lock:
+                    item["status"] = "timed_out"
+                    item["updated_at"] = now()
+                self.runtime.session_event_bus.emit("worker_timed_out", {"worker_id": task.id})
+                self._save()
 
     def _request_stop(self, task):
         task.stop_requested = True

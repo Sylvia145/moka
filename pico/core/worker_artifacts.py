@@ -12,6 +12,10 @@ def collect_worker_artifacts(root, child, task_state):
         "trace_path": relative_path(root, run_dir / "trace.jsonl" if run_dir else None),
         "session_event_path": relative_path(root, getattr(getattr(child, "session_event_bus", None), "path", None)),
         "tool_error_codes": [],
+        "changed_paths": list(getattr(task_state, "changed_paths", []) or []),
+        "verification": dict(
+            (getattr(task_state, "evidence_summaries", {}) or {}).get("verification_signal", {})
+        ),
     }
     trace_path = run_dir / "trace.jsonl" if run_dir else None
     if trace_path and trace_path.exists():

@@ -21,11 +21,12 @@ def run_worker(manager, task, prompt, action):
     started = time.monotonic()
     try:
         result = task.runtime.ask(str(prompt or ""))
-        status = "stopped" if task.stop_requested else "completed"
+        status = "timed_out" if item.get("status") == "timed_out" else ("stopped" if task.stop_requested else "completed")
     except Exception as exc:
         result = f"error: worker failed: {exc}"
         status = "failed"
     task_state = getattr(task.runtime, "current_task_state", None)
+    artifacts = collect_worker_artifacts(manager.runtime.root, task.runtime, task_state)
     with manager._lock:
         item.update(
             {
@@ -33,7 +34,14 @@ def run_worker(manager, task, prompt, action):
                 "result": clip(result, 2000),
                 "tool_steps": int(getattr(task_state, "tool_steps", 0) or 0),
                 "attempts": int(getattr(task_state, "attempts", 0) or 0),
-                **collect_worker_artifacts(manager.runtime.root, task.runtime, task_state),
+                **artifacts,
+                "result_contract": {
+                    "summary": clip(result, 500),
+                    "changed_paths": list(artifacts["changed_paths"]),
+                    "verification": dict(artifacts["verification"]),
+                    "run_id": artifacts["run_id"],
+                    "error_codes": list(artifacts["tool_error_codes"]),
+                },
                 "duration_ms": int((time.monotonic() - started) * 1000),
                 "updated_at": now(),
             }
