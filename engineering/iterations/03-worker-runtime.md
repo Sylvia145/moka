@@ -19,3 +19,15 @@
 ## 实际问题
 
 结构化结果首次接入时，child task state 尚未创建就被读取，造成后台 worker 异常并让主 Agent 提前结束。详见 [INC-0003](../incidents/INC-0003-worker-result-state-order.md)。
+
+写 worker 在 Git 仓库内且具备 write scope 时创建 `.worktrees/<worker-id>` 的 detached worktree；child runtime 的 workspace 指向该目录，session/report 仍由父 runtime 统一保存。非 Git fixture 和只读 Explore worker 保持原有路径，保证轻量测试与只读探索没有额外 Git 依赖。
+
+## 验证证据
+
+- `tests/test_agent_workers_acceptance.py`：13 passed（2026-08-11，18.02s）。
+- 端到端 fixture 初始化 Git 仓库，写 worker 在 detached worktree 创建 `notes/worker.txt`；断言该文件存在于 worktree、主工作区不存在，并记录基线 commit。
+- Windows 环境中后台 worker 创建的耗时约为 0.58s；异步验收阈值从 0.5s 调整为 1.0s，仍验证调用方不等待 worker 完成，避免把机器启动抖动误判为同步阻塞。
+
+## 当前边界
+
+worktree 由会话保留以便复核变更；本迭代不自动合并、清理或解决冲突。工作流由主 Agent 在审阅 diff 后显式决定是否采纳。
