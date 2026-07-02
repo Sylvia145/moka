@@ -3,12 +3,12 @@
 from .workspace import WorkspaceContext
 
 
-def build_child_runtime(parent, subagent_type, write_scope):
+def build_child_runtime(parent, subagent_type, write_scope, workspace_root=None):
     from .runtime import Pico
 
     child = Pico(
         model_client=new_model_client(parent),
-        workspace=WorkspaceContext.build(parent.root, repo_root_override=parent.root),
+        workspace=WorkspaceContext.build(workspace_root or parent.root, repo_root_override=workspace_root or parent.root),
         session_store=parent.session_store,
         run_store=parent.run_store,
         approval_policy="never" if subagent_type == "Explore" else "auto",

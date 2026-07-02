@@ -2,6 +2,7 @@
 
 import json
 import queue
+import subprocess
 import threading
 import time
 from dataclasses import dataclass, field
@@ -115,7 +116,8 @@ class WorkerManager:
             worker_id = f"agent_{int(self.state.get('next_id', 1))}"
             self.state["next_id"] = int(self.state.get("next_id", 1)) + 1
         scope = tuple(_clean_scope(write_scope))
-        child = build_child_runtime(self.runtime, subagent_type, scope)
+        worktree_path, base_commit = self._create_worktree(worker_id, subagent_type, scope)
+        child = build_child_runtime(self.runtime, subagent_type, scope, workspace_root=worktree_path or self.runtime.root)
         item = {
             "id": worker_id,
             "description": str(description or "").strip() or "Worker task",
@@ -127,6 +129,8 @@ class WorkerManager:
             "attempts": 0,
             "duration_ms": 0,
             "timeout_seconds": int(timeout_seconds),
+            "worktree_path": str(worktree_path.relative_to(self.runtime.root)) if worktree_path else "",
+            "base_commit": base_commit,
             "notification_drained": False,
             "created_at": now(),
             "updated_at": now(),
@@ -135,6 +139,15 @@ class WorkerManager:
             self.state.setdefault("items", []).append(item)
             self._save()
         return WorkerTask(worker_id, item["description"], subagent_type, scope, child, timeout_seconds=int(timeout_seconds))
+
+    def _create_worktree(self, worker_id, subagent_type, scope):
+        if subagent_type != "worker" or not scope or not (self.runtime.root / ".git").exists():
+            return None, ""
+        target = self.runtime.root / ".worktrees" / worker_id
+        target.parent.mkdir(parents=True, exist_ok=True)
+        base = subprocess.run(["git", "rev-parse", "HEAD"], cwd=self.runtime.root, capture_output=True, text=True, check=True).stdout.strip()
+        subprocess.run(["git", "worktree", "add", "--detach", str(target), base], cwd=self.runtime.root, capture_output=True, text=True, check=True)
+        return target, base
 
     def _can_run_background(self):
         return getattr(self.runtime, "model_client_factory", None) is not None
@@ -224,7 +237,7 @@ def _clean_scope(value):
     if isinstance(value, str):
         value = [value]
     if not isinstance(value, list):
-        raise ValueError("write_scope must be a list of workspace paths")
+        raise TypeError("write_scope must be a list of workspace paths")
     return [str(item).strip() for item in value if str(item).strip()]
 
 

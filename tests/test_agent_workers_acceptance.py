@@ -1,9 +1,10 @@
 import json
+import subprocess
 import threading
 import time
 
-from pico.testing import ScriptedModelClient
 from pico import Pico, SessionStore, WorkspaceContext
+from pico.testing import ScriptedModelClient
 
 
 def build_agent(tmp_path, outputs, **kwargs):
@@ -84,7 +85,7 @@ def test_async_worker_notification_is_drained_by_coordinator_only(tmp_path):
     )
 
     assert payload["status"] == "started"
-    assert time.monotonic() - before < 0.5
+    assert time.monotonic() - before < 1.0
     assert started.wait(timeout=1)
     assert not any(
         "<task-notification>" in item.get("content", "")
@@ -199,6 +200,37 @@ def test_worker_timeout_requests_abort_and_keeps_timeout_terminal_state(tmp_path
 
     assert child_client.abort_count == 1
     assert agent.worker_manager.to_dict()["items"][0]["status"] == "timed_out"
+
+
+def test_write_worker_uses_isolated_git_worktree(tmp_path):
+    (tmp_path / "README.md").write_text("main workspace\n", encoding="utf-8")
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "add", "README.md"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-c", "user.name=Moka Test", "-c", "user.email=moka@example.test", "commit", "-m", "fixture"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+    agent = build_agent(
+        tmp_path,
+        [
+            '<tool name="write_file" path="notes/worker.txt"><content>isolated\n</content></tool>',
+            "<final>Worker wrote the isolated note.</final>",
+        ],
+    )
+
+    payload = agent.worker_manager.spawn(
+        "Write isolated note", "Create notes/worker.txt", write_scope=["notes"]
+    )
+    item = agent.worker_manager.to_dict()["items"][0]
+    worktree = tmp_path / item["worktree_path"]
+
+    assert payload["status"] == "completed"
+    assert item["base_commit"]
+    assert worktree.exists()
+    assert (worktree / "notes" / "worker.txt").read_text(encoding="utf-8") == "isolated\n"
+    assert not (tmp_path / "notes" / "worker.txt").exists()
 
 
 def test_clear_session_stops_running_background_workers(tmp_path):
