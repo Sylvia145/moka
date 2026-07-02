@@ -32,6 +32,7 @@ class WorkerManager:
         self._tasks = {}
         self._lock = threading.Lock()
         self._notifications = queue.Queue()
+        self.max_concurrent_workers = int(getattr(runtime, "max_concurrent_workers", 2))
 
     @property
     def state(self):
@@ -44,8 +45,10 @@ class WorkerManager:
         task = self._new_task(description, subagent_type, write_scope, timeout_seconds)
         self._tasks[task.id] = task
         if self._can_run_background():
-            self._start_background(task, prompt, action="spawn")
-            return self._public_payload(task, status="started")
+            if self._start_if_capacity(task, prompt, action="spawn"):
+                return self._public_payload(task, status="started")
+            self._queue_task(task, prompt, action="spawn")
+            return self._public_payload(task, status="queued")
         run_worker(self, task, prompt, action="spawn")
         return self._public_payload(task)
 
@@ -57,14 +60,16 @@ class WorkerManager:
         if self.runtime.runtime_mode == "plan" and task.subagent_type != "Explore":
             raise ValueError("plan mode only allows Explore agents")
         if self._can_run_background():
-            self._start_background(task, message, action="continue")
-            return self._public_payload(task, status="started")
+            if self._start_if_capacity(task, message, action="continue"):
+                return self._public_payload(task, status="started")
+            self._queue_task(task, message, action="continue")
+            return self._public_payload(task, status="queued")
         run_worker(self, task, message, action="continue")
         return self._public_payload(task)
 
     def stop_task(self, task_id):
         item = self._get_item(task_id)
-        if item["status"] == "running":
+        if item["status"] in {"starting", "running"}:
             task = self._tasks.get(str(task_id))
             if task is not None:
                 self._request_stop(task)
@@ -72,6 +77,17 @@ class WorkerManager:
             item["updated_at"] = now()
             self.runtime.session_event_bus.emit(
                 "worker_stop_requested", {"worker_id": item["id"], "status": "stopping"}
+            )
+            self._save()
+        elif item["status"] == "queued":
+            with self._lock:
+                item["status"] = "canceled"
+                item["updated_at"] = now()
+            task = self._tasks.get(str(task_id))
+            if task is not None:
+                task.state.clear()
+            self.runtime.session_event_bus.emit(
+                "worker_canceled", {"worker_id": item["id"], "status": "canceled"}
             )
             self._save()
         return {
@@ -84,7 +100,7 @@ class WorkerManager:
         tasks = list(self._tasks.values())
         for task in tasks:
             item = self._get_item(task.id)
-            if item.get("status") in {"running", "stopping"}:
+            if item.get("status") in {"starting", "running", "stopping"}:
                 self._request_stop(task)
                 with self._lock:
                     item["status"] = "stopping"
@@ -93,6 +109,11 @@ class WorkerManager:
                     "worker_stop_requested",
                     {"worker_id": item["id"], "status": "stopping"},
                 )
+            elif item.get("status") == "queued":
+                with self._lock:
+                    item["status"] = "canceled"
+                    item["updated_at"] = now()
+                task.state.clear()
         if tasks:
             self._save()
         deadline = time.monotonic() + float(timeout)
@@ -151,6 +172,59 @@ class WorkerManager:
 
     def _can_run_background(self):
         return getattr(self.runtime, "model_client_factory", None) is not None
+
+    def _start_if_capacity(self, task, prompt, action):
+        with self._lock:
+            active = sum(
+                1
+                for item in self.state.get("items", [])
+                if item.get("status") in {"starting", "running", "stopping"}
+            )
+            if active >= self.max_concurrent_workers:
+                return False
+            item = self._get_item(task.id)
+            item["status"] = "starting"
+            item["updated_at"] = now()
+        self._start_background(task, prompt, action)
+        return True
+
+    def _queue_task(self, task, prompt, action):
+        item = self._get_item(task.id)
+        with self._lock:
+            item["status"] = "queued"
+            item["updated_at"] = now()
+            task.state = {"prompt": str(prompt or ""), "action": action}
+        self.runtime.session_event_bus.emit(
+            "worker_queued", {"worker_id": task.id, "description": task.description}
+        )
+        self._save()
+
+    def start_next_queued(self):
+        with self._lock:
+            active = sum(
+                1
+                for item in self.state.get("items", [])
+                if item.get("status") in {"starting", "running", "stopping"}
+            )
+            if active >= self.max_concurrent_workers:
+                return
+            next_task = next(
+                (
+                    task
+                    for task in self._tasks.values()
+                    if self._get_item(task.id).get("status") == "queued"
+                ),
+                None,
+            )
+            if next_task is None:
+                return
+            prompt = next_task.state.get("prompt", "")
+            action = next_task.state.get("action", "spawn")
+            next_task.state.clear()
+            item = self._get_item(next_task.id)
+            item["status"] = "starting"
+            item["updated_at"] = now()
+        self._start_background(next_task, prompt, action)
 
     def _start_background(self, task, prompt, action):
         thread = threading.Thread(

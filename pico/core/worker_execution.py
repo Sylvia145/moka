@@ -52,3 +52,4 @@ def run_worker(manager, task, prompt, action):
         {"worker_id": task.id, "status": status, "duration_ms": item["duration_ms"]},
     )
     manager._save()
+    manager.start_next_queued()
