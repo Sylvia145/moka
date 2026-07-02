@@ -104,9 +104,11 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         final_readiness_mode="warn",
         before_final_hooks=None,
         mcp_servers=None,
+        max_concurrent_workers=2,
     ):
         self.model_client = model_client
         self.model_client_factory = model_client_factory
+        self.max_concurrent_workers = max(1, int(max_concurrent_workers))
         self.model_client_router = model_client_router or ModelClientRouter(model_client)
         self.abort_requested = False
         self.ask_user_callback = ask_user_callback

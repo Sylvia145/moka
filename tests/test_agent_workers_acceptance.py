@@ -111,6 +111,48 @@ def test_async_worker_notification_is_drained_by_coordinator_only(tmp_path):
     assert agent.worker_manager.to_dict()["items"][0]["notification_drained"] is True
 
 
+def test_background_workers_queue_at_configured_concurrency_limit(tmp_path):
+    first_started = threading.Event()
+    first_release = threading.Event()
+    second_started = threading.Event()
+    second_release = threading.Event()
+    clients = iter(
+        [
+            BlockingModelClient(["<final>First done.</final>"], first_started, first_release),
+            BlockingModelClient(["<final>Second done.</final>"], second_started, second_release),
+        ]
+    )
+    agent = build_agent(
+        tmp_path,
+        [],
+        model_client_factory=lambda: next(clients),
+        max_concurrent_workers=1,
+    )
+
+    first = agent.worker_manager.spawn("First", "wait", subagent_type="Explore")
+    assert first["status"] == "started"
+    assert first_started.wait(timeout=1)
+
+    second = agent.worker_manager.spawn("Second", "wait", subagent_type="Explore")
+    assert second["status"] == "queued"
+    assert not second_started.wait(timeout=0.1)
+
+    first_release.set()
+    assert second_started.wait(timeout=2)
+    second_release.set()
+    deadline = time.monotonic() + 3
+    while time.monotonic() < deadline:
+        statuses = [item["status"] for item in agent.worker_manager.to_dict()["items"]]
+        if statuses == ["completed", "completed"]:
+            break
+        time.sleep(0.01)
+
+    assert [item["status"] for item in agent.worker_manager.to_dict()["items"]] == [
+        "completed",
+        "completed",
+    ]
+
+
 def test_send_message_rejects_running_worker(tmp_path):
     started = threading.Event()
     release = threading.Event()

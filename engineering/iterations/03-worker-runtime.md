@@ -24,10 +24,13 @@
 
 ## 验证证据
 
-- `tests/test_agent_workers_acceptance.py`：13 passed（2026-08-11，18.02s）。
+- `tests/test_agent_workers_acceptance.py`：14 passed（2026-08-11，19.32s）。
 - 端到端 fixture 初始化 Git 仓库，写 worker 在 detached worktree 创建 `notes/worker.txt`；断言该文件存在于 worktree、主工作区不存在，并记录基线 commit。
 - Windows 环境中后台 worker 创建的耗时约为 0.58s；异步验收阈值从 0.5s 调整为 1.0s，仍验证调用方不等待 worker 完成，避免把机器启动抖动误判为同步阻塞。
+- 并发上限设为 1 的测试中，第 2 个后台 worker 先进入 `queued`；第 1 个 worker 完成后才开始第 2 个，最终两者均为 `completed`。
 
 ## 当前边界
 
 worktree 由会话保留以便复核变更；本迭代不自动合并、清理或解决冲突。工作流由主 Agent 在审阅 diff 后显式决定是否采纳。
+
+`runtime.py` 存在本迭代前已有的全文件 Ruff 存量告警；本次没有为清零告警而扩张重构范围。新增的 worker manager 和验收测试通过其专项 Ruff 检查。
