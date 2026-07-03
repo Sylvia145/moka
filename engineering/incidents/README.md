@@ -9,3 +9,4 @@
 - [INC-0002：MCP initialize 可重入锁死](INC-0002-mcp-initialize-reentrant-lock.md)
 - [INC-0003：worker 结果状态读取顺序](INC-0003-worker-result-state-order.md)
 - [INC-0004：真实提供商冒烟评测认证失败](INC-0004-live-provider-auth-block.md)
+- [INC-0005：Worker Manager 超出模块复杂度预算](INC-0005-worker-manager-entropy-budget.md)

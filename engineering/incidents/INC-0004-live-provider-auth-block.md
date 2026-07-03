@@ -6,13 +6,13 @@
 
 ## 现象
 
-对 GPT 配置执行单题、温度 0 的固定基准冒烟时，请求到达提供商后返回 HTTP 401，运行在第一次模型调用即以 `model_error` 停止；没有工具调用，也没有修改 fixture。
+对 GPT、Claude 和 DeepSeek 的本地配置分别执行单题、温度 0 的固定基准冒烟时，请求均到达提供商后返回 HTTP 401，运行在第一次模型调用即以 `model_error` 停止；没有工具调用，也没有修改 fixture。
 
 ## 已确认事实
 
 - 配置解析能发现 provider、模型、端点和密钥字段；不记录其具体值。
-- 原始结果位于忽略的 `artifacts/engineering/real-model-smoke-result.json`，包含运行 ID、状态和错误类型。
-- 此次运行的 0/1 仅表示认证失败，**不代表 Agent 的能力通过率**。
+- 三个原始结果位于忽略的 `artifacts/engineering/live-smoke-<provider>.json`，包含运行 ID、状态和错误类型。
+- 三次运行的 0/1 仅表示认证失败，**不代表 Agent 的能力通过率**。
 
 ## 处理与后续
 

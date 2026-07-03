@@ -13,9 +13,7 @@ from pydantic import ValidationError
 
 from ..core.workspace import IGNORED_PATH_NAMES
 from . import media as media_tools
-from .base import RegisteredTool
 from .agents import (
-    AGENT_TOOL_EXAMPLES,
     AGENT_TOOL_NAMES,
     AGENT_TOOL_SPECS,
     tool_agent,
@@ -24,22 +22,14 @@ from .agents import (
     validate_agent_runtime,
 )
 from .ask_user import (
-    ASK_USER_TOOL_EXAMPLES,
     ASK_USER_TOOL_SPECS,
     tool_ask_user,
 )
+from .base import RegisteredTool
 from .plan import (
-    PLAN_TOOL_EXAMPLES,
     PLAN_TOOL_SPECS,
     tool_enter_plan_mode,
     tool_exit_plan_mode,
-)
-from .todos import (
-    TODO_TOOL_EXAMPLES,
-    TODO_TOOL_SPECS,
-    tool_todo_add,
-    tool_todo_list,
-    tool_todo_update,
 )
 from .schemas import (
     AgentArgs,
@@ -60,6 +50,13 @@ from .schemas import (
     WriteFileArgs,
     first_error_message,
 )
+from .todos import (
+    TODO_TOOL_SPECS,
+    tool_todo_add,
+    tool_todo_list,
+    tool_todo_update,
+)
+from .tool_examples import tool_example as _tool_example
 
 _TOOL_SCHEMAS = {
     "list_files": ListFilesArgs,
@@ -118,21 +115,6 @@ BASE_TOOL_SPECS = {
     **ASK_USER_TOOL_SPECS,
 }
 
-TOOL_EXAMPLES = {
-    "list_files": '<tool>{"name":"list_files","args":{"path":"."}}</tool>',
-    "read_file": '<tool>{"name":"read_file","args":{"path":"README.md","start":1,"end":80}}</tool>',
-    "search": '<tool>{"name":"search","args":{"pattern":"binary_search","path":"."}}</tool>',
-    "run_shell": '<tool>{"name":"run_shell","args":{"command":"uv run --with pytest python -m pytest -q","timeout":20}}</tool>',
-    "write_file": '<tool name="write_file" path="binary_search.py"><content>def binary_search(nums, target):\n    return -1\n</content></tool>',
-    "patch_file": '<tool name="patch_file" path="binary_search.py"><old_text>return -1</old_text><new_text>return mid</new_text></tool>',
-    **media_tools.MEDIA_TOOL_EXAMPLES,
-    **TODO_TOOL_EXAMPLES,
-    **AGENT_TOOL_EXAMPLES,
-    **PLAN_TOOL_EXAMPLES,
-    **ASK_USER_TOOL_EXAMPLES,
-}
-
-
 def build_tool_registry(agent):
     # 工具不是动态发现的，而是显式注册的。
     # 这样模型看到的是一个有边界、可审计的动作集合。
@@ -150,7 +132,7 @@ def build_tool_registry(agent):
 
 
 def tool_example(name):
-    return TOOL_EXAMPLES.get(name, "")
+    return _tool_example(name)
 
 
 def validate_tool(agent, name, args):
