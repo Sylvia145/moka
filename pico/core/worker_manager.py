@@ -2,11 +2,17 @@
 
 import json
 import queue
-import subprocess
 import threading
-import time
 from dataclasses import dataclass, field
 
+from .worker_background import (
+    can_run_background,
+    create_worktree,
+    queue_task,
+    request_stop,
+    shutdown_workers,
+    start_if_capacity,
+)
 from .worker_execution import run_worker
 from .worker_runtime import build_child_runtime
 from .workspace import now
@@ -44,10 +50,10 @@ class WorkerManager:
             raise ValueError("plan mode only allows Explore agents")
         task = self._new_task(description, subagent_type, write_scope, timeout_seconds)
         self._tasks[task.id] = task
-        if self._can_run_background():
-            if self._start_if_capacity(task, prompt, action="spawn"):
+        if can_run_background(self):
+            if start_if_capacity(self, task, prompt, action="spawn"):
                 return self._public_payload(task, status="started")
-            self._queue_task(task, prompt, action="spawn")
+            queue_task(self, task, prompt, action="spawn")
             return self._public_payload(task, status="queued")
         run_worker(self, task, prompt, action="spawn")
         return self._public_payload(task)
@@ -59,10 +65,10 @@ class WorkerManager:
             raise ValueError(f"worker is running: {task_id}")
         if self.runtime.runtime_mode == "plan" and task.subagent_type != "Explore":
             raise ValueError("plan mode only allows Explore agents")
-        if self._can_run_background():
-            if self._start_if_capacity(task, message, action="continue"):
+        if can_run_background(self):
+            if start_if_capacity(self, task, message, action="continue"):
                 return self._public_payload(task, status="started")
-            self._queue_task(task, message, action="continue")
+            queue_task(self, task, message, action="continue")
             return self._public_payload(task, status="queued")
         run_worker(self, task, message, action="continue")
         return self._public_payload(task)
@@ -72,7 +78,7 @@ class WorkerManager:
         if item["status"] in {"starting", "running"}:
             task = self._tasks.get(str(task_id))
             if task is not None:
-                self._request_stop(task)
+                request_stop(task)
             item["status"] = "stopping"
             item["updated_at"] = now()
             self.runtime.session_event_bus.emit(
@@ -97,34 +103,7 @@ class WorkerManager:
         }
 
     def shutdown(self, timeout=2.0):
-        tasks = list(self._tasks.values())
-        for task in tasks:
-            item = self._get_item(task.id)
-            if item.get("status") in {"starting", "running", "stopping"}:
-                self._request_stop(task)
-                with self._lock:
-                    item["status"] = "stopping"
-                    item["updated_at"] = now()
-                self.runtime.session_event_bus.emit(
-                    "worker_stop_requested",
-                    {"worker_id": item["id"], "status": "stopping"},
-                )
-            elif item.get("status") == "queued":
-                with self._lock:
-                    item["status"] = "canceled"
-                    item["updated_at"] = now()
-                task.state.clear()
-        if tasks:
-            self._save()
-        deadline = time.monotonic() + float(timeout)
-        for task in tasks:
-            thread = task.thread
-            if thread is None or not thread.is_alive():
-                continue
-            remaining = max(0.0, deadline - time.monotonic())
-            if remaining:
-                thread.join(remaining)
-        return {"stopped": sum(1 for task in tasks if task.stop_requested)}
+        return shutdown_workers(self, timeout)
 
     def to_dict(self):
         return {
@@ -137,7 +116,7 @@ class WorkerManager:
             worker_id = f"agent_{int(self.state.get('next_id', 1))}"
             self.state["next_id"] = int(self.state.get("next_id", 1)) + 1
         scope = tuple(_clean_scope(write_scope))
-        worktree_path, base_commit = self._create_worktree(worker_id, subagent_type, scope)
+        worktree_path, base_commit = create_worktree(self, worker_id, subagent_type, scope)
         child = build_child_runtime(self.runtime, subagent_type, scope, workspace_root=worktree_path or self.runtime.root)
         item = {
             "id": worker_id,
@@ -160,99 +139,6 @@ class WorkerManager:
             self.state.setdefault("items", []).append(item)
             self._save()
         return WorkerTask(worker_id, item["description"], subagent_type, scope, child, timeout_seconds=int(timeout_seconds))
-
-    def _create_worktree(self, worker_id, subagent_type, scope):
-        if subagent_type != "worker" or not scope or not (self.runtime.root / ".git").exists():
-            return None, ""
-        target = self.runtime.root / ".worktrees" / worker_id
-        target.parent.mkdir(parents=True, exist_ok=True)
-        base = subprocess.run(["git", "rev-parse", "HEAD"], cwd=self.runtime.root, capture_output=True, text=True, check=True).stdout.strip()
-        subprocess.run(["git", "worktree", "add", "--detach", str(target), base], cwd=self.runtime.root, capture_output=True, text=True, check=True)
-        return target, base
-
-    def _can_run_background(self):
-        return getattr(self.runtime, "model_client_factory", None) is not None
-
-    def _start_if_capacity(self, task, prompt, action):
-        with self._lock:
-            active = sum(
-                1
-                for item in self.state.get("items", [])
-                if item.get("status") in {"starting", "running", "stopping"}
-            )
-            if active >= self.max_concurrent_workers:
-                return False
-            item = self._get_item(task.id)
-            item["status"] = "starting"
-            item["updated_at"] = now()
-        self._start_background(task, prompt, action)
-        return True
-
-    def _queue_task(self, task, prompt, action):
-        item = self._get_item(task.id)
-        with self._lock:
-            item["status"] = "queued"
-            item["updated_at"] = now()
-            task.state = {"prompt": str(prompt or ""), "action": action}
-        self.runtime.session_event_bus.emit(
-            "worker_queued", {"worker_id": task.id, "description": task.description}
-        )
-        self._save()
-
-    def start_next_queued(self):
-        with self._lock:
-            active = sum(
-                1
-                for item in self.state.get("items", [])
-                if item.get("status") in {"starting", "running", "stopping"}
-            )
-            if active >= self.max_concurrent_workers:
-                return
-            next_task = next(
-                (
-                    task
-                    for task in self._tasks.values()
-                    if self._get_item(task.id).get("status") == "queued"
-                ),
-                None,
-            )
-            if next_task is None:
-                return
-            prompt = next_task.state.get("prompt", "")
-            action = next_task.state.get("action", "spawn")
-            next_task.state.clear()
-            item = self._get_item(next_task.id)
-            item["status"] = "starting"
-            item["updated_at"] = now()
-        self._start_background(next_task, prompt, action)
-
-    def _start_background(self, task, prompt, action):
-        thread = threading.Thread(
-            target=run_worker,
-            args=(self, task, prompt, action),
-            daemon=True,
-            name=f"pico-worker-{task.id}",
-        )
-        task.thread = thread
-        thread.start()
-        threading.Thread(target=self._watch_timeout, args=(task,), daemon=True).start()
-
-    def _watch_timeout(self, task):
-        if not threading.Event().wait(task.timeout_seconds):
-            item = self._get_item(task.id)
-            if item.get("status") == "running":
-                self._request_stop(task)
-                with self._lock:
-                    item["status"] = "timed_out"
-                    item["updated_at"] = now()
-                self.runtime.session_event_bus.emit("worker_timed_out", {"worker_id": task.id})
-                self._save()
-
-    def _request_stop(self, task):
-        task.stop_requested = True
-        abort = getattr(task.runtime, "abort_current_turn", None)
-        if callable(abort):
-            abort()
 
     def drain_notifications(self):
         drained = []

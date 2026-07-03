@@ -12,5 +12,8 @@
 2. `iterations/01-agent-evaluation.md`：基于 trace 的轨迹评测与回归报告。
 3. `iterations/02-mcp-gateway.md`：受权限和审计约束的 stdio MCP 工具接入。
 4. `iterations/03-worker-runtime.md`：具备超时、取消、结果合同和 worktree 隔离的 worker。
+5. `iterations/04-live-evaluation.md`：真实模型评测口径与认证验证。
+6. `iterations/05-end-to-end-demo.md`：MCP、worker 与 trace 的统一演示。
+7. `final-verification.md`：最终专项回归、静态检查与全量测试边界。
 
 每一阶段完成时，会在相应文档中补充实际测试命令、运行结果、指标、提交和残留限制。

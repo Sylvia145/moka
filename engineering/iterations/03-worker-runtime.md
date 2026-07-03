@@ -34,3 +34,5 @@
 worktree 由会话保留以便复核变更；本迭代不自动合并、清理或解决冲突。工作流由主 Agent 在审阅 diff 后显式决定是否采纳。
 
 `runtime.py` 存在本迭代前已有的全文件 Ruff 存量告警；本次没有为清零告警而扩张重构范围。新增的 worker manager 和验收测试通过其专项 Ruff 检查。
+
+在全量回归中，`worker_manager.py` 被架构预算测试发现超过 220 行。已将后台调度和 worktree 隔离拆分至 `worker_background.py`，manager 收敛到 204 行；详见 [INC-0005](../incidents/INC-0005-worker-manager-entropy-budget.md)。

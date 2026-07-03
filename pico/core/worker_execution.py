@@ -3,6 +3,7 @@
 import time
 
 from .worker_artifacts import collect_worker_artifacts
+from .worker_background import start_next_queued
 from .worker_notifications import render_worker_notification
 from .workspace import clip, now
 
@@ -52,4 +53,4 @@ def run_worker(manager, task, prompt, action):
         {"worker_id": task.id, "status": status, "duration_ms": item["duration_ms"]},
     )
     manager._save()
-    manager.start_next_queued()
+    start_next_queued(manager)
