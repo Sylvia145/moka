@@ -88,24 +88,25 @@ ENV_VISION_TIMEOUT = "PICO_VISION_TIMEOUT"
 
 PROVIDER_ENV_NAMES = {
     "openai": {
-        "api_key": ("OPENAI_API_KEY",),
-        "base_url": ("OPENAI_API_BASE", "OPENAI_BASE_URL"),
-        "model": ("OPENAI_MODEL",),
+        "api_key": ("PICO_OPENAI_API_KEY", "OPENAI_API_KEY"),
+        "base_url": ("PICO_OPENAI_API_BASE", "OPENAI_API_BASE", "OPENAI_BASE_URL"),
+        "model": ("PICO_OPENAI_MODEL", "OPENAI_MODEL"),
     },
     "anthropic": {
         "api_key": (
+            "PICO_ANTHROPIC_API_KEY",
             "ANTHROPIC_API_KEY",
             "ANTHROPIC_AUTH_TOKEN",
             "RIGHT_CODES_API_KEY",
             "OPENAI_API_KEY",
         ),
-        "base_url": ("ANTHROPIC_API_BASE", "ANTHROPIC_BASE_URL"),
-        "model": ("ANTHROPIC_MODEL",),
+        "base_url": ("PICO_ANTHROPIC_API_BASE", "ANTHROPIC_API_BASE", "ANTHROPIC_BASE_URL"),
+        "model": ("PICO_ANTHROPIC_MODEL", "ANTHROPIC_MODEL"),
     },
     "deepseek": {
-        "api_key": ("DEEPSEEK_API_KEY",),
-        "base_url": ("DEEPSEEK_API_BASE", "DEEPSEEK_BASE_URL"),
-        "model": ("DEEPSEEK_MODEL",),
+        "api_key": ("PICO_DEEPSEEK_API_KEY", "DEEPSEEK_API_KEY"),
+        "base_url": ("PICO_DEEPSEEK_API_BASE", "DEEPSEEK_API_BASE", "DEEPSEEK_BASE_URL"),
+        "model": ("PICO_DEEPSEEK_MODEL", "DEEPSEEK_MODEL"),
     },
 }
 
