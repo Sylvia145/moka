@@ -174,6 +174,10 @@ def build_agent(args):
         args.cwd,
         repo_root_override=getattr(args, "repo_root", None),
     )
+    # 必须在解析 provider 配置之前加载 .env，否则项目级 PICO_* 环境变量
+    # 不会被 os.environ 感知，导致系统级同名变量（如 DEEPSEEK_API_KEY）
+    # 错误地覆盖项目配置。
+    load_project_env(workspace.repo_root, override=False)
     store = SessionStore(workspace.repo_root + "/.pico/sessions")
     provider_runtime = _build_provider_runtime(args)
     model = _build_model_client(args)
@@ -191,7 +195,6 @@ def build_agent(args):
         mode=getattr(args, "sandbox", None),
         backend=getattr(args, "sandbox_backend", None),
     )
-    load_project_env(workspace.repo_root, override=False)
     configured_secret_names = _configured_secret_names(args)
     session_id = args.resume
     fixed_session_id = getattr(args, "session_id", None)
