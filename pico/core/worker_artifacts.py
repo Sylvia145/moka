@@ -1,6 +1,10 @@
 """Evidence extraction for worker child runs."""
 
 import json
+import subprocess
+from pathlib import Path
+
+from .workspace import IGNORED_PATH_NAMES
 
 
 def collect_worker_artifacts(root, child, task_state):
@@ -38,6 +42,87 @@ def trace_error_codes(trace_path):
         if code and code not in error_codes:
             error_codes.append(code)
     return error_codes
+
+
+def build_change_handoff(workspace_root, base_commit, artifacts):
+    """Build review evidence from the isolated workspace, not model narration."""
+    workspace_root = Path(workspace_root)
+    changed_paths = list(artifacts.get("changed_paths", []))
+    review_required = bool(base_commit)
+    handoff = {
+        "status": "pending_review" if review_required else "not_applicable",
+        "review_required": review_required,
+        "base_commit": str(base_commit or ""),
+        "changed_paths": changed_paths,
+        "diff_stat": "",
+        "diff_paths": [],
+        "diff_check_exit_code": None,
+        "verification": dict(artifacts.get("verification", {})),
+        "error_codes": list(artifacts.get("tool_error_codes", [])),
+        "risk_flags": [],
+    }
+    if review_required:
+        handoff.update(_git_diff_evidence(workspace_root, str(base_commit)))
+        handoff["risk_flags"].append("human_review_required")
+    if handoff["error_codes"]:
+        handoff["risk_flags"].append("tool_errors_present")
+    if handoff["verification"].get("state") not in {"passed", "verified"}:
+        handoff["risk_flags"].append("verification_incomplete")
+    return handoff
+
+
+def _git_diff_evidence(workspace_root, base_commit):
+    if not workspace_root.exists():
+        return {}
+    diff_paths = _reviewable_paths(
+        _git_output(workspace_root, ["diff", "--name-only", base_commit]).splitlines()
+    )
+    untracked_paths = _git_untracked_paths(workspace_root)
+    diff_stat = _git_output(workspace_root, ["diff", "--stat", base_commit])
+    if untracked_paths:
+        untracked_summary = "\n".join(f"  {path} | untracked" for path in untracked_paths)
+        diff_stat = "\n".join(filter(None, [diff_stat, "Untracked files:", untracked_summary]))
+    return {
+        "diff_stat": diff_stat,
+        "diff_paths": list(dict.fromkeys([*diff_paths, *untracked_paths])),
+        "untracked_paths": untracked_paths,
+        "diff_check_exit_code": _git_exit_code(workspace_root, ["diff", "--check", base_commit]),
+    }
+
+
+def _git_untracked_paths(workspace_root):
+    return _reviewable_paths(
+        _git_output(workspace_root, ["ls-files", "--others", "--exclude-standard"]).splitlines()
+    )
+
+
+def _reviewable_paths(paths):
+    return [path for path in paths if not any(part in IGNORED_PATH_NAMES for part in Path(path).parts)]
+
+
+def _git_output(workspace_root, args):
+    result = subprocess.run(
+        ["git", *args],
+        cwd=workspace_root,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    return result.stdout.strip()
+
+
+def _git_exit_code(workspace_root, args):
+    return subprocess.run(
+        ["git", *args],
+        cwd=workspace_root,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    ).returncode
 
 
 def relative_path(root, path):

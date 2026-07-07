@@ -273,6 +273,15 @@ def test_write_worker_uses_isolated_git_worktree(tmp_path):
     assert worktree.exists()
     assert (worktree / "notes" / "worker.txt").read_text(encoding="utf-8") == "isolated\n"
     assert not (tmp_path / "notes" / "worker.txt").exists()
+    handoff = item["change_handoff"]
+    assert handoff["status"] == "pending_review"
+    assert handoff["review_required"] is True
+    assert handoff["base_commit"] == item["base_commit"]
+    assert handoff["diff_paths"] == ["notes/worker.txt"]
+    assert handoff["untracked_paths"] == ["notes/worker.txt"]
+    assert "notes/worker.txt" in handoff["diff_stat"]
+    assert ".pico" not in handoff["diff_stat"]
+    assert handoff["diff_check_exit_code"] == 0
 
 
 def test_clear_session_stops_running_background_workers(tmp_path):

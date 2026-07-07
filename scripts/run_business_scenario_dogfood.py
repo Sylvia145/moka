@@ -13,10 +13,23 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from pico import Pico, SessionStore, WorkspaceContext  # noqa: E402
-from pico.config import resolve_provider_config  # noqa: E402
-from pico.features.skills_runtime import invoke_skill  # noqa: E402
-from pico.providers import AnthropicCompatibleModelClient, OpenAICompatibleModelClient  # noqa: E402
+from pico import Pico, SessionStore, WorkspaceContext
+from pico.config import resolve_provider_config
+from pico.evaluation.release_governance import (
+    evaluate_run as evaluate_release_governance_run,
+)
+from pico.evaluation.release_governance import (
+    policy_server_config,
+    release_governance_prompt,
+)
+from pico.evaluation.release_governance import (
+    prepare_workspace as prepare_release_governance_workspace,
+)
+from pico.features.skills_runtime import invoke_skill
+from pico.providers import (
+    AnthropicCompatibleModelClient,
+    OpenAICompatibleModelClient,
+)
 
 SUMMARY_JSON = "business-scenario-dogfood.json"
 SUMMARY_MARKDOWN = "business-scenario-dogfood.md"
@@ -32,6 +45,7 @@ def run_dogfood(
     api_key=None,
     max_steps=8,
     max_new_tokens=1024,
+    scenario_ids=None,
 ):
     output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -42,31 +56,20 @@ def run_dogfood(
         base_url=base_url,
         api_key=api_key,
     )
+    scenario_specs = [
+        ("order_pricing_bugfix", _scenario_order_pricing_bugfix),
+        ("release_readiness_review", _scenario_release_readiness_review),
+        ("incident_resume_fix", _scenario_incident_resume_fix),
+        ("release_governance_with_isolated_worker", _scenario_release_governance_with_isolated_worker),
+    ]
+    selected = set(scenario_ids or ())
+    unknown = selected.difference(name for name, _ in scenario_specs)
+    if unknown:
+        raise ValueError(f"unknown scenario ids: {', '.join(sorted(unknown))}")
     scenarios = [
-        _run_scenario(
-            output_dir,
-            "order_pricing_bugfix",
-            _scenario_order_pricing_bugfix,
-            client_factory,
-            max_steps,
-            max_new_tokens,
-        ),
-        _run_scenario(
-            output_dir,
-            "release_readiness_review",
-            _scenario_release_readiness_review,
-            client_factory,
-            max_steps,
-            max_new_tokens,
-        ),
-        _run_scenario(
-            output_dir,
-            "incident_resume_fix",
-            _scenario_incident_resume_fix,
-            client_factory,
-            max_steps,
-            max_new_tokens,
-        ),
+        _run_scenario(output_dir, name, runner, client_factory, max_steps, max_new_tokens)
+        for name, runner in scenario_specs
+        if not selected or name in selected
     ]
     summary = {
         "status": "passed" if all(item["status"] == "passed" for item in scenarios) else "failed",
@@ -117,7 +120,7 @@ def _run_scenario(output_dir, scenario_id, runner, client_factory, max_steps, ma
         record = runner(output_dir, workspace, client_factory, max_steps, max_new_tokens)
         record["status"] = "passed" if all(check["status"] == "passed" for check in record["checks"]) else "failed"
         return record
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - dogfood must retain scenario failure evidence.
         return {
             "id": scenario_id,
             "status": "failed",
@@ -139,9 +142,11 @@ def _scenario_order_pricing_bugfix(output_dir, workspace, client_factory, max_st
         encoding="utf-8",
     )
     (tests / "test_order_pricing.py").write_text(
+        "import unittest\n\n"
         "from src.order_pricing import calculate_total\n\n\n"
-        "def test_discount_is_subtracted_before_tax_is_added():\n"
-        "    assert calculate_total(100, 15, 8.5) == 93.5\n",
+        "class OrderPricingTest(unittest.TestCase):\n"
+        "    def test_discount_is_subtracted_before_tax_is_added(self):\n"
+        "        self.assertEqual(calculate_total(100, 15, 8.5), 93.5)\n",
         encoding="utf-8",
     )
     agent = _build_agent(workspace, client_factory, max_steps=max_steps, max_new_tokens=max_new_tokens)
@@ -151,7 +156,7 @@ def _scenario_order_pricing_bugfix(output_dir, workspace, client_factory, max_st
         "2) read_file src/order_pricing.py start=1 end=40。"
         "3) patch_file src/order_pricing.py，把 `return round(subtotal + discount + tax, 2)` "
         "替换为 `return round(subtotal - discount + tax, 2)`。"
-        "4) run_shell `uv run --with pytest python -m pytest -q`。"
+        "4) run_shell `python -m unittest discover -s tests -v`。"
         "5) 测试 passed 后 final。不要改其他文件，不要编造文件内容。"
     )
     return _finalize(
@@ -162,8 +167,8 @@ def _scenario_order_pricing_bugfix(output_dir, workspace, client_factory, max_st
         checks=[
             _check("answer_nonempty", bool(answer.strip()), answer),
             _check("pricing_fixed", "subtotal - discount + tax" in (src / "order_pricing.py").read_text(encoding="utf-8")),
-            _check("pytest_ran", _history_contains(agent, "run_shell", "passed")),
-            _check("external_pytest", _run_pytest(workspace).returncode == 0),
+            _check("tests_ran", _tool_succeeded(agent, "run_shell")),
+            _check("external_tests", _run_tests(workspace).returncode == 0),
         ],
     )
 
@@ -220,11 +225,14 @@ def _scenario_incident_resume_fix(output_dir, workspace, client_factory, max_ste
         "    return 'ok' if ms < 1000 else 'page'\n",
         encoding="utf-8",
     )
+
     (tests / "test_incident_router.py").write_text(
+        "import unittest\n\n"
         "from src.incident_router import classify_latency\n\n\n"
-        "def test_degraded_threshold_routes_before_page():\n"
-        "    assert classify_latency(750) == 'degraded'\n"
-        "    assert classify_latency(1500) == 'page'\n",
+        "class IncidentRouterTest(unittest.TestCase):\n"
+        "    def test_degraded_threshold_routes_before_page(self):\n"
+        "        self.assertEqual(classify_latency(750), 'degraded')\n"
+        "        self.assertEqual(classify_latency(1500), 'page')\n",
         encoding="utf-8",
     )
     store = SessionStore(workspace / ".pico" / "sessions")
@@ -256,7 +264,7 @@ def _scenario_incident_resume_fix(output_dir, workspace, client_factory, max_ste
         "继续刚才的事故修复。请严格按下面步骤执行，每次只返回一个 <tool> 或最后一个 <final>："
         "1) patch_file src/incident_router.py，把 `return 'ok' if ms < 1000 else 'page'` "
         "替换为 `return 'ok' if ms < 500 else 'degraded' if ms < 1000 else 'page'`。"
-        "2) run_shell `uv run --with pytest python -m pytest -q`。"
+        "2) run_shell `python -m unittest discover -s tests -v`。"
         "3) todo_update todo_id='todo_1' status='done' note='threshold fixed and tests verified'。"
         "4) 测试 passed 后 final。不要改其他文件。"
     )
@@ -271,13 +279,41 @@ def _scenario_incident_resume_fix(output_dir, workspace, client_factory, max_ste
             _check("same_session", resumed.session["id"] == first.session["id"]),
             _check("todo_done", any(item.get("status") == "done" for item in resumed.session.get("todos", {}).get("items", []))),
             _check("incident_fixed", "degraded" in (src / "incident_router.py").read_text(encoding="utf-8")),
-            _check("pytest_ran", _history_contains(resumed, "run_shell", "passed")),
-            _check("external_pytest", _run_pytest(workspace).returncode == 0),
+            _check("tests_ran", _tool_succeeded(resumed, "run_shell")),
+            _check("external_tests", _run_tests(workspace).returncode == 0),
         ],
     )
 
 
-def _build_agent(workspace, client_factory, max_steps=8, max_new_tokens=1024):
+def _scenario_release_governance_with_isolated_worker(
+    output_dir, workspace, client_factory, max_steps, max_new_tokens
+):
+    server_path = prepare_release_governance_workspace(workspace)
+    agent = _build_agent(
+        workspace,
+        client_factory,
+        max_steps=max_steps,
+        max_new_tokens=max_new_tokens,
+        mcp_servers=(policy_server_config(server_path),),
+    )
+    try:
+        answer = agent.ask(release_governance_prompt())
+        checks = [
+            _check("answer_nonempty", bool(answer.strip()), answer),
+            *evaluate_release_governance_run(agent, workspace),
+        ]
+        return _finalize(
+            output_dir,
+            workspace,
+            agent,
+            "release_governance_with_isolated_worker",
+            checks,
+        )
+    finally:
+        agent.mcp_clients["release_policy"].close()
+
+
+def _build_agent(workspace, client_factory, max_steps=8, max_new_tokens=1024, mcp_servers=None):
     return Pico(
         model_client=client_factory(),
         workspace=_scenario_workspace(workspace),
@@ -285,6 +321,7 @@ def _build_agent(workspace, client_factory, max_steps=8, max_new_tokens=1024):
         approval_policy="auto",
         max_steps=max_steps,
         max_new_tokens=max_new_tokens,
+        mcp_servers=mcp_servers,
     )
 
 
@@ -371,11 +408,22 @@ def _history_contains(agent, tool_name, text):
     )
 
 
-def _run_pytest(workspace):
+def _tool_succeeded(agent, tool_name):
+    return any(
+        item.get("role") == "tool"
+        and item.get("name") == tool_name
+        and "exit_code: 0" in str(item.get("content", ""))
+        for item in agent.session["history"]
+    )
+
+
+def _run_tests(workspace):
     return subprocess.run(
-        ["uv", "run", "--with", "pytest", "python", "-m", "pytest", "-q"],
+        [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
         cwd=workspace,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         timeout=90,
@@ -410,6 +458,7 @@ def build_arg_parser():
     parser.add_argument("--model", default=None, help="Model override for the selected provider profile.")
     parser.add_argument("--max-steps", type=int, default=8, help="Max Pico steps per scenario turn.")
     parser.add_argument("--max-new-tokens", type=int, default=1024, help="Max provider output tokens per model turn.")
+    parser.add_argument("--scenario", action="append", help="Run only this scenario id; repeat for multiple scenarios.")
     return parser
 
 
@@ -424,6 +473,7 @@ def main(argv=None):
         api_key=args.api_key,
         max_steps=args.max_steps,
         max_new_tokens=args.max_new_tokens,
+        scenario_ids=args.scenario,
     )
     print(json.dumps({"status": summary["status"], "scenario_count": summary["scenario_count"]}, sort_keys=True))
     return 0 if summary["status"] == "passed" else 1

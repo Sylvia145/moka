@@ -3,6 +3,7 @@ import inspect
 import json
 import os
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -25,11 +26,45 @@ def test_business_scenario_dogfood_uses_real_provider_only():
     assert "AnthropicCompatibleModelClient" in source
 
 
+def test_tool_succeeded_uses_exit_code_not_framework_specific_output():
+    module = _load_module()
+    agent = SimpleNamespace(
+        session={
+            "history": [
+                {
+                    "role": "tool",
+                    "name": "run_shell",
+                    "content": "exit_code: 0\nstdout:\nOK",
+                }
+            ]
+        }
+    )
+
+    assert module._tool_succeeded(agent, "run_shell")
+
+
+def test_tool_succeeded_rejects_nonzero_exit_code():
+    module = _load_module()
+    agent = SimpleNamespace(
+        session={
+            "history": [
+                {
+                    "role": "tool",
+                    "name": "run_shell",
+                    "content": "exit_code: 1\nstdout:\nFAILED",
+                }
+            ]
+        }
+    )
+
+    assert not module._tool_succeeded(agent, "run_shell")
+
+
 @pytest.mark.skipif(
     os.environ.get("PICO_RUN_LIVE_BUSINESS_DOGFOOD") != "1",
     reason="live provider dogfood is opt-in",
 )
-def test_business_scenario_dogfood_covers_three_user_workflows_live(tmp_path):
+def test_business_scenario_dogfood_covers_user_workflows_live(tmp_path):
     module = _load_module()
     output_dir = tmp_path / "business-dogfood"
 
@@ -40,6 +75,7 @@ def test_business_scenario_dogfood_covers_three_user_workflows_live(tmp_path):
         "order_pricing_bugfix",
         "release_readiness_review",
         "incident_resume_fix",
+        "release_governance_with_isolated_worker",
     }
     assert "api_key" not in summary["provider"]
 
@@ -61,3 +97,10 @@ def test_business_scenario_dogfood_covers_three_user_workflows_live(tmp_path):
     incident = next(scenario for scenario in summary["scenarios"] if scenario["id"] == "incident_resume_fix")
     incident_report = json.loads((output_dir / incident["report_path"]).read_text(encoding="utf-8"))
     assert any(item["status"] == "done" for item in incident_report["todos"]["items"])
+
+    governance = next(
+        scenario
+        for scenario in summary["scenarios"]
+        if scenario["id"] == "release_governance_with_isolated_worker"
+    )
+    assert any(check["name"] == "worker_handoff_pending_review" for check in governance["checks"])
