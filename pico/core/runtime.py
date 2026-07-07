@@ -148,9 +148,9 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         self.dream_interval_hours = float(dream_interval_hours)
         self.dream_min_sessions = int(dream_min_sessions)
         self.allowed_tools = self._normalize_allowed_tools(allowed_tools)
+        create_mcp_client = __import__("pico.tools.mcp", fromlist=["create_mcp_client"]).create_mcp_client
         self.mcp_clients = {
-            config.name: __import__("pico.tools.mcp", fromlist=["McpStdioClient"]).McpStdioClient(config)
-            for config in (mcp_servers or ())
+            config.name: create_mcp_client(config) for config in (mcp_servers or ())
         }
         self.final_readiness_mode = str(final_readiness_mode or "warn")
         self.before_final_hooks = tuple(before_final_hooks or ())

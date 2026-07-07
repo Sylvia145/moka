@@ -69,6 +69,10 @@ def policy_server_config(server_path):
     return McpServerConfig("release_policy", sys.executable, (str(server_path),))
 
 
+def policy_http_server_config(url):
+    return McpServerConfig("release_policy", transport="streamable_http", url=str(url))
+
+
 def release_governance_prompt():
     return """You are the release coordinator for Billing API release 2026.08.
 Execute one tool action at a time.
