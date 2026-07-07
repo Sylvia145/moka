@@ -19,12 +19,14 @@ from pico.evaluation.release_governance import (
     evaluate_run as evaluate_release_governance_run,
 )
 from pico.evaluation.release_governance import (
+    policy_http_server_config,
     policy_server_config,
     release_governance_prompt,
 )
 from pico.evaluation.release_governance import (
     prepare_workspace as prepare_release_governance_workspace,
 )
+from pico.evaluation.release_policy_http import release_policy_http_server
 from pico.features.skills_runtime import invoke_skill
 from pico.providers import (
     AnthropicCompatibleModelClient,
@@ -61,6 +63,7 @@ def run_dogfood(
         ("release_readiness_review", _scenario_release_readiness_review),
         ("incident_resume_fix", _scenario_incident_resume_fix),
         ("release_governance_with_isolated_worker", _scenario_release_governance_with_isolated_worker),
+        ("release_governance_over_http", _scenario_release_governance_over_http),
     ]
     selected = set(scenario_ids or ())
     unknown = selected.difference(name for name, _ in scenario_specs)
@@ -311,6 +314,35 @@ def _scenario_release_governance_with_isolated_worker(
         )
     finally:
         agent.mcp_clients["release_policy"].close()
+
+
+def _scenario_release_governance_over_http(
+    output_dir, workspace, client_factory, max_steps, max_new_tokens
+):
+    prepare_release_governance_workspace(workspace)
+    with release_policy_http_server(response_mode="sse") as (url, _state):
+        agent = _build_agent(
+            workspace,
+            client_factory,
+            max_steps=max_steps,
+            max_new_tokens=max_new_tokens,
+            mcp_servers=(policy_http_server_config(url),),
+        )
+        try:
+            answer = agent.ask(release_governance_prompt())
+            checks = [
+                _check("answer_nonempty", bool(answer.strip()), answer),
+                *evaluate_release_governance_run(agent, workspace),
+            ]
+            return _finalize(
+                output_dir,
+                workspace,
+                agent,
+                "release_governance_over_http",
+                checks,
+            )
+        finally:
+            agent.mcp_clients["release_policy"].close()
 
 
 def _build_agent(workspace, client_factory, max_steps=8, max_new_tokens=1024, mcp_servers=None):

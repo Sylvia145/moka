@@ -76,6 +76,7 @@ def test_business_scenario_dogfood_covers_user_workflows_live(tmp_path):
         "release_readiness_review",
         "incident_resume_fix",
         "release_governance_with_isolated_worker",
+        "release_governance_over_http",
     }
     assert "api_key" not in summary["provider"]
 

@@ -3,8 +3,8 @@ import re
 
 from .governance import record_governance_decision
 from .tool_policy import ToolPolicyChecker
-from .tool_result_artifacts import prepare_tool_result_observation
 from .tool_repetition import repeated_tool_call_metadata
+from .tool_result_artifacts import prepare_tool_result_observation
 
 
 def run_tool(agent, name, args):
@@ -111,7 +111,7 @@ def run_tool(agent, name, args):
         agent._last_tool_result_metadata = _tool_result_metadata(
             tool,
             status="partial_success" if workspace_changed else "error",
-            error_code="tool_partial_success" if workspace_changed else "tool_failed",
+            error_code="tool_partial_success" if workspace_changed else str(getattr(exc, "code", "") or "tool_failed"),
             security_event_type=security_event_type,
             affected_paths=affected_paths,
             workspace_changed=workspace_changed,
