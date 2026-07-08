@@ -45,4 +45,8 @@ After the retry change, the additional sample is 2/2 passed.
 
 ## 结论
 
-Moka 的 HTTP 传输通过确定性和两次真实端到端验证；真实模型的职责遵从性仍需通过更细粒度的角色权限或委派后工具降权继续改进。
+Moka 的 HTTP 传输已通过确定性协议测试和真实端到端验证。初始真实
+dogfood 暴露了父 Agent 在委派后仍能写主工作区的职责边界缺口；Iteration 08
+已将其收敛为运行时 `delegated_review` 权限策略，并保留 guard 前后的全部
+artifact。当前限制是：MCP 的只读判断依赖服务端 `readOnlyHint` 注解，Bearer
+Token 仍为预配置环境变量，未实现完整 OAuth Client 或自动合并 worker handoff。
