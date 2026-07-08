@@ -14,4 +14,5 @@
 - [INC-0007：Dogfood 外部 pytest 受 Windows `uv` 编码影响失败](INC-0007-dogfood-uv-windows-decode.md)
 - [INC-0008：隔离工作区缺少 pytest 依赖](INC-0008-isolated-workspace-test-dependency.md)
 - [INC-0009：测试 verifier 与 pytest 文本耦合](INC-0009-test-verifier-framework-coupling.md)
+- [INC-0011：Windows 文件锁中断 worker 审计持久化](INC-0011-windows-runstore-atomic-replace.md)
 - [INC-0010：MCP initialized 通知的空响应解析](INC-0010-mcp-notification-empty-response.md)

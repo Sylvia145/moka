@@ -7,7 +7,11 @@ files, so recovery state and review evidence stay separate.
 
 import json
 import tempfile
+import time
 from pathlib import Path
+
+WINDOWS_REPLACE_RETRIES = 3
+WINDOWS_REPLACE_RETRY_DELAY_SECONDS = 0.05
 
 
 def _run_id(value):
@@ -109,4 +113,13 @@ class RunStore:
             json.dump(payload, handle, indent=2, sort_keys=True)
             handle.write("\n")
             temp_name = handle.name
-        Path(temp_name).replace(path)
+        temp_path = Path(temp_name)
+        for attempt in range(WINDOWS_REPLACE_RETRIES):
+            try:
+                temp_path.replace(path)
+                return
+            except PermissionError:
+                if attempt + 1 == WINDOWS_REPLACE_RETRIES:
+                    temp_path.unlink(missing_ok=True)
+                    raise
+                time.sleep(WINDOWS_REPLACE_RETRY_DELAY_SECONDS * (attempt + 1))

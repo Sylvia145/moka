@@ -176,6 +176,11 @@ def _permission_error(agent, tool, decision):
         return f"error: plan mode only allows read-only tools or writing the active plan artifact ({agent.plan_mode.plan_path})"
     if decision.reason == "write_scope_mismatch":
         return f"error: worker write_scope does not allow {tool.name} on this path"
+    if decision.reason == "delegated_write_guard":
+        return (
+            f"error: delegated review mode blocks {tool.name}; a write worker owns "
+            "the change and its handoff requires human review"
+        )
     if decision.reason in {"approval_denied", "tool_not_allowed"}:
         return f"error: approval denied for {tool.name}"
     return f"error: permission denied for {tool.name}: {decision.reason}"

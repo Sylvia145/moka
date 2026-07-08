@@ -45,6 +45,7 @@ def release_policy_http_server(*, response_mode="json"):
                         {
                             "name": "get_policy",
                             "description": "Get versioned Billing API release requirements",
+                            "annotations": {"readOnlyHint": True},
                             "inputSchema": {
                                 "type": "object",
                                 "properties": {"release_id": {"type": "string"}},

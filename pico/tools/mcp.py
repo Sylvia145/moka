@@ -56,11 +56,12 @@ def build_mcp_tools(agent):
             if not tool_name:
                 continue
             name = f"mcp__{server_name}__{tool_name}"
+            annotations = dict(spec.get("annotations", {}) or {})
             tools[name] = RegisteredTool(
                 name=name,
                 schema=dict(spec.get("inputSchema", {}) or {}),
                 description=str(spec.get("description", "MCP tool")),
-                risky=True,
+                risky=not bool(annotations.get("readOnlyHint", False)),
                 runner=lambda args, client=client, tool_name=tool_name: _call(client, tool_name, args),
             )
     return tools

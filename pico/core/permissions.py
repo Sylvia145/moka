@@ -33,6 +33,8 @@ class PermissionChecker:
         if not profile.allows(tool.name):
             if profile.name == "plan":
                 return PermissionDecision.deny("plan_mode_tool_not_allowed", "plan_mode_write_guard")
+            if profile.name == "delegated_review":
+                return PermissionDecision.deny("delegated_write_guard", "delegated_write_guard")
             return PermissionDecision.deny("tool_not_allowed")
 
         if self.runtime.runtime_mode == "plan":

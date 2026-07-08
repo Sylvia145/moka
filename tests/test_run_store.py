@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from pico.core.run_store import RunStore
 from pico.core.task_state import STOP_REASON_FINAL_ANSWER_RETURNED, TaskState
@@ -64,3 +65,23 @@ def test_run_store_tolerates_missing_final_report(tmp_path):
 
     assert store.trace_path(state.run_id).exists()
     assert not store.report_path(state.run_id).exists()
+
+
+def test_run_store_retries_transient_permission_error_during_atomic_replace(tmp_path, monkeypatch):
+    store = RunStore(tmp_path / ".pico" / "runs")
+    state = TaskState.create(run_id="run_005", task_id="task_005", user_request="Persist safely.")
+    original_replace = Path.replace
+    attempts = {"count": 0}
+
+    def flaky_replace(source, target):
+        attempts["count"] += 1
+        if attempts["count"] < 3:
+            raise PermissionError("transient Windows file lock")
+        return original_replace(source, target)
+
+    monkeypatch.setattr(Path, "replace", flaky_replace)
+
+    store.write_task_state(state)
+
+    assert attempts["count"] == 3
+    assert store.task_state_path(state).is_file()

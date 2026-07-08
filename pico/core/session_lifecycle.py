@@ -55,6 +55,8 @@ def _rebind(runtime, emit_started):
         if runtime.runtime_mode == "plan"
         else "readonly"
         if runtime.read_only
+        else "delegated_review"
+        if runtime.delegation_guard_active
         else "default"
     )
     runtime.resume_state = runtime.evaluate_resume_state()
