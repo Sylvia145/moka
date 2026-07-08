@@ -50,12 +50,19 @@ class WorkerManager:
             raise ValueError("plan mode only allows Explore agents")
         task = self._new_task(description, subagent_type, write_scope, timeout_seconds)
         self._tasks[task.id] = task
+        guard_parent = subagent_type == "worker" and bool(task.write_scope)
         if can_run_background(self):
             if start_if_capacity(self, task, prompt, action="spawn"):
+                if guard_parent:
+                    self.runtime.activate_delegated_review_mode(task.id)
                 return self._public_payload(task, status="started")
             queue_task(self, task, prompt, action="spawn")
+            if guard_parent:
+                self.runtime.activate_delegated_review_mode(task.id)
             return self._public_payload(task, status="queued")
         run_worker(self, task, prompt, action="spawn")
+        if guard_parent:
+            self.runtime.activate_delegated_review_mode(task.id)
         return self._public_payload(task)
 
     def continue_task(self, task_id, message):

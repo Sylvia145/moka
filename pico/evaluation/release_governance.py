@@ -20,7 +20,7 @@ for line in sys.stdin:
     if method == "initialize":
         result = {"protocolVersion": "2025-06-18", "capabilities": {}, "serverInfo": {"name": "release-policy", "version": "billing-release-v1"}}
     elif method == "tools/list":
-        result = {"tools": [{"name": "get_policy", "description": "Get versioned Billing API release requirements", "inputSchema": {"type": "object", "properties": {"release_id": {"type": "string"}}, "required": ["release_id"]}}]}
+        result = {"tools": [{"name": "get_policy", "description": "Get versioned Billing API release requirements", "annotations": {"readOnlyHint": True}, "inputSchema": {"type": "object", "properties": {"release_id": {"type": "string"}}, "required": ["release_id"]}}]}
     elif method == "tools/call":
         result = {"content": [{"type": "text", "text": "policy_version=billing-release-v1; required=PAYMENT_WEBHOOK_SECRET,migrations_applied,rollback_owner; missing required items block release; reports require human review"}]}
     else:

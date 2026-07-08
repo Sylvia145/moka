@@ -22,6 +22,23 @@ HTTP Server 同时覆盖 JSON 与 SSE 工具发现。使用 ScriptedModelClient 
 
 结果为 2/3，而非选择性报告为 3/3。失败不归因为远程 MCP：策略调用、Worker 和报告均成功；失败归类为模型未遵守委派后的职责边界。
 
+## 委派所有权 guard 复测
+
+在 Iteration 08 后，父 Agent 在 scoped write worker 启动后切换为
+`delegated_review`。它不能再写主工作区，只有只读 MCP、读取和 worker
+控制能力。三次真实 HTTP 复测的 raw artifact 分别为：
+
+| Artifact | Result | Observation |
+|---|---|---|
+| `20260812-release-governance-http-guard-run1` | passed | Worker report and pending-review handoff completed; main workspace unchanged. |
+| `20260812-release-governance-http-guard-run2` | failed | Guard denied parent write correctly; worker audit JSON hit a transient Windows file lock (INC-0011). |
+| `20260812-release-governance-http-guard-run3` | passed | Same scenario passed after bounded RunStore retry was added. |
+| `20260812-release-governance-http-guard-run4` | passed | Second post-retry run passed with the same business assertions. |
+
+The guard removes the original model-boundary failure. The one retained failed
+run is a Windows artifact-persistence failure, not a selected-away result.
+After the retry change, the additional sample is 2/2 passed.
+
 ## 网络失败注入
 
 对接收 `tools/call` 后延迟响应的服务端，Moka 返回 `mcp_outcome_unknown`，并断言服务端仅收到一次调用。该策略避免创建工单、触发发布等潜在写操作被网络重试重复执行。

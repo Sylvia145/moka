@@ -195,6 +195,8 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
             if self.runtime_mode == "plan"
             else "readonly"
             if self.read_only
+            else "delegated_review"
+            if self.delegation_guard_active
             else "default"
         )
         self.permission_checker = PermissionChecker(self)
@@ -272,6 +274,9 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         runtime_mode = self.session.setdefault("runtime_mode", {"mode": "default"})
         if not isinstance(runtime_mode, dict):
             self.session["runtime_mode"] = {"mode": "default"}
+        delegation_guard = self.session.setdefault("delegation_guard", {"active": False})
+        if not isinstance(delegation_guard, dict):
+            self.session["delegation_guard"] = {"active": False}
 
     def current_runtime_identity(self):
         return {
@@ -454,6 +459,26 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
             raise ValueError(f"unknown tool profile: {name}")
         self._active_tool_profile_name = name
 
+    @property
+    def delegation_guard_active(self):
+        return bool(self.session.get("delegation_guard", {}).get("active", False))
+
+    def activate_delegated_review_mode(self, worker_id):
+        """Restrict the parent after delegating a scoped write to a worker."""
+        self.session["delegation_guard"] = {
+            "active": True,
+            "worker_id": str(worker_id),
+            "reason": "scoped_write_worker_delegated",
+            "activated_at": now(),
+        }
+        if self.runtime_mode == "default" and not self.read_only:
+            self.set_tool_profile("delegated_review")
+        self.session_event_bus.emit(
+            "delegation_guard_activated",
+            {"worker_id": str(worker_id), "tool_profile": self.active_tool_profile.name},
+        )
+        self.session_path = self.session_store.save(self.session)
+
     def available_tools(self):
         profile = self.active_tool_profile
         return {name: tool for name, tool in self.tools.items() if profile.allows(name)}
@@ -585,6 +610,12 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         )
 
     def runtime_mode_text(self):
+        if self.delegation_guard_active:
+            return (
+                "Delegated review mode is active: a scoped write worker owns the change. "
+                "You may inspect evidence, use read-only MCP tools, or control that worker, "
+                "but you must not modify the main workspace. Its handoff requires human review."
+            )
         return self.plan_mode.prompt_text()
 
     def enter_plan_mode(self, topic, path=None):

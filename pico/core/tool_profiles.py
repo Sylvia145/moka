@@ -35,6 +35,7 @@ def build_tool_profiles(tools):
         }
     )
     dream_tools = read_only | frozenset({"write_file", "patch_file"})
+    delegated_review_tools = read_only | frozenset({"send_message", "task_stop"})
     worker_tools = (
         all_tools
         - coordinator_tools
@@ -47,5 +48,6 @@ def build_tool_profiles(tools):
         "plan": ToolSetProfile("plan", plan_tools & all_tools),
         "dream": ToolSetProfile("dream", dream_tools & all_tools),
         "readonly": ToolSetProfile("readonly", read_only),
+        "delegated_review": ToolSetProfile("delegated_review", delegated_review_tools & all_tools),
         "worker": ToolSetProfile("worker", worker_tools),
     }
