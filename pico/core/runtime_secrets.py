@@ -1,9 +1,24 @@
 """Runtime secret redaction and shell environment helpers."""
 
 import os
+import sys
 
 SENSITIVE_ENV_NAME_MARKERS = ("API_KEY", "TOKEN", "SECRET", "PASSWORD")
 REDACTED_VALUE = "<redacted>"
+
+# `subprocess.run(..., shell=True)` on Windows relies on these variables to
+# locate cmd.exe and the system directories. They carry no secrets, but if the
+# filtered env omits them the child process still runs while reporting a bogus
+# non-zero exit code. Keep them out of the sensitive allowlist and merge them
+# back in on Windows only.
+WINDOWS_SHELL_ENV_NAMES = (
+    "ComSpec",
+    "SystemRoot",
+    "SystemDrive",
+    "PATHEXT",
+    "WINDIR",
+    "ProgramFiles",
+)
 
 
 class RuntimeSecretsMixin:
@@ -55,6 +70,10 @@ class RuntimeSecretsMixin:
 
     def shell_env(self):
         env = {name: os.environ[name] for name in self.shell_env_allowlist if name in os.environ}
+        if sys.platform == "win32":
+            for name in WINDOWS_SHELL_ENV_NAMES:
+                if name in os.environ:
+                    env.setdefault(name, os.environ[name])
         env["PWD"] = str(self.root)
         if "PATH" not in env and os.environ.get("PATH"):
             env["PATH"] = os.environ["PATH"]
