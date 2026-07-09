@@ -65,11 +65,22 @@ def discover_skills(root, home=None):
     from .skills_bundled import bundled_skills
 
     skills = {skill.name: skill for skill in bundled_skills()}
-    search_roots = [
-        (Path(home or Path.home()) / ".pico" / "skills", "user"),
-        (Path(root) / "skills", "project"),
-        (Path(root) / ".pico" / "skills", "project"),
-    ]
+    # user skills 位于 home 目录下；home 无法确定时（例如环境变量被清空的
+    # 测试、或受限容器），降级为只加载内置与项目 skills，而不是让整个
+    # runtime 装配崩溃。
+    try:
+        user_home = Path(home) if home is not None else Path.home()
+    except (OSError, RuntimeError):
+        user_home = None
+    search_roots = []
+    if user_home is not None:
+        search_roots.append((user_home / ".pico" / "skills", "user"))
+    search_roots.extend(
+        [
+            (Path(root) / "skills", "project"),
+            (Path(root) / ".pico" / "skills", "project"),
+        ]
+    )
     for directory, source in search_roots:
         for skill in load_skills_from_dir(directory, source=source):
             skills[skill.name] = skill

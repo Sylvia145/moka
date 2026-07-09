@@ -261,9 +261,12 @@ def build_dream_report(before_notes, after_notes):
 
 def write_dream_report(memory_dir, report, iso_ts=None):
     iso_ts = iso_ts or datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    # ISO 时间戳里的 ":" 在 Windows 文件名中是非法字符，替换成连字符以保持
+    # 跨平台可写，同时保留时间戳的可读性与排序性。
+    safe_stem = iso_ts.replace(":", "-")
     reports_dir = Path(memory_dir) / "dream_reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
-    path = reports_dir / f"{iso_ts}.json"
+    path = reports_dir / f"{safe_stem}.json"
     path.write_text(json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
     return path
 
