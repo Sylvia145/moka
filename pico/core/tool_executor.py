@@ -2,6 +2,7 @@
 import re
 
 from .governance import record_governance_decision
+from .permissions import permission_error_message
 from .tool_policy import ToolPolicyChecker
 from .tool_repetition import repeated_tool_call_metadata
 from .tool_result_artifacts import prepare_tool_result_observation
@@ -53,7 +54,7 @@ def run_tool(agent, name, args):
             tool, status="rejected", error_code=decision.reason,
             security_event_type=decision.security_event_type,
         )
-        return _permission_error(agent, tool, decision)
+        return permission_error_message(agent, tool, decision)
     policy = ToolPolicyChecker(agent).check(tool, args)
     _emit_tool_policy_decision(agent, tool, args, policy)
     record_governance_decision(
@@ -169,18 +170,3 @@ def _emit_tool_policy_decision(agent, tool, args, decision):
     )
 
 
-def _permission_error(agent, tool, decision):
-    if decision.reason == "plan_mode_path_mismatch":
-        return f"error: plan mode can only write the active plan artifact ({agent.plan_mode.plan_path})"
-    if decision.reason == "plan_mode_tool_not_allowed":
-        return f"error: plan mode only allows read-only tools or writing the active plan artifact ({agent.plan_mode.plan_path})"
-    if decision.reason == "write_scope_mismatch":
-        return f"error: worker write_scope does not allow {tool.name} on this path"
-    if decision.reason == "delegated_write_guard":
-        return (
-            f"error: delegated review mode blocks {tool.name}; a write worker owns "
-            "the change and its handoff requires human review"
-        )
-    if decision.reason in {"approval_denied", "tool_not_allowed"}:
-        return f"error: approval denied for {tool.name}"
-    return f"error: permission denied for {tool.name}: {decision.reason}"
