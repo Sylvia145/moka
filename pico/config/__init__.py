@@ -447,7 +447,9 @@ def _env_values(provider_name: str, protocol: str) -> dict[str, str]:
         sources.append(PROVIDER_ENV_NAMES.get(protocol, {}))
     for source in sources:
         for key, names in source.items():
-            value = _first_env(names)
+            # `PICO_*` 前缀是 legacy 命名，优先级应低于 project .pico.toml；
+            # 高优先级环境变量只保留通用名（DEEPSEEK_API_KEY 等）。
+            value = _first_env(tuple(name for name in names if not name.startswith("PICO_")))
             if value and key not in values:
                 values[key] = value
     return values
@@ -462,7 +464,11 @@ def _legacy_values(
         sources.append(LEGACY_ENV_NAMES.get(protocol, {}))
     for source in sources:
         for key, names in source.items():
+            # 先读 `.env` 文件；否则回退到 os.environ 里的 `PICO_*` 前缀变量，
+            # 让 legacy 命名在无 toml 时仍可作为唯一配置来源。
             value = _first_mapping_value(env_values, names)
+            if not value:
+                value = _first_env(tuple(name for name in names if name.startswith("PICO_")))
             if value and key not in values:
                 values[key] = value
     return values
