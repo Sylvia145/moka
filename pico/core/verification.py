@@ -1,9 +1,9 @@
 """Verification evidence reducer for shell-command tool traces."""
 
 import shlex
+import sys
 
 VERIFICATION_SIGNAL_SCHEMA = "pico.verification_signal.v1"
-
 
 def reduce_verification_signal(previous, event, changed_paths):
     signal = dict(previous or {})
@@ -37,10 +37,14 @@ def reduce_verification_signal(previous, event, changed_paths):
     )
     return signal
 def classify_verification_command(command):
-    try:
-        tokens = shlex.split(str(command))
-    except ValueError:
-        tokens = str(command).split()
+    text = str(command).strip()
+    if sys.platform == "win32":  # shlex 把 C:\path 的反斜杠当转义，win32 退回引号剥离
+        tokens = [t for t in text.replace('"', " ").split() if t]
+    else:
+        try:
+            tokens = shlex.split(text)
+        except ValueError:
+            tokens = text.split()
     tokens = [token.lower() for token in tokens]
     if not tokens or tokens[0] in {"echo", "printf", "grep", "rg", "cat"}:
         return ""
@@ -48,7 +52,7 @@ def classify_verification_command(command):
         while len(tokens) > 2 and tokens[2].startswith("-"):
             tokens = tokens[:2] + tokens[3:]
         tokens = tokens[2:]
-    python_cmd = tokens[0].rsplit("/", 1)[-1]
+    python_cmd = tokens[0].replace("\\", "/").rsplit("/", 1)[-1]
     if len(tokens) > 2 and _is_python_command(python_cmd) and tokens[1] == "-m":
         return {"pytest": "test", "compileall": "compile"}.get(tokens[2], "")
     if tokens[0] in {"pytest", "tox"}:
@@ -71,5 +75,6 @@ def _js_command_class(tokens):
         return "test" if tokens[2] == "test" else "build"
     return "build" if tokens[1] == "build" else ""
 def _is_python_command(command):
+    command = command[:-4] if command.endswith(".exe") else command
     suffix = command.removeprefix("python3.")
     return command in {"python", "python3"} or (suffix != command and suffix.replace(".", "").isdigit())
