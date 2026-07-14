@@ -116,13 +116,16 @@ def test_strict_final_readiness_blocks_unverified_workspace_changes(tmp_path):
 
 
 def test_strict_final_readiness_blocks_partial_success_workspace_changes(tmp_path):
-    command = (
-        f"{shlex.quote(sys.executable)} -c "
-        + shlex.quote(
-            "from pathlib import Path; Path('notes/result.txt').parent.mkdir(exist_ok=True); "
-            "Path('notes/result.txt').write_text('partial\\n'); raise SystemExit(1)"
-        )
+    script = (
+        "from pathlib import Path; Path('notes/result.txt').parent.mkdir(exist_ok=True); "
+        "Path('notes/result.txt').write_text('partial\\n'); raise SystemExit(1)"
     )
+    if sys.platform == "win32":
+        # shlex.quote 产生 POSIX 单引号，cmd.exe 无法解析；Windows 用双引号包裹，
+        # 脚本内部统一用单引号，避免与外层双引号冲突。
+        command = f'"{sys.executable}" -c "{script}"'
+    else:
+        command = f"{shlex.quote(sys.executable)} -c {shlex.quote(script)}"
     agent = build_agent(
         tmp_path,
         [

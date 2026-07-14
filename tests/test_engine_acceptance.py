@@ -170,7 +170,10 @@ def test_worker_notification_drained_during_turn_is_streamed(tmp_path):
 
 
 def test_verification_signal_passes_after_workspace_verification(tmp_path):
-    command = f"{shlex.quote(sys.executable)} -m compileall notes"
+    if sys.platform == "win32":
+        command = f'"{sys.executable}" -m compileall notes'
+    else:
+        command = f"{shlex.quote(sys.executable)} -m compileall notes"
     agent = build_agent(
         tmp_path,
         [

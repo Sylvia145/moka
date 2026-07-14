@@ -37,8 +37,12 @@ def test_best_effort_sandbox_records_degrade_and_runs_without_backend(tmp_path):
         emit_event=lambda event, payload: events.append((event, payload)),
     )
 
+    if sys.platform == "win32":
+        command = f'"{sys.executable}" -c "print(42)"'
+    else:
+        command = f"{sys.executable} -c 'print(42)'"
     result = runner.run(
-        f"{sys.executable} -c 'print(42)'",
+        command,
         cwd=tmp_path,
         env=os.environ.copy(),
         timeout=5,
@@ -52,7 +56,8 @@ def test_best_effort_sandbox_records_degrade_and_runs_without_backend(tmp_path):
 def test_off_sandbox_keeps_plain_subprocess_behavior(tmp_path):
     runner = SandboxRunner(SandboxConfig(mode="off"), run=subprocess.run)
 
-    result = runner.run("pwd", cwd=tmp_path, env=os.environ.copy(), timeout=5)
+    command = "cd" if sys.platform == "win32" else "pwd"
+    result = runner.run(command, cwd=tmp_path, env=os.environ.copy(), timeout=5)
 
     assert Path(result.stdout.strip()) == tmp_path
 
