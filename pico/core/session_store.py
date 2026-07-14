@@ -3,10 +3,14 @@
 import json
 import os
 import threading
+import time
 from datetime import datetime
 from pathlib import Path
 
 from .workspace import clip
+
+WINDOWS_REPLACE_RETRIES = 3
+WINDOWS_REPLACE_RETRY_DELAY_SECONDS = 0.05
 
 
 class SessionStore:
@@ -29,7 +33,17 @@ class SessionStore:
                 f".{path.name}.{os.getpid()}.{threading.get_ident()}.tmp"
             )
             tmp_path.write_text(payload, encoding="utf-8")
-            os.replace(tmp_path, path)
+            # Windows 可能在刚写入后短暂占用目标文件（见 INC-0011）；与 RunStore 对齐，
+            # 对 PermissionError 做有限重试，避免瞬时锁被误判为持久化失败。
+            for attempt in range(WINDOWS_REPLACE_RETRIES):
+                try:
+                    os.replace(tmp_path, path)
+                    break
+                except PermissionError:
+                    if attempt + 1 == WINDOWS_REPLACE_RETRIES:
+                        tmp_path.unlink(missing_ok=True)
+                        raise
+                    time.sleep(WINDOWS_REPLACE_RETRY_DELAY_SECONDS * (attempt + 1))
         return path
 
     def load(self, session_id):
