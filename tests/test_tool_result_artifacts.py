@@ -5,6 +5,8 @@ import json
 import shlex
 import sys
 
+import pytest
+
 from pico import Pico, SessionStore, WorkspaceContext
 from pico.core.context_manager import ContextManager
 from pico.core.run_store import RunStore
@@ -31,7 +33,12 @@ def read_jsonl(path):
 
 def test_long_shell_output_is_clipped_and_full_output_is_saved_as_run_artifact(tmp_path):
     script = "print('x'*6000)"
-    command = f"{shlex.quote(sys.executable)} -c {shlex.quote(script)}"
+    if sys.platform == "win32":
+        # shlex.quote 产生 POSIX 单引号，cmd.exe 无法解析；Windows 用双引号包裹，
+        # 脚本内部统一用单引号，避免与外层双引号冲突。
+        command = f'"{sys.executable}" -c "{script}"'
+    else:
+        command = f"{shlex.quote(sys.executable)} -c {shlex.quote(script)}"
     agent = build_agent(
         tmp_path,
         [
@@ -205,6 +212,10 @@ def test_microcompact_keeps_old_tool_result_tied_to_current_changed_path(tmp_pat
     assert metadata["history"]["microcompact_artifact_refs"] == []
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="multi-line python -c script with a for-suite cannot be quoted for cmd.exe",
+)
 def test_microcompact_keeps_latest_failed_tool_result_visible(tmp_path):
     script = "for i in range(140): print(f'FAIL-{i}')\nraise SystemExit(1)"
     command = f"{shlex.quote(sys.executable)} -c {shlex.quote(script)}"
@@ -228,6 +239,10 @@ def test_microcompact_keeps_latest_failed_tool_result_visible(tmp_path):
     assert metadata["history"]["microcompact_artifact_refs"] == []
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="multi-line python -c script with a for-suite cannot be quoted for cmd.exe",
+)
 def test_microcompact_keeps_latest_workspace_changing_tool_result_visible(tmp_path):
     script = "\n".join(
         [

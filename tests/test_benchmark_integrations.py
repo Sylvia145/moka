@@ -1,8 +1,11 @@
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import patch
+
+import pytest
 
 from pico import cli
 from pico.evaluation.harnessbench import build_adapter_metadata, write_adapter_metadata
@@ -202,6 +205,10 @@ def test_harnessbench_metadata_writer_creates_manifest(tmp_path):
     assert "pico_trace_path" in written["pico_evidence_missing"]
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="fixture writes a POSIX bash script; not portable to Windows",
+)
 def test_bench_script_env_max_steps_overrides_yaml_arg(tmp_path):
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()

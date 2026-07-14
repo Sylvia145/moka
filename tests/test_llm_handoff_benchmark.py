@@ -232,6 +232,10 @@ def test_generate_report_includes_all_repeats_in_llm_handoff_comparison():
     assert "Net-negative tasks: task-a#0" in report
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="fixture tasks shell out with POSIX-only commands",
+)
 def test_fixture_verifiers_pass_after_scripted_correct_state(tmp_path):
     tasks = _load_long_session_tasks()
     payload = run_paired_experiment(
@@ -247,6 +251,10 @@ def test_fixture_verifiers_pass_after_scripted_correct_state(tmp_path):
     assert all(row["verification_status"] == "passed" for row in payload["rows"])
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="fixture tasks shell out with POSIX-only commands",
+)
 def test_llm_handoff_benchmark_cli_scripted_smoke(tmp_path):
     output_dir = tmp_path / "artifacts"
     result = subprocess.run(

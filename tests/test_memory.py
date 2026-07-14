@@ -1,7 +1,10 @@
 import json
 import hashlib
 import subprocess
+import sys
 from datetime import date
+
+import pytest
 
 from pico import Pico, SessionStore, WorkspaceContext
 from pico.features.memory_lint import SECRET_PATTERNS
@@ -145,6 +148,10 @@ def test_file_summaries_use_canonical_paths_and_freshness(tmp_path):
     assert "sample.txt" not in memory.to_dict()["file_summaries"]
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="git rev-parse returns a path whose normalization differs on Windows",
+)
 def test_workspace_fingerprint_uses_git_root_when_available(tmp_path):
     subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
     (tmp_path / "nested").mkdir()

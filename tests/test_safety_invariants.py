@@ -3,6 +3,8 @@ import shlex
 import sys
 from unittest.mock import patch
 
+import pytest
+
 from pico.testing import ScriptedModelClient
 from pico import Pico, SessionStore, WorkspaceContext
 from pico import cli as pico_cli
@@ -36,6 +38,10 @@ def test_workspace_escape_is_rejected(tmp_path):
     assert "path escapes workspace" in result
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="creating symlinks requires developer-mode privilege on Windows",
+)
 def test_symlink_path_traversal_is_rejected(tmp_path):
     outside = tmp_path.parent / f"{tmp_path.name}-outside.txt"
     outside.write_text("outside\n", encoding="utf-8")
@@ -147,14 +153,32 @@ def test_cli_build_agent_reads_secret_names_from_environment_config(tmp_path):
 def test_run_shell_uses_allowlisted_environment_only(tmp_path):
     secret = "shh-allowlist-secret"
     agent = build_agent(tmp_path, [], approval_policy="auto")
-    script = 'import os; print(os.getenv("MCA_ALLOWLIST_SECRET", "missing"))'
-    command = f"{shlex.quote(sys.executable)} -c {shlex.quote(script)}"
+    # 用单引号表示 Python 字符串，避免与 Windows cmd.exe 的外层双引号冲突；
+    # shlex.quote 产生 POSIX 单引号，cmd.exe 无法解析，因此 Windows 单独构造。
+    script = "import os; print(os.getenv('MCA_ALLOWLIST_SECRET', 'missing'))"
+    if sys.platform == "win32":
+        command = f'"{sys.executable}" -c "{script}"'
+    else:
+        command = f"{shlex.quote(sys.executable)} -c {shlex.quote(script)}"
 
     with patch.dict(os.environ, {"MCA_ALLOWLIST_SECRET": secret}, clear=False):
         result = agent.run_tool("run_shell", {"command": command, "timeout": 20})
 
     assert secret not in result
     assert "missing" in result
+
+
+def test_shell_env_keeps_windows_system_variables_for_subprocess(tmp_path):
+    # shell=True 在 Windows 上依赖 ComSpec/SystemRoot/PATHEXT 来定位 cmd 和系统
+    # 目录；allowlist 过滤若漏掉它们，命令会执行但 returncode 恒为 1。
+    agent = build_agent(tmp_path, [], approval_policy="auto")
+    env = agent.shell_env()
+
+    assert "MCA_NOT_IN_ALLOWLIST" not in env
+    if sys.platform == "win32":
+        assert "ComSpec" in env
+        assert "SystemRoot" in env
+        assert "PATHEXT" in env
 
 
 def test_bound_tool_methods_call_tools_module(tmp_path):

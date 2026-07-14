@@ -1027,11 +1027,20 @@ def test_successful_run_persists_run_artifacts_and_stop_reason(tmp_path):
 
 def test_trace_and_report_redact_secret_env_values(tmp_path):
     secret = "sk-test-secret-123"
-    with patch.dict(os.environ, {"OPENAI_API_KEY": secret}, clear=True):
+    # clear=True 会清空 Windows 定位 cmd.exe 所需的系统变量，导致
+    # subprocess.run(shell=True) 无法启动 shell；保留它们。命令改用跨平台的
+    # echo（printf 是 Unix 专有命令，cmd.exe 没有），让 secret 真正落到 stdout
+    # 以便验证 tool result 也被脱敏。
+    env = {"OPENAI_API_KEY": secret}
+    if sys.platform == "win32":
+        for name in ("ComSpec", "SystemRoot", "SystemDrive", "PATHEXT", "WINDIR", "ProgramFiles"):
+            if name in os.environ:
+                env.setdefault(name, os.environ[name])
+    with patch.dict(os.environ, env, clear=True):
         agent = build_agent(
             tmp_path,
             [
-                '<tool>{"name":"run_shell","args":{"command":"printf \'%s\' \'sk-test-secret-123\'","timeout":20}}</tool>',
+                '<tool>{"name":"run_shell","args":{"command":"echo sk-test-secret-123","timeout":20}}</tool>',
                 "<final>Masked.</final>",
             ],
         )
