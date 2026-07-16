@@ -112,6 +112,7 @@ moka "给 tests/test_session_store.py 补一个 Windows 原子替换重试的回
 | "provider 失败怎么恢复？" | provider error recovery，把错误分类而不是冷 stop。 |
 | "你怎么证明改动没变差？" | 全量 pytest + 确定性 harness（12 题）+ verifier 证据 + real-session gate（INC/ADR 里记录）。 |
 | "entropy budget 是什么？" | 架构边界测试：每个核心模块有最大行数上限（如 runtime 950、verification 80），超了必须真实拆分而不是提高预算（见 D6）。 |
+| "你怎么评测你的 agent？" | 成对（paired）实验框架跑真实数字：确定性压缩省 14.09% 输入 token、0 回归；LLM handoff 反而 +11.82%（100% 负收益），我如实记录了负面结果（见 `engineering/iterations/10-evaluation-results.md`）。 |
 
 ## 五、关键数据速查
 
@@ -124,7 +125,9 @@ moka "给 tests/test_session_store.py 补一个 Windows 原子替换重试的回
 | 明确 skipif 的平台差异 | symlink 权限、bash fixture、git 路径归一化、真实会话 gate |
 | ADR | 7 篇（`engineering/decisions/ADR-*.md`） |
 | INC | 11 篇（`engineering/incidents/INC-*.md`） |
-| 迭代留痕 | 9 篇（`engineering/iterations/0*.md`） |
+| 迭代留痕 | 10 篇（`engineering/iterations/0*.md`） |
+| CI | `.github/workflows/ci.yml`（Windows + Ubuntu，py3.11/3.12） |
+| 评测结果 | 确定性压缩 −14.09% token / 0 回归；LLM handoff +11.82%（负面，如实记录） |
 
 ## 六、面试前检查单（30 分钟）
 
