@@ -80,13 +80,25 @@ worker 结果结构化回传，主 agent 能解释改动来源（见 ADR-002/ADR
 讲什么：MCP stdio + Streamable HTTP 双传输（ADR-005/ADR-006），外部工具经统一的
 执行/权限/证据链路接入，不是裸调。
 
-### 场景 6（可选，有 key）：真实 one-shot
+### 场景 6（有 key）：真实 provider dogfood（最强证据）
 
 ```bash
-moka "给 tests/test_session_store.py 补一个 Windows 原子替换重试的回归测试"
+.venv/Scripts/python.exe scripts/run_business_scenario_dogfood.py \
+    --provider deepseek --output-dir artifacts/dogfood-deepseek
 ```
 
-讲什么：真实模型 + 真实工具链，落地一个 commit。
+讲什么：真实 DeepSeek 模型 + 真实工具链，5 个业务场景 62 项验收全绿。
+关键数字（见 `engineering/iterations/11-live-provider-dogfood.md`）：
+
+- **39 次真实 API 调用**，89,657 input / 9,517 output tokens——是
+  `completion_metadata` 里 provider-billed 的 usage，不是估算 proxy。
+- **prompt cache 命中 38/39 次**（59,904 cached tokens）：五段式 prompt 的稳定
+  前缀在每轮真的省计费。
+- `incident_resume_fix` 有 **2 个 run 目录** = 会话恢复真实；`release_governance`
+  有 **2 个 run** = worker 是独立 agent，不是进程内短路。
+- 现场打开 `trace.jsonl` 指认 `completion_metadata`（真实 usage）和
+  `cache_hit: true`，以及 `release_governance` 的 `report_written_in_worktree`
+  + `main_workspace_unchanged`（worker 写 worktree 隔离，主工作区零污染）。
 
 ## 三、测试状态的标准回答（必被问）
 
@@ -113,6 +125,7 @@ moka "给 tests/test_session_store.py 补一个 Windows 原子替换重试的回
 | "你怎么证明改动没变差？" | 全量 pytest + 确定性 harness（12 题）+ verifier 证据 + real-session gate（INC/ADR 里记录）。 |
 | "entropy budget 是什么？" | 架构边界测试：每个核心模块有最大行数上限（如 runtime 950、verification 80），超了必须真实拆分而不是提高预算（见 D6）。 |
 | "你怎么评测你的 agent？" | 成对（paired）实验框架跑真实数字：确定性压缩省 14.09% 输入 token、0 回归；LLM handoff 反而 +11.82%（100% 负收益），我如实记录了负面结果（见 `engineering/iterations/10-evaluation-results.md`）。 |
+| "你真跑过真实模型吗？" | 跑过。DeepSeek Anthropic 兼容端点，`run_business_scenario_dogfood.py` 5 场景 62 checks 全绿，39 次真实调用、provider-billed 89,657 input tokens、prompt cache 命中 38/39（见 `engineering/iterations/11-live-provider-dogfood.md`）。 |
 
 ## 五、关键数据速查
 
@@ -125,9 +138,10 @@ moka "给 tests/test_session_store.py 补一个 Windows 原子替换重试的回
 | 明确 skipif 的平台差异 | symlink 权限、bash fixture、git 路径归一化、真实会话 gate |
 | ADR | 7 篇（`engineering/decisions/ADR-*.md`） |
 | INC | 11 篇（`engineering/incidents/INC-*.md`） |
-| 迭代留痕 | 10 篇（`engineering/iterations/0*.md`） |
+| 迭代留痕 | 11 篇（`engineering/iterations/0*.md`） |
 | CI | `.github/workflows/ci.yml`（Windows + Ubuntu，py3.11/3.12） |
 | 评测结果 | 确定性压缩 −14.09% token / 0 回归；LLM handoff +11.82%（负面，如实记录） |
+| 真实 provider dogfood | DeepSeek 5 场景 62/62 checks；39 次真实调用、89,657 in / 9,517 out tokens、cache hit 38/39（provider-billed，非估算） |
 
 ## 六、面试前检查单（30 分钟）
 
