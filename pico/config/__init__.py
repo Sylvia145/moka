@@ -234,6 +234,10 @@ def resolve_provider_config(
     )
     provider_name = normalize_provider_name(requested_provider)
     profile_values = _profile_values(file_values["providers"], provider_name)
+    # `.pico.toml` 的显式配置优先于通用环境变量：通用名（ANTHROPIC_MODEL、
+    # ANTHROPIC_BASE_URL 等）可能被宿主进程（Claude Code 等）注入并指向别的
+    # 后端，静默覆盖项目显式配置。项目级、有意图的配置应比隐式继承更可信。
+    explicit_profile = file_values["providers"].get(provider_name, {})
     default_values = dict(PROVIDER_DEFAULTS.get(provider_name, {}))
 
     protocol = _first_value(
@@ -251,8 +255,8 @@ def resolve_provider_config(
     resolved_model = _first_value(
         model,
         os.environ.get(ENV_MODEL),
+        explicit_profile.get("model"),
         env_values.get("model"),
-        profile_values.get("model"),
         legacy_env.get(ENV_MODEL),
         legacy_values.get("model"),
         default_values.get("model"),
@@ -260,8 +264,8 @@ def resolve_provider_config(
     resolved_base_url = _first_value(
         base_url,
         os.environ.get(ENV_BASE_URL),
+        explicit_profile.get("base_url"),
         env_values.get("base_url"),
-        profile_values.get("base_url"),
         legacy_env.get(ENV_BASE_URL),
         legacy_values.get("base_url"),
         default_values.get("base_url"),
@@ -269,8 +273,8 @@ def resolve_provider_config(
     resolved_api_key = _first_value(
         api_key,
         os.environ.get(ENV_API_KEY),
+        explicit_profile.get("api_key"),
         env_values.get("api_key"),
-        profile_values.get("api_key"),
         legacy_env.get(ENV_API_KEY),
         legacy_values.get("api_key"),
         "",

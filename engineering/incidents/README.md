@@ -16,3 +16,5 @@
 - [INC-0009：测试 verifier 与 pytest 文本耦合](INC-0009-test-verifier-framework-coupling.md)
 - [INC-0011：Windows 文件锁中断 worker 审计持久化](INC-0011-windows-runstore-atomic-replace.md)
 - [INC-0010：MCP initialized 通知的空响应解析](INC-0010-mcp-notification-empty-response.md)
+- [INC-0012：宿主通用环境变量静默覆盖项目 provider 配置](INC-0012-provider-config-host-env-injection.md)
+- [INC-0013：会话重建后 worker 超时监视线程访问已丢弃条目](INC-0013-worker-timeout-watcher-session-reset.md)

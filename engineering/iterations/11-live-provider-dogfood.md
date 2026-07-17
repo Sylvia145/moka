@@ -103,19 +103,17 @@ Two things worth quoting in an interview:
 - `artifacts/dogfood-deepseek/` is gitignored (local run output); traceability
   lives in this document + the exact commands above + the inline totals.
 
-## Still-open live-path items (recorded, not fixed)
+## Still-open live-path items — resolved 2026-08-16
 
-- **Anthropic provider config bug**: `resolve_provider_config("anthropic")`
-  returns DeepSeek's `model`/`base_url` (deepseek-v4-pro @ api.deepseek.com)
-  instead of `.pico.toml`'s `claude-sonnet-4-6 @ right.codes/claude`. Root cause
-  not yet localized; DeepSeek (the default profile) resolves correctly, which is
-  why this iteration uses DeepSeek.
-- **OpenAI provider 403**: `right.codes/codex` returns HTTP 403 for the
-  configured key. Not yet diagnosed.
-
-Both are provider-config edge cases, not the core agent path — but a candidate
-should be able to say they *found* them and where they stand, rather than be
-surprised by them in review.
+- **Anthropic provider config bug — FIXED.** Root cause localized to the Claude Code
+  host injecting generic `ANTHROPIC_*` env vars (DeepSeek backend) at higher priority
+  than `.pico.toml`. `.pico.toml`'s explicit provider section now precedes generic
+  env in the chain; 4 regression tests added. See
+  [INC-0012](../incidents/INC-0012-provider-config-host-env-injection.md).
+- **OpenAI/Anthropic 403 — diagnosed as external.** `right.codes` returns
+  `{"error":"API Key 不允许访问该渠道…"}` — a channel-permission setting on the
+  proxy, not a Moka code defect. DeepSeek (direct `api.deepseek.com`) works. See
+  [INC-0004](../incidents/INC-0004-live-provider-auth-block.md).
 
 ---
 

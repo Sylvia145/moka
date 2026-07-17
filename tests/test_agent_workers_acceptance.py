@@ -313,6 +313,33 @@ def test_clear_session_stops_running_background_workers(tmp_path):
     assert agent.engine.drain_worker_notifications() == []
 
 
+def test_watch_timeout_ignores_worker_cleared_by_session_reset(tmp_path):
+    started = threading.Event()
+    release = threading.Event()
+    child_client = BlockingModelClient(["<final>Done.</final>"], started, release)
+    agent = build_agent(tmp_path, [], model_client_factory=lambda: child_client)
+
+    agent.run_tool(
+        "agent",
+        {
+            "description": "Cleared watcher",
+            "prompt": "Wait until cleared",
+            "subagent_type": "Explore",
+            "timeout_seconds": 1,
+        },
+    )
+    assert started.wait(timeout=1)
+
+    old_id = agent.session["id"]
+    new_id = agent.clear_session()
+    assert new_id != old_id
+    assert agent.worker_manager.to_dict()["items"] == []
+
+    # 旧会话的 timeout watcher 线程仍在 ~1s 后触发；它必须静默退出（条目已被
+    # clear_session 丢弃），而不是对新会话抛 `ValueError: unknown worker`。
+    time.sleep(1.5)
+
+
 def test_explore_agent_runs_real_readonly_child_session_and_records_notification(
     tmp_path,
 ):

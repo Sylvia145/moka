@@ -17,3 +17,9 @@
 ## 处理与后续
 
 不通过替换模型、伪造输出或将确定性脚本结果包装为真实模型结果来绕过。待用户更新有效的本地 provider 凭据后，使用同一份单题冒烟基准重跑；成功后再决定是否执行多题、多次的正式评测。
+
+## 2026-08-16 更新：定位到具体根因
+
+- DeepSeek（直连 `api.deepseek.com`）已连通，真实业务 dogfood 全部通过（见 iteration 11）。
+- `anthropic` 此前被宿主通用环境变量静默路由到 DeepSeek（见 [INC-0012](INC-0012-provider-config-host-env-injection.md)），修复后正确指向 `right.codes/claude`。
+- `openai` / `anthropic` 现在的失败形态已从 401 演进为 403：`right.codes` 返回「API Key 不允许访问该渠道，请前往令牌管理界面修改令牌权限」。这是代理端渠道权限配置，非 Moka 代码缺陷，需用户在 right.codes 令牌管理界面开通 codex/claude 渠道。

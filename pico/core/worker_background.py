@@ -125,7 +125,12 @@ def _start_background(manager, task, prompt, action):
 
 def _watch_timeout(manager, task):
     if not threading.Event().wait(task.timeout_seconds):
-        item = manager._get_item(task.id)
+        item = manager._find_item(task.id)
+        if item is None:
+            # worker 已被清理（例如 clear_session / resume 重建会话，旧的 workers
+            # 条目被丢弃）。超时监视线程不再持有有效条目，直接退出，避免对
+            # 新会话抛 `unknown worker`。
+            return
         if item.get("status") == "running":
             request_stop(task)
             with manager._lock:

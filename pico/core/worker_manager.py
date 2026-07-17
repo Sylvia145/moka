@@ -171,11 +171,17 @@ class WorkerManager:
             raise ValueError(f"unknown or inactive worker: {task_id}")
         return task
 
-    def _get_item(self, task_id):
+    def _find_item(self, task_id):
         for item in self.state.setdefault("items", []):
             if item.get("id") == str(task_id):
                 return item
-        raise ValueError(f"unknown worker: {task_id}")
+        return None
+
+    def _get_item(self, task_id):
+        item = self._find_item(task_id)
+        if item is None:
+            raise ValueError(f"unknown worker: {task_id}")
+        return item
 
     def _public_payload(self, task, status=None):
         item = self._get_item(task.id)
