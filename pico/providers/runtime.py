@@ -11,13 +11,18 @@ from ..config import (
     resolve_vision_provider_config,
 )
 from ..core.model_router import ModelClientRouter
-from .clients import AnthropicCompatibleModelClient, OpenAICompatibleModelClient
+from .clients import (
+    AnthropicCompatibleModelClient,
+    ChatCompletionsModelClient,
+    OpenAICompatibleModelClient,
+)
 
 
 @dataclass(frozen=True)
 class ProviderClientClasses:
     openai: type = OpenAICompatibleModelClient
     anthropic: type = AnthropicCompatibleModelClient
+    openai_chat: type = ChatCompletionsModelClient
 
 
 @dataclass(frozen=True)
@@ -83,6 +88,14 @@ def model_client_from_config(config, args, *, timeout=None, client_classes=None)
         )
     if config.protocol == "anthropic":
         return client_classes.anthropic(
+            model=config.model,
+            base_url=config.base_url,
+            api_key=config.api_key,
+            temperature=args.temperature,
+            timeout=timeout,
+        )
+    if config.protocol == "openai_chat":
+        return client_classes.openai_chat(
             model=config.model,
             base_url=config.base_url,
             api_key=config.api_key,

@@ -52,19 +52,27 @@ PROVIDER_DEFAULTS: dict[str, dict[str, Any]] = {
         "supports_vision": False,
         "vision_provider": "openai",
     },
+    "kimi": {
+        "protocol": "openai_chat",
+        "base_url": "https://api.moonshot.cn/v1",
+        "model": "moonshot-v1-128k",
+        "supports_vision": False,
+    },
 }
 
 PROVIDER_ALIASES = {
     "gpt": "openai",
     "claude": "anthropic",
+    "moonshot": "kimi",
 }
 
-PROTOCOLS = {"openai", "anthropic"}
+PROTOCOLS = {"openai", "anthropic", "openai_chat"}
 
 PROVIDER_MAX_TOKENS: dict[str, int] = {
     "openai": 8192,
     "anthropic": 32000,
     "deepseek": 8192,
+    "kimi": 8192,
 }
 DEFAULT_MAX_TOKENS_FALLBACK = 4096
 
@@ -108,6 +116,11 @@ PROVIDER_ENV_NAMES = {
         "base_url": ("PICO_DEEPSEEK_API_BASE", "DEEPSEEK_API_BASE", "DEEPSEEK_BASE_URL"),
         "model": ("PICO_DEEPSEEK_MODEL", "DEEPSEEK_MODEL"),
     },
+    "kimi": {
+        "api_key": ("PICO_KIMI_API_KEY", "KIMI_API_KEY", "MOONSHOT_API_KEY"),
+        "base_url": ("PICO_KIMI_API_BASE", "KIMI_API_BASE", "KIMI_BASE_URL", "MOONSHOT_BASE_URL"),
+        "model": ("PICO_KIMI_MODEL", "KIMI_MODEL", "MOONSHOT_MODEL"),
+    },
 }
 
 LEGACY_ENV_NAMES = {
@@ -140,6 +153,16 @@ LEGACY_ENV_NAMES = {
             "DEEPSEEK_BASE_URL",
         ),
         "model": ("PICO_DEEPSEEK_MODEL", "DEEPSEEK_MODEL"),
+    },
+    "kimi": {
+        "api_key": ("PICO_KIMI_API_KEY", "KIMI_API_KEY", "MOONSHOT_API_KEY"),
+        "base_url": (
+            "PICO_KIMI_API_BASE",
+            "KIMI_API_BASE",
+            "KIMI_BASE_URL",
+            "MOONSHOT_BASE_URL",
+        ),
+        "model": ("PICO_KIMI_MODEL", "KIMI_MODEL", "MOONSHOT_MODEL"),
     },
 }
 

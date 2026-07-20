@@ -574,3 +574,111 @@ class AnthropicCompatibleModelClient:
         )
         self.last_completion_metadata = error.to_metadata()
         raise error
+
+
+class ChatCompletionsModelClient:
+    """OpenAI Chat Completions 兼容客户端（`/chat/completions`）。
+
+    为什么单独一个类：部分 OpenAI-compatible 后端（如 Moonshot/Kimi）只实现
+    Chat Completions 接口（`/v1/chat/completions`），不实现 Responses 接口
+    （`/v1/responses`）。二者的请求/响应结构不同（`messages`+`max_tokens` vs
+    `input`+`max_output_tokens`），复用 OpenAICompatibleModelClient 会让一个类
+    同时背两种协议，反而不清晰。
+
+    与 OpenAICompatibleModelClient 的差异：
+    - 端点 `/chat/completions`，请求体 `messages` 而非 `input`；
+    - 上限字段 `max_tokens` 而非 `max_output_tokens`；
+    - 认证同为 `Authorization: Bearer <key>`。
+    """
+
+    def __init__(self, model, base_url, api_key, temperature, timeout):
+        self.model = model
+        self.base_url = _normalize_versioned_base_url(base_url)
+        self.api_key = api_key
+        self.temperature = temperature
+        self.timeout = timeout
+        # Chat Completions 后端不提供与 Responses 等价的 prompt cache 语义，
+        # 显式关闭缓存链路，避免传一个“看起来统一、其实没意义”的参数。
+        self.supports_prompt_cache = False
+        self.last_completion_metadata = {}
+
+    def complete(self, prompt, max_new_tokens, prompt_cache_key=None, prompt_cache_retention=None):
+        del prompt_cache_key, prompt_cache_retention
+        self.last_completion_metadata = {}
+        model_input = ensure_model_input(prompt)
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": model_input.text}],
+            "max_tokens": max_new_tokens,
+            "stream": False,
+        }
+        if self.temperature is not None:
+            payload["temperature"] = self.temperature
+
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        request = urllib.request.Request(
+            self.base_url + "/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method="POST",
+        )
+        try:
+            body_text, _content_type, request_metadata = _request_with_retries(
+                "openai_chat",
+                self.model,
+                self.base_url,
+                request,
+                self.timeout,
+            )
+        except ProviderError as exc:
+            self.last_completion_metadata = exc.to_metadata()
+            raise
+
+        try:
+            data = json.loads(body_text)
+        except json.JSONDecodeError as exc:
+            error = _provider_failure(
+                "openai_chat",
+                self.model,
+                self.base_url,
+                "invalid_json",
+                "Chat Completions error: backend returned non-JSON content that could not be parsed",
+                request_metadata,
+                cause=exc,
+            )
+            self.last_completion_metadata = error.to_metadata()
+            raise error from exc
+        if data.get("error"):
+            error = _provider_failure(
+                "openai_chat",
+                self.model,
+                self.base_url,
+                "provider_error",
+                f"Chat Completions error: {data['error']}",
+                request_metadata,
+            )
+            self.last_completion_metadata = error.to_metadata()
+            raise error
+        self.last_completion_metadata = {
+            **request_metadata,
+            **_extract_usage_cache_details(data),
+        }
+        text = _extract_openai_text(data)
+        if text:
+            return text
+        error = _provider_failure(
+            "openai_chat",
+            self.model,
+            self.base_url,
+            "empty_response",
+            "Chat Completions error: could not extract text from response",
+            request_metadata,
+        )
+        self.last_completion_metadata = error.to_metadata()
+        raise error
