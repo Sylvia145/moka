@@ -34,7 +34,11 @@ from .core.workspace import WorkspaceContext, middle, now
 from .features import memory as memorylib
 from .features import skills as skillslib
 from .features.skills_runtime import invoke_skill
-from .providers import AnthropicCompatibleModelClient, OpenAICompatibleModelClient
+from .providers import (
+    AnthropicCompatibleModelClient,
+    ChatCompletionsModelClient,
+    OpenAICompatibleModelClient,
+)
 from .providers.errors import sanitize_url
 from .providers.runtime import ProviderClientClasses, build_provider_runtime
 
@@ -49,6 +53,9 @@ DEFAULT_SECRET_ENV_NAMES = (
     "ANTHROPIC_AUTH_TOKEN",
     "PICO_DEEPSEEK_API_KEY",
     "DEEPSEEK_API_KEY",
+    "PICO_KIMI_API_KEY",
+    "KIMI_API_KEY",
+    "MOONSHOT_API_KEY",
     "PICO_RIGHT_CODES_API_KEY",
     "RIGHT_CODES_API_KEY",
     "GITHUB_PAT",
@@ -91,6 +98,7 @@ def _provider_client_classes():
     return ProviderClientClasses(
         openai=OpenAICompatibleModelClient,
         anthropic=AnthropicCompatibleModelClient,
+        openai_chat=ChatCompletionsModelClient,
     )
 
 
