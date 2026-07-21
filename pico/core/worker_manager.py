@@ -10,12 +10,12 @@ import threading
 from dataclasses import dataclass, field
 
 from .worker_background import (
+    admit_background_task,
     can_run_background,
     create_worktree,
-    queue_task,
     request_stop,
     shutdown_workers,
-    start_if_capacity,
+    start_next_queued,
 )
 from .worker_execution import run_worker
 from .worker_runtime import build_child_runtime
@@ -41,9 +41,12 @@ class WorkerManager:
         self.runtime = runtime
         self.runtime.session.setdefault("workers", {"next_id": 1, "items": []})
         self._tasks = {}
-        self._lock = threading.Lock()
+        # admission、状态迁移和指标更新可在同一个临界区嵌套调用。
+        self._lock = threading.RLock()
         self._notifications = queue.Queue()
         self.max_concurrent_workers = int(getattr(runtime, "max_concurrent_workers", 2))
+        self.max_pending_workers = int(getattr(runtime, "max_pending_workers", 16))
+        self._ensure_metrics_shape()
 
     @property
     def state(self):
@@ -61,14 +64,18 @@ class WorkerManager:
         # 的正常工具能力可以避免无谓地阻塞调查与汇总。
         guard_parent = subagent_type == "worker" and bool(task.write_scope)
         if can_run_background(self):
-            if start_if_capacity(self, task, prompt, action="spawn"):
+            admission = admit_background_task(self, task, prompt, action="spawn")
+            if admission == "started":
                 if guard_parent:
                     self.runtime.activate_delegated_review_mode(task.id)
                 return self._public_payload(task, status="started")
-            queue_task(self, task, prompt, action="spawn")
-            if guard_parent:
-                self.runtime.activate_delegated_review_mode(task.id)
-            return self._public_payload(task, status="queued")
+            if admission == "queued":
+                if guard_parent:
+                    self.runtime.activate_delegated_review_mode(task.id)
+                return self._public_payload(task, status="queued")
+            # 被拒绝的写任务从未被调度，父代理不能进入 delegated_review。
+            return self._public_payload(task, status="rejected")
+        self._mark_starting(task.id, action="spawn")
         run_worker(self, task, prompt, action="spawn")
         if guard_parent:
             self.runtime.activate_delegated_review_mode(task.id)
@@ -83,10 +90,9 @@ class WorkerManager:
         if self.runtime.runtime_mode == "plan" and task.subagent_type != "Explore":
             raise ValueError("plan mode only allows Explore agents")
         if can_run_background(self):
-            if start_if_capacity(self, task, message, action="continue"):
-                return self._public_payload(task, status="started")
-            queue_task(self, task, message, action="continue")
-            return self._public_payload(task, status="queued")
+            admission = admit_background_task(self, task, message, action="continue")
+            return self._public_payload(task, status=admission)
+        self._mark_starting(task.id, action="continue")
         run_worker(self, task, message, action="continue")
         return self._public_payload(task)
 
@@ -104,9 +110,9 @@ class WorkerManager:
             )
             self._save()
         elif item["status"] == "queued":
-            with self._lock:
-                item["status"] = "canceled"
-                item["updated_at"] = now()
+            self.transition_terminal(
+                task_id, "canceled", reason="external_cancel", actor="task_stop"
+            )
             task = self._tasks.get(str(task_id))
             if task is not None:
                 task.state.clear()
@@ -114,6 +120,7 @@ class WorkerManager:
                 "worker_canceled", {"worker_id": item["id"], "status": "canceled"}
             )
             self._save()
+            start_next_queued(self)
         return {
             "task_id": item["id"],
             "status": item["status"],
@@ -129,7 +136,72 @@ class WorkerManager:
         return {
             "next_id": int(self.state.get("next_id", 1)),
             "items": [dict(item) for item in self.state.get("items", [])],
+            "metrics": self.metrics(),
         }
+
+    def metrics(self):
+        """返回可持久化的调度指标快照，不把瞬时队列状态混入累计计数。"""
+        metrics = dict(self.state["metrics"])
+        wait_samples = int(metrics.get("queue_wait_samples", 0))
+        total_wait = int(metrics.get("queue_wait_ms_total", 0))
+        metrics["queue_wait_ms_avg"] = total_wait / wait_samples if wait_samples else 0.0
+        metrics["running"] = sum(
+            1 for item in self.state.get("items", []) if item.get("status") in {"starting", "running", "stopping"}
+        )
+        metrics["pending"] = sum(1 for item in self.state.get("items", []) if item.get("status") == "queued")
+        metrics["max_workers"] = self.max_concurrent_workers
+        metrics["max_pending"] = self.max_pending_workers
+        return metrics
+
+    def record_metric(self, name, amount=1):
+        with self._lock:
+            metrics = self.state["metrics"]
+            metrics[name] = int(metrics.get(name, 0)) + int(amount)
+
+    def record_queue_wait(self, queued_at):
+        if not queued_at:
+            return
+        # monotonic 值不应进入 session；排队时间在同一进程内由此字段计算。
+        import time
+
+        waited_ms = max(0, int((time.monotonic() - float(queued_at)) * 1000))
+        with self._lock:
+            metrics = self.state["metrics"]
+            metrics["queue_wait_samples"] = int(metrics.get("queue_wait_samples", 0)) + 1
+            metrics["queue_wait_ms_total"] = int(metrics.get("queue_wait_ms_total", 0)) + waited_ms
+            metrics["queue_wait_ms_max"] = max(int(metrics.get("queue_wait_ms_max", 0)), waited_ms)
+        return waited_ms
+
+    def transition_terminal(self, task_id, status, *, reason, actor):
+        """提交一次终态；竞争失败代表另一执行者已先完成状态迁移。"""
+        terminal = {"completed", "failed", "timed_out", "stopped", "canceled", "rejected"}
+        with self._lock:
+            item = self._get_item(task_id)
+            previous = str(item.get("status", ""))
+            if previous in terminal:
+                self.record_metric("duplicate_terminal_transition")
+                return None
+            item["status"] = status
+            item["updated_at"] = now()
+            item["terminal_transition"] = {
+                "from": previous,
+                "to": status,
+                "reason": reason,
+                "actor": actor,
+                "at": now(),
+            }
+            metric_name = "canceled" if status == "stopped" else status
+            self.record_metric(metric_name)
+            return item
+
+    def _mark_starting(self, task_id, *, action):
+        """为同步执行和继续执行建立与后台路径相同的启动状态。"""
+        with self._lock:
+            item = self._get_item(task_id)
+            item["status"] = "starting"
+            item["updated_at"] = now()
+            item["admission"] = {"action": action, "outcome": "started", "admitted_at": now()}
+            self.record_metric("accepted")
 
     def _new_task(self, description, subagent_type, write_scope, timeout_seconds):
         """执行 `_new_task` 的内部逻辑。"""
@@ -155,6 +227,7 @@ class WorkerManager:
             "worktree_path": str(worktree_path.relative_to(self.runtime.root)) if worktree_path else "",
             "base_commit": base_commit,
             "notification_drained": False,
+            "admission": {},
             "created_at": now(),
             "updated_at": now(),
         }
@@ -206,11 +279,31 @@ class WorkerManager:
     def _public_payload(self, task, status=None):
         """执行 `_public_payload` 的内部逻辑。"""
         item = self._get_item(task.id)
-        return {
+        payload = {
             "task_id": task.id,
             "status": status or item["status"],
             "description": task.description,
         }
+        if payload["status"] == "rejected":
+            payload["error"] = {
+                "code": "worker_queue_full",
+                "retryable": True,
+                "running": self.metrics()["running"],
+                "pending": self.metrics()["pending"],
+                "max_workers": self.max_concurrent_workers,
+                "max_pending": self.max_pending_workers,
+            }
+        return payload
+
+    def _ensure_metrics_shape(self):
+        workers = self.runtime.session.setdefault("workers", {"next_id": 1, "items": []})
+        metrics = workers.setdefault("metrics", {})
+        for key in (
+            "accepted", "queued", "rejected", "completed", "failed", "timed_out", "canceled",
+            "duplicate_terminal_transition", "unhandled_thread_exception", "queue_wait_samples",
+            "queue_wait_ms_total", "queue_wait_ms_max",
+        ):
+            metrics.setdefault(key, 0)
 
     def _save(self):
         """执行 `_save` 的内部逻辑。"""

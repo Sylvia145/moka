@@ -160,6 +160,50 @@ def test_background_workers_queue_at_configured_concurrency_limit(tmp_path):
         "completed",
         "completed",
     ]
+    metrics = agent.worker_manager.to_dict()["metrics"]
+    assert metrics["accepted"] == 2
+    assert metrics["queued"] == 1
+    assert metrics["completed"] == 2
+    assert metrics["queue_wait_samples"] == 1
+    assert metrics["queue_wait_ms_avg"] >= 0
+
+
+def test_background_workers_reject_when_pending_queue_is_full(tmp_path):
+    """执行 `test_background_workers_reject_when_pending_queue_is_full` 的内部逻辑。"""
+    first_started = threading.Event()
+    first_release = threading.Event()
+    agent = build_agent(
+        tmp_path,
+        [],
+        model_client_factory=lambda: BlockingModelClient(
+            ["<final>First done.</final>"], first_started, first_release
+        ),
+        max_concurrent_workers=1,
+        max_pending_workers=0,
+    )
+
+    first = agent.worker_manager.spawn("First", "wait", subagent_type="Explore")
+    assert first["status"] == "started"
+    assert first_started.wait(timeout=1)
+
+    rejected = agent.worker_manager.spawn("Rejected", "wait", subagent_type="Explore")
+
+    assert rejected["status"] == "rejected"
+    assert rejected["error"] == {
+        "code": "worker_queue_full",
+        "retryable": True,
+        "running": 1,
+        "pending": 0,
+        "max_workers": 1,
+        "max_pending": 0,
+    }
+    assert agent.worker_manager.to_dict()["metrics"]["rejected"] == 1
+    events = read_jsonl(agent.session_event_bus.path)
+    assert any(
+        event["event"] == "worker_rejected" and event["code"] == "worker_queue_full"
+        for event in events
+    )
+    first_release.set()
 
 
 def test_send_message_rejects_running_worker(tmp_path):

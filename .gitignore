@@ -54,6 +54,12 @@ docs/**
 !docs/project-guide.md
 !docs/skills.md
 !docs/sandbox.md
+!docs/architecture/
+!docs/architecture/Worker并发与生命周期现状.md
+!docs/design/
+!docs/design/有界Worker调度设计.md
+!docs/benchmark/
+!docs/benchmark/Worker并发与Backpressure.md
 
 # OS files
 .DS_Store

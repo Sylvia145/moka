@@ -9,6 +9,62 @@ from .workspace import now
 ACTIVE_STATUSES = {"starting", "running", "stopping"}
 
 
+def admit_background_task(manager, task, prompt, action):
+    """原子地决定启动、入队或拒绝，避免并发 submit 绕过 pending 上限。"""
+    with manager._lock:
+        item = manager._get_item(task.id)
+        item["admission"] = {
+            "action": action,
+            "admitted_at": now(),
+            "max_workers": manager.max_concurrent_workers,
+            "max_pending": manager.max_pending_workers,
+        }
+        if _active_count(manager) < manager.max_concurrent_workers:
+            item["status"] = "starting"
+            item["updated_at"] = now()
+            item["admission"]["outcome"] = "started"
+            manager.record_metric("accepted")
+            outcome = "started"
+        elif _pending_count(manager) < manager.max_pending_workers:
+            item["status"] = "queued"
+            item["updated_at"] = now()
+            item["admission"].update({"outcome": "queued", "queued_monotonic": time.monotonic()})
+            task.state = {"prompt": str(prompt or ""), "action": action}
+            manager.record_metric("accepted")
+            manager.record_metric("queued")
+            outcome = "queued"
+        else:
+            item["status"] = "rejected"
+            item["updated_at"] = now()
+            item["admission"]["outcome"] = "rejected"
+            manager.record_metric("rejected")
+            outcome = "rejected"
+    manager.runtime.session_event_bus.emit(
+        "worker_submitted",
+        {"worker_id": task.id, "description": task.description, "outcome": outcome},
+    )
+    if outcome == "queued":
+        manager.runtime.session_event_bus.emit(
+            "worker_queued", {"worker_id": task.id, "description": task.description}
+        )
+    elif outcome == "rejected":
+        manager.runtime.session_event_bus.emit(
+            "worker_rejected",
+            {
+                "worker_id": task.id,
+                "code": "worker_queue_full",
+                "running": manager.metrics()["running"],
+                "pending": manager.metrics()["pending"],
+                "max_workers": manager.max_concurrent_workers,
+                "max_pending": manager.max_pending_workers,
+            },
+        )
+    manager._save()
+    if outcome == "started":
+        _start_background(manager, task, prompt, action)
+    return outcome
+
+
 def create_worktree(manager, worker_id, subagent_type, scope):
     """执行 `create_worktree` 的内部逻辑。"""
     if subagent_type != "worker" or not scope or not (manager.runtime.root / ".git").exists():
@@ -71,10 +127,13 @@ def start_next_queued(manager):
             return
         prompt = next_task.state.get("prompt", "")
         action = next_task.state.get("action", "spawn")
+        queued_at = manager._get_item(next_task.id).get("admission", {}).get("queued_monotonic")
         next_task.state.clear()
         item = manager._get_item(next_task.id)
         item["status"] = "starting"
         item["updated_at"] = now()
+        item.setdefault("admission", {})["started_at"] = now()
+        manager.record_queue_wait(queued_at)
     _start_background(manager, next_task, prompt, action)
 
 
@@ -121,6 +180,10 @@ def _active_count(manager):
     return sum(1 for item in manager.state.get("items", []) if item.get("status") in ACTIVE_STATUSES)
 
 
+def _pending_count(manager):
+    return sum(1 for item in manager.state.get("items", []) if item.get("status") == "queued")
+
+
 def _start_background(manager, task, prompt, action):
     """执行 `_start_background` 的内部逻辑。"""
     from .worker_execution import run_worker
@@ -143,8 +206,9 @@ def _watch_timeout(manager, task):
             return
         if item.get("status") == "running":
             request_stop(task)
-            with manager._lock:
-                item["status"] = "timed_out"
-                item["updated_at"] = now()
-            manager.runtime.session_event_bus.emit("worker_timed_out", {"worker_id": task.id})
-            manager._save()
+            if manager.transition_terminal(
+                task.id, "timed_out", reason="execution_timeout", actor="timeout_watcher"
+            ) is not None:
+                manager.runtime.session_event_bus.emit("worker_timed_out", {"worker_id": task.id})
+                manager._save()
+                start_next_queued(manager)
