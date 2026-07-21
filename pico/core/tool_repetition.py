@@ -1,4 +1,4 @@
-"""Repeated tool-call guardrails."""
+"""Pico 运行时实现模块。"""
 
 FILE_MUTATION_TOOLS = {"write_file", "patch_file"}
 MEDIA_INSPECTION_TOOLS = {"inspect_image"}
@@ -6,6 +6,7 @@ MAX_MEDIA_INSPECTIONS_PER_PATH = 2
 
 
 def is_repeated_tool_call(history, name, args):
+    """执行 `is_repeated_tool_call` 的内部逻辑。"""
     current_turn = _current_turn_history(history)
     tool_events = [
         (index, item)
@@ -30,6 +31,7 @@ def is_repeated_tool_call(history, name, args):
 
 
 def _media_path_inspection_count(tool_events, args):
+    """执行 `_media_path_inspection_count` 的内部逻辑。"""
     path = str((args or {}).get("path", ""))
     if not path:
         return 0
@@ -43,6 +45,7 @@ def _media_path_inspection_count(tool_events, args):
 
 
 def repeated_tool_call_metadata(tool):
+    """执行 `repeated_tool_call_metadata` 的内部逻辑。"""
     return {
         "tool_status": "rejected",
         "tool_error_code": "repeated_identical_call",
@@ -56,6 +59,7 @@ def repeated_tool_call_metadata(tool):
 
 
 def _failed_file_write_retry_is_now_informed(current_turn, last_index, last_match):
+    """执行 `_failed_file_write_retry_is_now_informed` 的内部逻辑。"""
     content = str(last_match.get("content", ""))
     if not content.startswith("error:"):
         return False
@@ -75,6 +79,7 @@ def _failed_file_write_retry_is_now_informed(current_turn, last_index, last_matc
 
 
 def _current_turn_history(history):
+    """执行 `_current_turn_history` 的内部逻辑。"""
     history = list(history)
     for index in range(len(history) - 1, -1, -1):
         if history[index].get("role") == "user":

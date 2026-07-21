@@ -1,4 +1,4 @@
-"""User clarification tool definitions."""
+"""Pico 运行时实现模块。"""
 
 ASK_USER_TOOL_SPECS = {
     "ask_user": {
@@ -15,4 +15,5 @@ ASK_USER_TOOL_EXAMPLES = {
 
 
 def tool_ask_user(agent, args):
+    """执行 `tool_ask_user` 的内部逻辑。"""
     return agent.ask_user(str(args["question"]), choices=args.get("choices", []) or [])

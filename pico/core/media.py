@@ -1,4 +1,4 @@
-"""Workspace-safe media loading for model input."""
+"""Pico 运行时实现模块。"""
 
 from __future__ import annotations
 
@@ -24,6 +24,7 @@ class LoadedImage:
 
 
 def load_workspace_image(agent, raw_path):
+    """执行 `load_workspace_image` 的内部逻辑。"""
     path = agent.path(raw_path)
     if not path.is_file():
         raise ValueError("path is not a file")
@@ -54,6 +55,7 @@ def load_workspace_image(agent, raw_path):
 
 
 def detect_image_mime(filename, data):
+    """执行 `detect_image_mime` 的内部逻辑。"""
     suffix = "." + str(filename).rsplit(".", 1)[-1].lower() if "." in str(filename) else ""
     expected = IMAGE_MIME_BY_SUFFIX.get(suffix)
     actual = _mime_from_magic(data)
@@ -65,6 +67,7 @@ def detect_image_mime(filename, data):
 
 
 def maybe_downsample_image(data, mime_type):
+    """执行 `maybe_downsample_image` 的内部逻辑。"""
     try:
         from PIL import Image
         from io import BytesIO
@@ -86,6 +89,7 @@ def maybe_downsample_image(data, mime_type):
 
 
 def _mime_from_magic(data):
+    """执行 `_mime_from_magic` 的内部逻辑。"""
     if data.startswith(b"\x89PNG\r\n\x1a\n"):
         return "image/png"
     if data.startswith(b"\xff\xd8\xff"):
@@ -98,6 +102,7 @@ def _mime_from_magic(data):
 
 
 def _pillow_format(mime_type):
+    """执行 `_pillow_format` 的内部逻辑。"""
     return {
         "image/gif": "GIF",
         "image/jpeg": "JPEG",

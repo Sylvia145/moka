@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import os
 from unittest.mock import patch
 
@@ -13,6 +14,7 @@ from pico.evaluation.metrics import (
 
 
 def test_run_context_ablation_v2_writes_expected_artifact(tmp_path):
+    """执行 `test_run_context_ablation_v2_writes_expected_artifact` 的内部逻辑。"""
     artifact_path = tmp_path / "artifacts" / "context-ablation-v2.json"
 
     artifact = run_context_ablation_v2(
@@ -28,6 +30,7 @@ def test_run_context_ablation_v2_writes_expected_artifact(tmp_path):
 
 
 def test_metrics_cli_context_ab_writes_artifacts(tmp_path, monkeypatch):
+    """执行 `test_metrics_cli_context_ab_writes_artifacts` 的内部逻辑。"""
     monkeypatch.chdir(tmp_path)
 
     assert metrics_main(["--run", "context_ab"]) == 0
@@ -37,6 +40,7 @@ def test_metrics_cli_context_ab_writes_artifacts(tmp_path, monkeypatch):
 
 
 def test_provider_profile_uses_project_toml_before_legacy_pico_env(tmp_path, monkeypatch):
+    """执行 `test_provider_profile_uses_project_toml_before_legacy_pico_env` 的内部逻辑。"""
     monkeypatch.chdir(tmp_path)
     (tmp_path / ".pico.toml").write_text(
         "\n".join(
@@ -70,6 +74,7 @@ def test_provider_profile_uses_project_toml_before_legacy_pico_env(tmp_path, mon
 
 
 def test_run_memory_ablation_v2_writes_expected_artifact(tmp_path):
+    """执行 `test_run_memory_ablation_v2_writes_expected_artifact` 的内部逻辑。"""
     artifact_path = tmp_path / "artifacts" / "memory-ablation-v2.json"
 
     artifact = run_memory_ablation_v2(
@@ -85,6 +90,7 @@ def test_run_memory_ablation_v2_writes_expected_artifact(tmp_path):
 
 
 def test_memory_fidelity_irrelevant_memory_present_category(tmp_path):
+    """执行 `test_memory_fidelity_irrelevant_memory_present_category` 的内部逻辑。"""
     artifact = run_memory_fidelity_v1(tmp_path / "artifacts" / "memory-fidelity-v1.json")
     row = next(row for row in artifact["rows"] if row["category"] == "irrelevant_memory_present")
 
@@ -93,6 +99,7 @@ def test_memory_fidelity_irrelevant_memory_present_category(tmp_path):
 
 
 def test_memory_fidelity_superseded_fact_category(tmp_path):
+    """执行 `test_memory_fidelity_superseded_fact_category` 的内部逻辑。"""
     artifact = run_memory_fidelity_v1(tmp_path / "artifacts" / "memory-fidelity-v1.json")
     row = next(row for row in artifact["rows"] if row["category"] == "superseded_fact")
 
@@ -102,6 +109,7 @@ def test_memory_fidelity_superseded_fact_category(tmp_path):
 
 
 def test_memory_fidelity_secret_shaped_category(tmp_path):
+    """执行 `test_memory_fidelity_secret_shaped_category` 的内部逻辑。"""
     artifact = run_memory_fidelity_v1(tmp_path / "artifacts" / "memory-fidelity-v1.json")
     row = next(row for row in artifact["rows"] if row["category"] == "secret_shaped")
 
@@ -110,6 +118,7 @@ def test_memory_fidelity_secret_shaped_category(tmp_path):
 
 
 def test_run_memory_fidelity_v1_writes_expected_artifact(tmp_path):
+    """执行 `test_run_memory_fidelity_v1_writes_expected_artifact` 的内部逻辑。"""
     artifact_path = tmp_path / "artifacts" / "memory-fidelity-v1.json"
 
     artifact = run_memory_fidelity_v1(artifact_path)
@@ -134,6 +143,7 @@ def test_run_memory_fidelity_v1_writes_expected_artifact(tmp_path):
 
 
 def test_memory_fidelity_stale_and_prompt_injection_categories(tmp_path):
+    """执行 `test_memory_fidelity_stale_and_prompt_injection_categories` 的内部逻辑。"""
     artifact = run_memory_fidelity_v1(tmp_path / "artifacts" / "memory-fidelity-v1.json")
     stale = next(row for row in artifact["rows"] if row["category"] == "stale_evidence")
     poison = next(row for row in artifact["rows"] if row["category"] == "prompt_injection")
@@ -147,6 +157,7 @@ def test_memory_fidelity_stale_and_prompt_injection_categories(tmp_path):
 
 
 def test_run_recovery_ablation_v2_writes_expected_artifact(tmp_path):
+    """执行 `test_run_recovery_ablation_v2_writes_expected_artifact` 的内部逻辑。"""
     artifact_path = tmp_path / "artifacts" / "recovery-ablation-v2.json"
 
     artifact = run_recovery_ablation_v2(
@@ -174,6 +185,7 @@ def test_run_recovery_ablation_v2_writes_expected_artifact(tmp_path):
 
 
 def test_write_benchmark_core_report_marks_resume_safe_metrics(tmp_path):
+    """执行 `test_write_benchmark_core_report_marks_resume_safe_metrics` 的内部逻辑。"""
     run_context_ablation_v2(tmp_path / "artifacts" / "context-ablation-v2.json", repetitions=1)
     run_memory_ablation_v2(tmp_path / "artifacts" / "memory-ablation-v2.json", repetitions=1)
     run_memory_fidelity_v1(tmp_path / "artifacts" / "memory-fidelity-v1.json")
@@ -207,6 +219,7 @@ def test_write_benchmark_core_report_marks_resume_safe_metrics(tmp_path):
 
 
 def test_write_benchmark_core_report_includes_optional_context_ab(tmp_path):
+    """执行 `test_write_benchmark_core_report_includes_optional_context_ab` 的内部逻辑。"""
     from pico.evaluation.context_cost import run_deterministic_prompt_experiment, write_experiment_artifacts
 
     run_context_ablation_v2(tmp_path / "artifacts" / "context-ablation-v2.json", repetitions=1)
@@ -239,6 +252,7 @@ def test_write_benchmark_core_report_includes_optional_context_ab(tmp_path):
 
 
 def test_write_benchmark_core_report_falls_back_to_local_artifacts(tmp_path, monkeypatch):
+    """执行 `test_write_benchmark_core_report_falls_back_to_local_artifacts` 的内部逻辑。"""
     monkeypatch.chdir(tmp_path)
     local_artifacts = tmp_path / "_local" / "benchmark" / "artifacts"
     local_artifacts.mkdir(parents=True)

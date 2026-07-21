@@ -1,4 +1,4 @@
-"""Unit tests for loop transition payloads and summary reduction."""
+"""Pico 自动化测试模块。"""
 
 import pytest
 
@@ -13,6 +13,7 @@ from pico.core.turn_transitions import (
 
 
 def test_build_transition_uses_string_kind_values():
+    """执行 `test_build_transition_uses_string_kind_values` 的内部逻辑。"""
     event = build_transition(
         kind="continue",
         reason=CONTINUE_TOOL_BATCH_EXECUTED,
@@ -33,6 +34,7 @@ def test_build_transition_uses_string_kind_values():
 
 
 def test_reduce_transition_summary_allows_only_one_terminal_transition():
+    """执行 `test_reduce_transition_summary_allows_only_one_terminal_transition` 的内部逻辑。"""
     summary = reduce_transition_summary(
         {},
         build_transition(
@@ -57,6 +59,7 @@ def test_reduce_transition_summary_allows_only_one_terminal_transition():
 
 
 def test_reduce_transition_summary_tracks_tool_request_and_execution_counts():
+    """执行 `test_reduce_transition_summary_tracks_tool_request_and_execution_counts` 的内部逻辑。"""
     summary = reduce_transition_summary(
         {},
         build_transition(
@@ -74,10 +77,12 @@ def test_reduce_transition_summary_tracks_tool_request_and_execution_counts():
 
 
 def test_transition_wrappers_emit_continue_and_terminal_events():
+    """执行 `test_transition_wrappers_emit_continue_and_terminal_events` 的内部逻辑。"""
     events = []
 
     class Agent:
         def emit_trace(self, task_state, event, payload):
+            """执行 `emit_trace` 的内部逻辑。"""
             events.append((event, payload))
             return payload
 

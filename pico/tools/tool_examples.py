@@ -1,4 +1,4 @@
-"""Prompt-format examples for built-in tools."""
+"""Pico 运行时实现模块。"""
 
 from .agents import AGENT_TOOL_EXAMPLES
 from .ask_user import ASK_USER_TOOL_EXAMPLES
@@ -22,4 +22,5 @@ TOOL_EXAMPLES = {
 
 
 def tool_example(name):
+    """执行 `tool_example` 的内部逻辑。"""
     return TOOL_EXAMPLES.get(name, "")

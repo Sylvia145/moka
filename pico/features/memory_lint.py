@@ -1,4 +1,4 @@
-"""Static memory lint primitives shared by future memory validators."""
+"""Pico 运行时实现模块。"""
 
 import argparse
 import json
@@ -24,6 +24,7 @@ RELATIVE_DATE_PATTERN = re.compile(r"(?i)\b(tomorrow|yesterday|next week|last we
 
 
 def _load_topic_metadata(path):
+    """执行 `_load_topic_metadata` 的内部逻辑。"""
     if not path.exists():
         return {}
     rows = {}
@@ -41,6 +42,7 @@ def _load_topic_metadata(path):
 
 
 def _load_topic_notes(topic_path):
+    """执行 `_load_topic_notes` 的内部逻辑。"""
     topic = topic_path.stem
     lines = topic_path.read_text(encoding="utf-8").splitlines()
     notes = []
@@ -57,16 +59,19 @@ def _load_topic_notes(topic_path):
 
 
 def _tokenize(text):
+    """执行 `_tokenize` 的内部逻辑。"""
     return {token.lower() for token in re.findall(r"[A-Za-z0-9_]+", str(text))}
 
 
 def _note_id_for(topic_slug, note_text):
+    """执行 `_note_id_for` 的内部逻辑。"""
     import hashlib
 
     return hashlib.sha256(f"{topic_slug}\n{note_text}".encode("utf-8")).hexdigest()[:12]
 
 
 def _subject_key(text):
+    """执行 `_subject_key` 的内部逻辑。"""
     text = str(text).strip()
     patterns = (
         r"^(.+?)\s+is\s+.+$",
@@ -85,6 +90,7 @@ def _subject_key(text):
 
 
 def _finding(rule, topic, note_id="", text="", **extra):
+    """执行 `_finding` 的内部逻辑。"""
     payload = {"rule": rule, "topic": topic}
     if note_id:
         payload["note_id"] = note_id
@@ -95,6 +101,7 @@ def _finding(rule, topic, note_id="", text="", **extra):
 
 
 def lint_memory_dir(memory_dir):
+    """执行 `lint_memory_dir` 的内部逻辑。"""
     memory_dir = Path(memory_dir)
     topics_dir = memory_dir / "topics"
     if not topics_dir.exists():
@@ -145,6 +152,7 @@ def lint_memory_dir(memory_dir):
 
 
 def main(argv=None):
+    """执行 `main` 的内部逻辑。"""
     parser = argparse.ArgumentParser(description="Lint Pico durable memory files.")
     parser.add_argument("memory_dir", help="Memory directory containing topics/*.md and sidecars.")
     args = parser.parse_args(argv)

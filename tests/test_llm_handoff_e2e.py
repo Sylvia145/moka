@@ -1,4 +1,4 @@
-"""End-to-end validation for LLM handoff context compaction Phase 1."""
+"""Pico 自动化测试模块。"""
 
 import sys
 from pathlib import Path
@@ -19,6 +19,7 @@ from scripts.validate_llm_handoff import (
 
 
 def test_tier3_triggers_llm_handoff(tmp_path):
+    """执行 `test_tier3_triggers_llm_handoff` 的内部逻辑。"""
     result = scenario_tier3_triggers_llm_handoff(tmp_path)
 
     assert result["compact_trigger"] == "auto_pressure_compact"
@@ -31,6 +32,7 @@ def test_tier3_triggers_llm_handoff(tmp_path):
 
 
 def test_llm_failure_falls_back_to_deterministic(tmp_path):
+    """执行 `test_llm_failure_falls_back_to_deterministic` 的内部逻辑。"""
     result = scenario_llm_failure_falls_back_to_deterministic(tmp_path)
 
     assert result["compact_trigger"] == "auto_pressure_compact"
@@ -40,6 +42,7 @@ def test_llm_failure_falls_back_to_deterministic(tmp_path):
 
 
 def test_low_pressure_no_compaction(tmp_path):
+    """执行 `test_low_pressure_no_compaction` 的内部逻辑。"""
     result = scenario_low_pressure_no_compaction(tmp_path)
 
     assert result["compact_trigger"] is None
@@ -49,6 +52,7 @@ def test_low_pressure_no_compaction(tmp_path):
 
 
 def test_over_budget_prefers_deterministic(tmp_path):
+    """执行 `test_over_budget_prefers_deterministic` 的内部逻辑。"""
     result = scenario_over_budget_prefers_deterministic(tmp_path)
 
     assert result["compact_trigger"] == "auto_prompt_over_budget"
@@ -58,6 +62,7 @@ def test_over_budget_prefers_deterministic(tmp_path):
 
 
 def test_delta_too_small_skips_compaction(tmp_path):
+    """执行 `test_delta_too_small_skips_compaction` 的内部逻辑。"""
     result = scenario_delta_too_small_skips_compaction(tmp_path)
 
     assert result["compact_trigger"] is None
@@ -67,6 +72,7 @@ def test_delta_too_small_skips_compaction(tmp_path):
 
 
 def test_replacement_ledger_survives_llm_compact(tmp_path):
+    """执行 `test_replacement_ledger_survives_llm_compact` 的内部逻辑。"""
     result = scenario_replacement_ledger_survives_llm_compact(tmp_path)
 
     assert result["ledger_before"] == result["ledger_after"]
@@ -74,6 +80,7 @@ def test_replacement_ledger_survives_llm_compact(tmp_path):
 
 
 def test_net_benefit_calculation():
+    """执行 `test_net_benefit_calculation` 的内部逻辑。"""
     result = scenario_net_benefit_calculation()
 
     assert result["positive"] == 2000

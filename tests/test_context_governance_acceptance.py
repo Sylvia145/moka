@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 
 from pico.testing import ScriptedModelClient
@@ -6,6 +7,7 @@ from pico.core.context_manager import ContextManager
 
 
 def build_agent(tmp_path, outputs=None, **kwargs):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
@@ -19,10 +21,12 @@ def build_agent(tmp_path, outputs=None, **kwargs):
 
 
 def read_jsonl(path):
+    """执行 `read_jsonl` 的内部逻辑。"""
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def test_context_usage_is_recorded_for_real_turn_report_and_session_events(tmp_path):
+    """执行 `test_context_usage_is_recorded_for_real_turn_report_and_session_events` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>hello</final>"])
 
     assert agent.ask("hi") == "hello"
@@ -42,6 +46,7 @@ def test_context_usage_is_recorded_for_real_turn_report_and_session_events(tmp_p
 
 
 def test_history_records_turn_ids_and_renders_without_orphan_tool_results(tmp_path):
+    """执行 `test_history_records_turn_ids_and_renders_without_orphan_tool_results` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -65,6 +70,7 @@ def test_history_records_turn_ids_and_renders_without_orphan_tool_results(tmp_pa
 
 
 def test_manual_compact_creates_summary_event_and_shortens_future_history(tmp_path):
+    """执行 `test_manual_compact_creates_summary_event_and_shortens_future_history` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>done</final>"])
     for index in range(16):
         agent.record({"role": "user", "content": f"old request {index} " + ("x" * 80), "created_at": f"2026-05-12T10:{index:02d}:00+00:00"})
@@ -85,6 +91,7 @@ def test_manual_compact_creates_summary_event_and_shortens_future_history(tmp_pa
 
 
 def test_prompt_over_budget_triggers_auto_compaction_during_real_turn(tmp_path):
+    """执行 `test_prompt_over_budget_triggers_auto_compaction_during_real_turn` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>done</final>"])
     agent.context_manager = ContextManager(
         agent,

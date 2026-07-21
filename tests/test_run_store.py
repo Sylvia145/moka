@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 from pathlib import Path
 
@@ -6,6 +7,7 @@ from pico.core.task_state import STOP_REASON_FINAL_ANSWER_RETURNED, TaskState
 
 
 def test_run_store_creates_run_directory_and_state_file(tmp_path):
+    """执行 `test_run_store_creates_run_directory_and_state_file` 的内部逻辑。"""
     store = RunStore(tmp_path / ".pico" / "runs")
     state = TaskState.create(run_id="run_001", task_id="task_001", user_request="Inspect the repo.")
 
@@ -20,6 +22,7 @@ def test_run_store_creates_run_directory_and_state_file(tmp_path):
 
 
 def test_run_store_appends_trace_jsonl(tmp_path):
+    """执行 `test_run_store_appends_trace_jsonl` 的内部逻辑。"""
     store = RunStore(tmp_path / ".pico" / "runs")
     state = TaskState.create(run_id="run_002", task_id="task_002", user_request="Trace the run.")
     store.start_run(state)
@@ -43,6 +46,7 @@ def test_run_store_appends_trace_jsonl(tmp_path):
 
 
 def test_run_store_writes_report_json(tmp_path):
+    """执行 `test_run_store_writes_report_json` 的内部逻辑。"""
     store = RunStore(tmp_path / ".pico" / "runs")
     state = TaskState.create(run_id="run_003", task_id="task_003", user_request="Report the run.")
     store.start_run(state)
@@ -57,6 +61,7 @@ def test_run_store_writes_report_json(tmp_path):
 
 
 def test_run_store_tolerates_missing_final_report(tmp_path):
+    """执行 `test_run_store_tolerates_missing_final_report` 的内部逻辑。"""
     store = RunStore(tmp_path / ".pico" / "runs")
     state = TaskState.create(run_id="run_004", task_id="task_004", user_request="Crash before finalize.")
 
@@ -68,12 +73,14 @@ def test_run_store_tolerates_missing_final_report(tmp_path):
 
 
 def test_run_store_retries_transient_permission_error_during_atomic_replace(tmp_path, monkeypatch):
+    """执行 `test_run_store_retries_transient_permission_error_during_atomic_replace` 的内部逻辑。"""
     store = RunStore(tmp_path / ".pico" / "runs")
     state = TaskState.create(run_id="run_005", task_id="task_005", user_request="Persist safely.")
     original_replace = Path.replace
     attempts = {"count": 0}
 
     def flaky_replace(source, target):
+        """执行 `flaky_replace` 的内部逻辑。"""
         attempts["count"] += 1
         if attempts["count"] < 3:
             raise PermissionError("transient Windows file lock")

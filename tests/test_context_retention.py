@@ -1,8 +1,10 @@
+"""Pico 自动化测试模块。"""
 from pico.core.context_retention import ContextRetentionPolicy, RetentionContext
 from pico.core.turn_history import should_render_tool_inline
 
 
 def retention_context(**overrides):
+    """执行 `retention_context` 的内部逻辑。"""
     values = {
         "recent_turns": {"recent"},
         "last_failed_tool_event_id": "latest-failed",
@@ -15,6 +17,7 @@ def retention_context(**overrides):
 
 
 def tool_item(name="read_file", **overrides):
+    """执行 `tool_item` 的内部逻辑。"""
     item = {
         "role": "tool",
         "name": name,
@@ -28,6 +31,7 @@ def tool_item(name="read_file", **overrides):
 
 
 def test_retention_policy_keeps_recent_failed_workspace_changing_and_changed_path_tools_inline():
+    """执行 `test_retention_policy_keeps_recent_failed_workspace_changing_and_changed_path_tools_inline` 的内部逻辑。"""
     policy = ContextRetentionPolicy()
     context = retention_context()
 
@@ -42,6 +46,7 @@ def test_retention_policy_keeps_recent_failed_workspace_changing_and_changed_pat
 
 
 def test_retention_policy_can_stub_old_artifact_backed_bulk_tools():
+    """执行 `test_retention_policy_can_stub_old_artifact_backed_bulk_tools` 的内部逻辑。"""
     policy = ContextRetentionPolicy()
     context = retention_context()
 
@@ -57,6 +62,7 @@ def test_retention_policy_can_stub_old_artifact_backed_bulk_tools():
 
 
 def test_retention_policy_high_pressure_does_not_override_protected_coordination_or_todo_tools():
+    """执行 `test_retention_policy_high_pressure_does_not_override_protected_coordination_or_todo_tools` 的内部逻辑。"""
     policy = ContextRetentionPolicy()
     context = retention_context(pressure_tier="tier3_summary")
 
@@ -75,6 +81,7 @@ def test_retention_policy_high_pressure_does_not_override_protected_coordination
 
 
 def test_legacy_should_render_tool_inline_delegates_to_retention_policy():
+    """执行 `test_legacy_should_render_tool_inline_delegates_to_retention_policy` 的内部逻辑。"""
     context = retention_context(pressure_tier="tier3_summary")
 
     assert should_render_tool_inline(tool_item("ask_user"), context)

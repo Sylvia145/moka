@@ -1,4 +1,4 @@
-"""Context pressure accounting for prompt usage metadata."""
+"""Pico 运行时实现模块。"""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ IDENTITY_KEYS = (
 
 
 def _optional_int(value):
+    """执行 `_optional_int` 的内部逻辑。"""
     if value is None:
         return None
     try:
@@ -37,16 +38,19 @@ class ContextPressure:
 
     @property
     def pressure_ratio(self):
+        """执行 `pressure_ratio` 的内部逻辑。"""
         budget = max(1, int(self.budget_tokens or 0))
         return round(max(0, int(self.input_tokens or 0)) / budget, 6)
 
     @property
     def window_ratio(self):
+        """执行 `window_ratio` 的内部逻辑。"""
         window = max(1, int(self.context_window or 0))
         return round(max(0, int(self.input_tokens or 0)) / window, 6)
 
     @property
     def pressure_tier(self):
+        """执行 `pressure_tier` 的内部逻辑。"""
         ratio = self.pressure_ratio
         if ratio >= 0.95:
             return "tier3_summary"
@@ -57,6 +61,7 @@ class ContextPressure:
         return "tier0_observe"
 
     def to_context_usage_fields(self):
+        """执行 `to_context_usage_fields` 的内部逻辑。"""
         return {
             "pressure_ratio": self.pressure_ratio,
             "window_ratio": self.window_ratio,
@@ -81,6 +86,7 @@ class ContextPressureController:
         last_completion_metadata=None,
         last_identity=None,
     ):
+        """执行 `evaluate` 的内部逻辑。"""
         estimated = max(0, int(estimated_input_tokens or 0))
         window = max(1, int(context_window or 0))
         budget = int(budget_tokens or 0) or window
@@ -116,6 +122,7 @@ class ContextPressureController:
         )
 
     def _identity_matches(self, current_identity, metadata, last_identity):
+        """执行 `_identity_matches` 的内部逻辑。"""
         current = dict(current_identity or {})
         previous = dict(last_identity or {})
         previous.update({key: metadata[key] for key in IDENTITY_KEYS if key in metadata})

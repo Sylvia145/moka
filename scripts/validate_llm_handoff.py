@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""End-to-end validation of LLM handoff context compaction Phase 1."""
+"""Pico 项目运行与验证脚本。"""
 
 from __future__ import annotations
 
@@ -38,6 +38,7 @@ Implement authentication middleware
 
 
 def scenario_tier3_triggers_llm_handoff(tmp_path=None):
+    """执行 `scenario_tier3_triggers_llm_handoff` 的内部逻辑。"""
     tmp_path = _tmp_path(tmp_path)
     agent = _build_agent(
         tmp_path,
@@ -64,6 +65,7 @@ def scenario_tier3_triggers_llm_handoff(tmp_path=None):
 
 
 def scenario_llm_failure_falls_back_to_deterministic(tmp_path=None):
+    """执行 `scenario_llm_failure_falls_back_to_deterministic` 的内部逻辑。"""
     tmp_path = _tmp_path(tmp_path)
     agent = _build_agent(
         tmp_path,
@@ -88,6 +90,7 @@ def scenario_llm_failure_falls_back_to_deterministic(tmp_path=None):
 
 
 def scenario_low_pressure_no_compaction(tmp_path=None):
+    """执行 `scenario_low_pressure_no_compaction` 的内部逻辑。"""
     tmp_path = _tmp_path(tmp_path)
     agent = _build_agent(tmp_path, ["<final>low pressure response</final>"], context_window=200_000)
     _fill_history(agent, rounds=2, chars_per_message=100)
@@ -104,6 +107,7 @@ def scenario_low_pressure_no_compaction(tmp_path=None):
 
 
 def scenario_over_budget_prefers_deterministic(tmp_path=None):
+    """执行 `scenario_over_budget_prefers_deterministic` 的内部逻辑。"""
     tmp_path = _tmp_path(tmp_path)
     agent = _build_agent(tmp_path, ["<final>over budget done</final>"], context_window=1000)
     _fill_history(agent, rounds=6, chars_per_message=900)
@@ -125,6 +129,7 @@ def scenario_over_budget_prefers_deterministic(tmp_path=None):
 
 
 def scenario_delta_too_small_skips_compaction(tmp_path=None):
+    """执行 `scenario_delta_too_small_skips_compaction` 的内部逻辑。"""
     tmp_path = _tmp_path(tmp_path)
     agent = _build_agent(tmp_path, ["unused"], context_window=200)
     agent.record(
@@ -149,6 +154,7 @@ def scenario_delta_too_small_skips_compaction(tmp_path=None):
 
 
 def scenario_replacement_ledger_survives_llm_compact(tmp_path=None):
+    """执行 `scenario_replacement_ledger_survives_llm_compact` 的内部逻辑。"""
     tmp_path = _tmp_path(tmp_path)
     agent = _build_agent(
         tmp_path,
@@ -174,6 +180,7 @@ def scenario_replacement_ledger_survives_llm_compact(tmp_path=None):
 
 
 def scenario_net_benefit_calculation():
+    """执行 `scenario_net_benefit_calculation` 的内部逻辑。"""
     positive = context_budget_summary(
         {
             "context_usage": {"context_window": 4000, "total_estimated_tokens": 500},
@@ -198,6 +205,7 @@ def scenario_net_benefit_calculation():
 
 
 def main():
+    """执行 `main` 的内部逻辑。"""
     scenarios = [
         scenario_tier3_triggers_llm_handoff,
         scenario_llm_failure_falls_back_to_deterministic,
@@ -216,7 +224,7 @@ def main():
         except AssertionError as exc:
             failures.append(f"{scenario.__name__}: {exc}")
             print(f"FAIL: {scenario.__name__}: {exc}")
-        except Exception as exc:  # pragma: no cover - diagnostic path
+        except Exception as exc:  # pragma: no cover - 诊断路径
             failures.append(f"{scenario.__name__}: {type(exc).__name__}: {exc}")
             print(f"ERROR: {scenario.__name__}: {type(exc).__name__}: {exc}")
     print("\n" + "=" * 60)
@@ -230,6 +238,7 @@ def main():
 
 
 def _validate_result(name, result):
+    """执行 `_validate_result` 的内部逻辑。"""
     checks = {
         "scenario_tier3_triggers_llm_handoff": lambda r: (
             r["compact_trigger"] == "auto_pressure_compact"
@@ -270,6 +279,7 @@ def _validate_result(name, result):
 
 
 def _build_agent(tmp_path, responses, *, context_window):
+    """执行 `_build_agent` 的内部逻辑。"""
     tmp_path = Path(tmp_path)
     tmp_path.mkdir(parents=True, exist_ok=True)
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
@@ -293,12 +303,14 @@ def _build_agent(tmp_path, responses, *, context_window):
 
 
 def _fill_history(agent, *, rounds, chars_per_message):
+    """执行 `_fill_history` 的内部逻辑。"""
     for index in range(rounds):
         agent.record({"role": "user", "content": f"request {index} " + ("x" * chars_per_message)})
         agent.record({"role": "assistant", "content": f"answer {index} " + ("y" * chars_per_message)})
 
 
 def _set_context_budget(agent, *, total_budget, section_budget):
+    """执行 `_set_context_budget` 的内部逻辑。"""
     agent.context_manager = ContextManager(
         agent,
         total_budget=total_budget,
@@ -318,22 +330,26 @@ def _set_context_budget(agent, *, total_budget, section_budget):
 
 
 def _first_compact_summary(agent):
+    """执行 `_first_compact_summary` 的内部逻辑。"""
     summaries = _compact_summaries(agent)
     assert summaries, "expected compact_summary in session history"
     return summaries[0]
 
 
 def _compact_summaries(agent):
+    """执行 `_compact_summaries` 的内部逻辑。"""
     return [item for item in agent.session.get("history", []) if item.get("kind") == "compact_summary"]
 
 
 def _last_orchestrator_decision(agent):
+    """执行 `_last_orchestrator_decision` 的内部逻辑。"""
     decisions = _events(agent, "context_orchestrator_decision")
     assert decisions, "expected context_orchestrator_decision event"
     return decisions[-1]
 
 
 def _events(agent, event_name):
+    """执行 `_events` 的内部逻辑。"""
     path = agent.session_event_bus.path
     if not path.exists():
         return []
@@ -345,6 +361,7 @@ def _events(agent, event_name):
 
 
 def _tmp_path(tmp_path):
+    """执行 `_tmp_path` 的内部逻辑。"""
     if tmp_path is not None:
         return Path(tmp_path)
     return Path(tempfile.mkdtemp(prefix="pico-llm-handoff-"))

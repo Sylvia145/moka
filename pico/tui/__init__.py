@@ -1,4 +1,4 @@
-"""Textual terminal UI for Pico."""
+"""Pico 运行时实现模块。"""
 
 from .app import PicoTuiApp
 

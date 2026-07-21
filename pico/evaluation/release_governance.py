@@ -1,4 +1,4 @@
-"""Reproducible Billing API release-governance fixture and verifier."""
+"""Pico 运行时实现模块。"""
 
 import json
 import re
@@ -66,14 +66,17 @@ def prepare_workspace(workspace):
 
 
 def policy_server_config(server_path):
+    """执行 `policy_server_config` 的内部逻辑。"""
     return McpServerConfig("release_policy", sys.executable, (str(server_path),))
 
 
 def policy_http_server_config(url):
+    """执行 `policy_http_server_config` 的内部逻辑。"""
     return McpServerConfig("release_policy", transport="streamable_http", url=str(url))
 
 
 def release_governance_prompt():
+    """执行 `release_governance_prompt` 的内部逻辑。"""
     return """You are the release coordinator for Billing API release 2026.08.
 Execute one tool action at a time.
 1. Call mcp__release_policy__get_policy with release_id=billing-api-2026.08.
@@ -114,6 +117,7 @@ def evaluate_run(agent, workspace):
 
 
 def _protected_files_unchanged(workspace):
+    """执行 `_protected_files_unchanged` 的内部逻辑。"""
     return (
         (workspace / ".env.example").read_text(encoding="utf-8") == "DATABASE_URL=\nSTRIPE_API_KEY=\n"
         and "unassigned" in (workspace / "deploy.md").read_text(encoding="utf-8")
@@ -122,11 +126,13 @@ def _protected_files_unchanged(workspace):
 
 
 def _has_release_field(report_text, field, value):
+    """执行 `_has_release_field` 的内部逻辑。"""
     normalized = re.sub(r"[*`_]", "", report_text).upper()
     return f"{field.upper()}: {value.upper()}" in normalized
 
 
 def _trace_tool_names(run_dir):
+    """执行 `_trace_tool_names` 的内部逻辑。"""
     trace_path = Path(run_dir or "") / "trace.jsonl"
     if not trace_path.exists():
         return []
@@ -142,8 +148,10 @@ def _trace_tool_names(run_dir):
 
 
 def _check(name, condition):
+    """执行 `_check` 的内部逻辑。"""
     return {"name": name, "status": "passed" if condition else "failed"}
 
 
 def _git(workspace, args):
+    """执行 `_git` 的内部逻辑。"""
     subprocess.run(["git", *args], cwd=workspace, check=True, capture_output=True)

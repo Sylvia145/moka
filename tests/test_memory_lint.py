@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 import hashlib
 import subprocess
@@ -6,6 +7,7 @@ from pico.features.memory_lint import lint_memory_dir
 
 
 def _write_memory_fixture(root, note_texts, metadata_rows):
+    """执行 `_write_memory_fixture` 的内部逻辑。"""
     topics = root / "topics"
     topics.mkdir(parents=True)
     (topics / "topic.md").write_text(
@@ -25,10 +27,12 @@ def _write_memory_fixture(root, note_texts, metadata_rows):
 
 
 def _note_id(text, topic="topic"):
+    """执行 `_note_id` 的内部逻辑。"""
     return hashlib.sha256(f"{topic}\n{text}".encode("utf-8")).hexdigest()[:12]
 
 
 def _row(text, *, status="active", supersedes=None, session_id="fixture"):
+    """执行 `_row` 的内部逻辑。"""
     return {
         "note_id": _note_id(text),
         "status": status,
@@ -44,6 +48,7 @@ def _row(text, *, status="active", supersedes=None, session_id="fixture"):
 
 
 def test_memory_lint_dirty_fixture_reports_exactly_five_findings():
+    """执行 `test_memory_lint_dirty_fixture_reports_exactly_five_findings` 的内部逻辑。"""
     findings = lint_memory_dir("tests/fixtures/memory_lint_dirty")
 
     assert [finding["rule"] for finding in findings] == [
@@ -56,6 +61,7 @@ def test_memory_lint_dirty_fixture_reports_exactly_five_findings():
 
 
 def test_memory_lint_cli_returns_one_for_findings():
+    """执行 `test_memory_lint_cli_returns_one_for_findings` 的内部逻辑。"""
     result = subprocess.run(
         ["uv", "run", "python", "-m", "pico.features.memory_lint", "tests/fixtures/memory_lint_dirty"],
         check=False,
@@ -68,6 +74,7 @@ def test_memory_lint_cli_returns_one_for_findings():
 
 
 def test_memory_lint_duplicate_active_subject_positive_and_negative(tmp_path):
+    """执行 `test_memory_lint_duplicate_active_subject_positive_and_negative` 的内部逻辑。"""
     _write_memory_fixture(
         tmp_path,
         ["Pico uses pytest.", "Pico uses unittest."],
@@ -84,6 +91,7 @@ def test_memory_lint_duplicate_active_subject_positive_and_negative(tmp_path):
 
 
 def test_memory_lint_relative_date_positive_and_negative(tmp_path):
+    """执行 `test_memory_lint_relative_date_positive_and_negative` 的内部逻辑。"""
     _write_memory_fixture(tmp_path, ["Review the audit on 2026-06-24."], [_row("Review the audit on 2026-06-24.")])
     assert not [finding for finding in lint_memory_dir(tmp_path) if finding["rule"] == "relative_date"]
 
@@ -92,6 +100,7 @@ def test_memory_lint_relative_date_positive_and_negative(tmp_path):
 
 
 def test_memory_lint_secret_shaped_positive_and_negative(tmp_path):
+    """执行 `test_memory_lint_secret_shaped_positive_and_negative` 的内部逻辑。"""
     _write_memory_fixture(tmp_path, ["Store safe config placeholder."], [_row("Store safe config placeholder.")])
     assert not [finding for finding in lint_memory_dir(tmp_path) if finding["rule"] == "secret_shaped"]
 
@@ -100,6 +109,7 @@ def test_memory_lint_secret_shaped_positive_and_negative(tmp_path):
 
 
 def test_memory_lint_orphan_supersede_positive_and_negative(tmp_path):
+    """执行 `test_memory_lint_orphan_supersede_positive_and_negative` 的内部逻辑。"""
     _write_memory_fixture(tmp_path, ["Pico uses pytest."], [_row("Pico uses pytest.", supersedes=None)])
     assert not [finding for finding in lint_memory_dir(tmp_path) if finding["rule"] == "orphan_supersede"]
 
@@ -108,6 +118,7 @@ def test_memory_lint_orphan_supersede_positive_and_negative(tmp_path):
 
 
 def test_memory_lint_missing_evidence_positive_and_negative(tmp_path):
+    """执行 `test_memory_lint_missing_evidence_positive_and_negative` 的内部逻辑。"""
     _write_memory_fixture(tmp_path, ["Pico should keep evidence."], [_row("Pico should keep evidence.")])
     assert not [finding for finding in lint_memory_dir(tmp_path) if finding["rule"] == "missing_evidence"]
 

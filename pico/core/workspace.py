@@ -1,4 +1,4 @@
-"""工作区快照工具。
+"""Pico 运行时实现模块。
 
 这个模块负责在 agent 按需读文件之前，先给它一份便宜的“仓库第一印象”。
 这份快照刻意保持小而稳定：主要包含 Git 事实和少量白名单项目文档。
@@ -20,10 +20,12 @@ IGNORED_PATH_NAMES = {".git", ".pico", "__pycache__", ".pytest_cache", ".ruff_ca
 
 
 def now():
+    """执行 `now` 的内部逻辑。"""
     return datetime.now(timezone.utc).isoformat()
 
 
 def clip(text, limit=MAX_TOOL_OUTPUT):
+    """执行 `clip` 的内部逻辑。"""
     text = str(text)
     if len(text) <= limit:
         return text
@@ -31,6 +33,7 @@ def clip(text, limit=MAX_TOOL_OUTPUT):
 
 
 def middle(text, limit):
+    """执行 `middle` 的内部逻辑。"""
     text = str(text).replace("\n", " ")
     if len(text) <= limit:
         return text
@@ -43,6 +46,7 @@ def middle(text, limit):
 
 class WorkspaceContext:
     def __init__(self, cwd, repo_root, branch, default_branch, status, recent_commits, project_docs):
+        """初始化对象状态。"""
         self.cwd = cwd
         self.repo_root = repo_root
         self.branch = branch
@@ -53,9 +57,11 @@ class WorkspaceContext:
 
     @classmethod
     def build(cls, cwd, repo_root_override=None):
+        """执行 `build` 的内部逻辑。"""
         cwd = Path(cwd).resolve()
 
         def git(args, fallback=""):
+            """执行 `git` 的内部逻辑。"""
             try:
                 result = subprocess.run(
                     ["git", *args],
@@ -103,6 +109,7 @@ class WorkspaceContext:
 
     def text(self):
         # 这段文本会被塞进 prompt prefix，作为相对稳定的基线上下文。
+        """执行 `text` 的内部逻辑。"""
         commits = "\n".join(f"- {line}" for line in self.recent_commits) or "- none"
         docs = "\n".join(f"- {path}\n{snippet}" for path, snippet in self.project_docs.items()) or "- none"
         return textwrap.dedent(
@@ -124,6 +131,7 @@ class WorkspaceContext:
     def fingerprint(self):
         # 这个指纹用来判断仓库状态是否发生了足够大的变化，
         # 从而决定是否需要重建缓存中的 prompt prefix。
+        """执行 `fingerprint` 的内部逻辑。"""
         payload = {
             "cwd": self.cwd,
             "repo_root": self.repo_root,

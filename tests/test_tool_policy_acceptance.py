@@ -1,4 +1,4 @@
-"""Acceptance tests for tool policy decisions and governance evidence."""
+"""Pico 自动化测试模块。"""
 
 import json
 
@@ -8,6 +8,7 @@ from pico.features.sandbox.config import SandboxConfig
 
 
 def build_agent(tmp_path, outputs=None, **kwargs):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("hello world\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
@@ -21,10 +22,12 @@ def build_agent(tmp_path, outputs=None, **kwargs):
 
 
 def read_jsonl(path):
+    """执行 `read_jsonl` 的内部逻辑。"""
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def test_patch_requires_prior_fresh_read_and_allows_after_read(tmp_path):
+    """执行 `test_patch_requires_prior_fresh_read_and_allows_after_read` 的内部逻辑。"""
     agent = build_agent(tmp_path)
 
     rejected = agent.run_tool("patch_file", {"path": "README.md", "old_text": "world", "new_text": "pico"})
@@ -41,6 +44,7 @@ def test_patch_requires_prior_fresh_read_and_allows_after_read(tmp_path):
 
 
 def test_rejected_patch_can_be_retried_after_informing_read(tmp_path):
+    """执行 `test_rejected_patch_can_be_retried_after_informing_read` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -68,6 +72,7 @@ def test_rejected_patch_can_be_retried_after_informing_read(tmp_path):
 
 
 def test_write_file_allows_new_file_but_requires_read_before_overwrite(tmp_path):
+    """执行 `test_write_file_allows_new_file_but_requires_read_before_overwrite` 的内部逻辑。"""
     agent = build_agent(tmp_path)
 
     assert agent.run_tool("write_file", {"path": "notes.txt", "content": "new\n"}) == "wrote notes.txt (4 chars)"
@@ -81,6 +86,7 @@ def test_write_file_allows_new_file_but_requires_read_before_overwrite(tmp_path)
 
 
 def test_patch_allows_self_authored_file_without_extra_read(tmp_path):
+    """执行 `test_patch_allows_self_authored_file_without_extra_read` 的内部逻辑。"""
     agent = build_agent(tmp_path)
 
     assert agent.run_tool("write_file", {"path": "scripts/check.py", "content": "assert False\n"}) == "wrote scripts/check.py (13 chars)"
@@ -94,6 +100,7 @@ def test_patch_allows_self_authored_file_without_extra_read(tmp_path):
 
 
 def test_repeated_mutating_file_tool_cannot_overwrite_later_patch(tmp_path):
+    """执行 `test_repeated_mutating_file_tool_cannot_overwrite_later_patch` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -121,6 +128,7 @@ def test_repeated_mutating_file_tool_cannot_overwrite_later_patch(tmp_path):
 
 
 def test_shell_search_like_commands_are_rejected_by_policy(tmp_path):
+    """执行 `test_shell_search_like_commands_are_rejected_by_policy` 的内部逻辑。"""
     agent = build_agent(tmp_path)
 
     rejected = agent.run_tool("run_shell", {"command": "grep -R hello .", "timeout": 20})
@@ -136,6 +144,7 @@ def test_shell_search_like_commands_are_rejected_by_policy(tmp_path):
 
 
 def test_tool_governance_decisions_are_run_trace_evidence(tmp_path):
+    """执行 `test_tool_governance_decisions_are_run_trace_evidence` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -181,6 +190,7 @@ def test_tool_governance_decisions_are_run_trace_evidence(tmp_path):
 
 
 def test_tool_governance_covers_validation_repetition_and_permission_denials(tmp_path):
+    """执行 `test_tool_governance_covers_validation_repetition_and_permission_denials` 的内部逻辑。"""
     repeated_agent = build_agent(
         tmp_path,
         [
@@ -229,6 +239,7 @@ def test_tool_governance_covers_validation_repetition_and_permission_denials(tmp
 
 
 def test_tool_governance_records_required_sandbox_unavailable(tmp_path):
+    """执行 `test_tool_governance_records_required_sandbox_unavailable` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [

@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 
 from pico import Pico, SessionStore, WorkspaceContext
@@ -5,6 +6,7 @@ from pico.testing import ScriptedModelClient
 
 
 def build_agent(tmp_path, outputs=None):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     return Pico(
         model_client=ScriptedModelClient(outputs or []),
@@ -15,10 +17,12 @@ def build_agent(tmp_path, outputs=None):
 
 
 def read_jsonl(path):
+    """执行 `read_jsonl` 的内部逻辑。"""
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def test_real_turn_emits_context_orchestrator_decision_and_report_metadata(tmp_path):
+    """执行 `test_real_turn_emits_context_orchestrator_decision_and_report_metadata` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>done</final>"])
 
     list(agent.engine.run_turn("summarize context"))
@@ -46,6 +50,7 @@ def test_real_turn_emits_context_orchestrator_decision_and_report_metadata(tmp_p
 
 
 def test_real_turn_reports_tier3_llm_compaction_usage(tmp_path):
+    """执行 `test_real_turn_reports_tier3_llm_compaction_usage` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [

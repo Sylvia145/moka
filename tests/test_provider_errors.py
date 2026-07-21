@@ -1,7 +1,9 @@
+"""Pico 自动化测试模块。"""
 from pico.providers.errors import sanitize_url
 
 
 def test_sanitize_url_drops_credentials_query_and_fragment_from_malformed_url():
+    """执行 `test_sanitize_url_drops_credentials_query_and_fragment_from_malformed_url` 的内部逻辑。"""
     sanitized = sanitize_url("http://user:secret@[::1/v1?api_key=x#frag")
 
     assert "user" not in sanitized
@@ -12,6 +14,7 @@ def test_sanitize_url_drops_credentials_query_and_fragment_from_malformed_url():
 
 
 def test_sanitize_url_drops_credentials_from_scheme_less_url():
+    """执行 `test_sanitize_url_drops_credentials_from_scheme_less_url` 的内部逻辑。"""
     sanitized = sanitize_url("user:secret@example.com/v1?api_key=x#frag")
 
     assert sanitized == "example.com/v1"

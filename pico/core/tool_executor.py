@@ -1,4 +1,8 @@
-"""Tool-call validation, authorization, execution, and evidence recording."""
+"""Pico 运行时实现模块。
+
+此模块是模型动作进入工作区前的唯一收口点：任何工具都必须依次通过
+参数校验、权限判断与策略审查，随后才允许执行并记录可追溯的结果。
+"""
 import re
 
 from .governance import record_governance_decision
@@ -9,6 +13,9 @@ from .tool_result_artifacts import prepare_tool_result_observation
 
 
 def run_tool(agent, name, args):
+    # 拒绝路径同样要写入元数据和治理日志；否则最终报告无法区分“未调用”与
+    # “调用后被拦截”，会破坏审计证据的完整性。
+    """执行 `run_tool` 的内部逻辑。"""
     tool = agent.tools.get(name)
     if tool is None:
         agent._last_tool_result_metadata = _tool_result_metadata(
@@ -69,6 +76,8 @@ def run_tool(agent, name, args):
         )
         agent.record_process_note_for_tool(name, agent._last_tool_result_metadata)
         return policy.message
+    # 仅为高风险工具保存前后快照，既能识别部分成功的写操作，也避免把纯读取
+    # 工具的常见路径变成昂贵的全工作区扫描。
     before_snapshot = agent.capture_workspace_snapshot() if tool.risky else {}
     after_snapshot = before_snapshot
     try:
@@ -76,6 +85,8 @@ def run_tool(agent, name, args):
         pending_metadata = dict(getattr(agent, "_pending_tool_result_metadata", {}) or {})
         agent._pending_tool_result_metadata = {}
         exit_code = _run_shell_exit_code(full_result) if name == "run_shell" else 0
+        # 先将大结果替换为可定位的工件摘要，再写入会话；这防止命令输出无限
+        # 膨胀并挤占后续轮次的上下文预算。
         result, artifact_metadata = prepare_tool_result_observation(agent, name, full_result)
         after_snapshot = agent.capture_workspace_snapshot() if tool.risky else before_snapshot
         affected_paths, diff_summary = agent.diff_workspace_snapshots(before_snapshot, after_snapshot)
@@ -124,6 +135,7 @@ def run_tool(agent, name, args):
 
 
 def _run_shell_exit_code(result):
+    """执行 `_run_shell_exit_code` 的内部逻辑。"""
     match = re.search(r"exit_code:\s*(-?\d+)", str(result))
     return int(match.group(1)) if match else 0
 
@@ -133,6 +145,7 @@ def _tool_result_metadata(
     read_only=None, affected_paths=None, workspace_changed=False,
     workspace_fingerprint=None, diff_summary=None, **extra
 ):
+    """执行 `_tool_result_metadata` 的内部逻辑。"""
     metadata = {
         "tool_status": status,
         "tool_error_code": error_code,
@@ -150,6 +163,7 @@ def _tool_result_metadata(
 
 
 def _emit_permission_decision(agent, tool, args, decision):
+    """执行 `_emit_permission_decision` 的内部逻辑。"""
     agent.session_event_bus.emit(
         "permission_decision",
         {
@@ -164,6 +178,7 @@ def _emit_permission_decision(agent, tool, args, decision):
 
 
 def _emit_tool_policy_decision(agent, tool, args, decision):
+    """执行 `_emit_tool_policy_decision` 的内部逻辑。"""
     agent.session_event_bus.emit(
         "tool_policy_decision",
         {"tool_name": tool.name, "decision": decision.decision, "reason": decision.reason, "args": args or {}},

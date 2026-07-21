@@ -1,4 +1,4 @@
-"""Capture deterministic Moka TUI screenshots with Textual's SVG exporter."""
+"""Pico 项目运行与验证脚本。"""
 
 from __future__ import annotations
 
@@ -13,10 +13,12 @@ from pico.tui.widgets import ChatLog, InputBar, WelcomeBanner
 
 class _ScreenshotEngine:
     def drain_worker_notifications(self) -> list[str]:
+        """执行 `drain_worker_notifications` 的内部逻辑。"""
         return []
 
 
 def _agent() -> SimpleNamespace:
+    """执行 `_agent` 的内部逻辑。"""
     return SimpleNamespace(
         model_client=SimpleNamespace(model="gpt-5.4"),
         root=Path.cwd().resolve(),
@@ -30,6 +32,7 @@ def _agent() -> SimpleNamespace:
 
 
 async def _capture(output_dir: Path, filename: str, scene: str) -> None:
+    """执行 `_capture` 的内部逻辑。"""
     app = PicoTuiApp(_agent())
     async with app.run_test(size=(120, 36)) as pilot:
         await pilot.pause()
@@ -83,6 +86,7 @@ async def _capture(output_dir: Path, filename: str, scene: str) -> None:
 
 
 async def capture_all(output_dir: Path) -> None:
+    """执行 `capture_all` 的内部逻辑。"""
     output_dir.mkdir(parents=True, exist_ok=True)
     scenes = {
         "moka-tui-intro.svg": "intro",
@@ -96,6 +100,7 @@ async def capture_all(output_dir: Path) -> None:
 
 
 def main() -> int:
+    """执行 `main` 的内部逻辑。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--output-dir", default="assets/screenshots", help="Screenshot output directory."

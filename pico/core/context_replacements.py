@@ -1,4 +1,4 @@
-"""Session-scoped replacement ledger for rendered history stubs."""
+"""Pico 运行时实现模块。"""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ class ReplacementRecord:
 
     @classmethod
     def from_dict(cls, data):
+        """执行 `from_dict` 的内部逻辑。"""
         return cls(
             event_id=str(data.get("event_id", "")),
             content_sha256=str(data.get("content_sha256", "")),
@@ -34,6 +35,7 @@ class ReplacementRecord:
         )
 
     def to_dict(self):
+        """执行 `to_dict` 的内部逻辑。"""
         return asdict(self)
 
 
@@ -42,11 +44,13 @@ class ProposedReplacement:
     record: ReplacementRecord
 
     def to_dict(self):
+        """执行 `to_dict` 的内部逻辑。"""
         return self.record.to_dict()
 
 
 class ReplacementLedger:
     def __init__(self, records=None):
+        """初始化对象状态。"""
         self._records = {}
         for record in records or []:
             if record.event_id and record.content_sha256:
@@ -54,6 +58,7 @@ class ReplacementLedger:
 
     @classmethod
     def from_session(cls, session):
+        """执行 `from_session` 的内部逻辑。"""
         payload = dict(session or {}).get("context_replacements", {}) or {}
         if isinstance(payload, list):
             raw_records = payload
@@ -64,6 +69,7 @@ class ReplacementLedger:
         return cls(ReplacementRecord.from_dict(record) for record in raw_records if isinstance(record, dict))
 
     def matching_record(self, item):
+        """执行 `matching_record` 的内部逻辑。"""
         event_id = str(item.get("event_id", ""))
         content_sha256 = str(item.get("content_sha256", ""))
         if not event_id or not content_sha256:
@@ -74,6 +80,7 @@ class ReplacementLedger:
         return None
 
     def proposed_record(self, item, replacement_text):
+        """执行 `proposed_record` 的内部逻辑。"""
         event_id = str(item.get("event_id", ""))
         content_sha256 = str(item.get("content_sha256", ""))
         if not event_id or not content_sha256:
@@ -99,6 +106,7 @@ class ReplacementLedger:
 
 
 def commit_proposed_replacements(session, metadata):
+    """执行 `commit_proposed_replacements` 的内部逻辑。"""
     history = dict(metadata.get("history", {}) or {})
     proposals = history.get("proposed_replacements", []) or []
     if not proposals:
@@ -123,12 +131,14 @@ def commit_proposed_replacements(session, metadata):
 
 
 def _session_record_payload(record):
+    """执行 `_session_record_payload` 的内部逻辑。"""
     payload = record.to_dict()
     payload.pop("event_id", None)
     return payload
 
 
 def _records_from_mapping(payload):
+    """执行 `_records_from_mapping` 的内部逻辑。"""
     records = payload.get("records")
     raw_records = list(records) if isinstance(records, list) else []
     raw_records.extend(_keyed_records(payload))
@@ -136,6 +146,7 @@ def _records_from_mapping(payload):
 
 
 def _keyed_records(payload):
+    """执行 `_keyed_records` 的内部逻辑。"""
     keyed_records = []
     for event_id, record in payload.items():
         if event_id == "records":

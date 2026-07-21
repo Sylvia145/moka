@@ -1,3 +1,4 @@
+"""Pico 运行时实现模块。"""
 from __future__ import annotations
 
 import json
@@ -13,6 +14,7 @@ from ..commands.slash import SlashCommand, suggest_commands
 
 
 def format_tool_args(name: str, args: dict | None) -> str:
+    """执行 `format_tool_args` 的内部逻辑。"""
     args = args or {}
     if name == "run_shell":
         return str(args.get("command", ""))
@@ -48,12 +50,14 @@ class WelcomeBanner(Static):
     """
 
     def __init__(self, model_name: str = "", cwd: str = "", approval: str = "") -> None:
+        """初始化对象状态。"""
         super().__init__()
         self.model_name = model_name
         self.cwd = cwd
         self.approval = approval
 
     def render(self) -> Text:
+        """执行 `render` 的内部逻辑。"""
         cwd_name = Path(self.cwd).name + "/" if self.cwd else "-"
         muted = "#8b93a7"
         accent = "#9ec5fe"
@@ -104,10 +108,12 @@ class UserMessage(Static):
     """
 
     def __init__(self, content: str) -> None:
+        """初始化对象状态。"""
         super().__init__("", markup=False)
         self.content = content
 
     def compose(self):
+        """执行 `compose` 的内部逻辑。"""
         yield Static(f"> {self.content}", classes="message-label")
 
 
@@ -137,14 +143,17 @@ class AssistantMessage(Static):
     """
 
     def __init__(self, content: str) -> None:
+        """初始化对象状态。"""
         super().__init__(markup=False)
         self.content = content
 
     def compose(self):
+        """执行 `compose` 的内部逻辑。"""
         yield Static(PRODUCT_NAME, classes="message-label")
         yield Markdown(self.content)
 
     def update_content(self, content: str) -> None:
+        """执行 `update_content` 的内部逻辑。"""
         self.content = content
         try:
             self.query_one(Markdown).update(content)
@@ -171,6 +180,7 @@ class ToolCard(Static):
     """
 
     def __init__(self, tool_name: str, args_summary: str = "") -> None:
+        """初始化对象状态。"""
         super().__init__()
         self.tool_name = tool_name
         self.args_summary = args_summary[:120]
@@ -180,6 +190,7 @@ class ToolCard(Static):
         self._output_widget: Static | None = None
 
     def compose(self):
+        """执行 `compose` 的内部逻辑。"""
         self._output_widget = Static("", classes="tool-output")
         self._collapsible = Collapsible(
             self._output_widget, title=self._label(), collapsed=False
@@ -187,6 +198,7 @@ class ToolCard(Static):
         yield self._collapsible
 
     def _label(self) -> str:
+        """执行 `_label` 的内部逻辑。"""
         icon = {"running": "...", "success": "OK", "error": "ERR"}.get(
             self.status, ".."
         )
@@ -195,10 +207,12 @@ class ToolCard(Static):
         return f"[{icon}] {self.tool_name}"
 
     def _refresh_label(self) -> None:
+        """执行 `_refresh_label` 的内部逻辑。"""
         if self._collapsible is not None:
             self._collapsible.title = self._label()
 
     def set_success(self, output: str = "") -> None:
+        """执行 `set_success` 的内部逻辑。"""
         self.status = "success"
         self.output = output
         self._refresh_label()
@@ -208,6 +222,7 @@ class ToolCard(Static):
             self._collapsible.collapsed = True
 
     def set_error(self, output: str = "") -> None:
+        """执行 `set_error` 的内部逻辑。"""
         self.status = "error"
         self.output = output
         self._refresh_label()
@@ -231,12 +246,14 @@ class ConfirmPrompt(Static):
     """
 
     def __init__(self, tool_name: str, args_summary: str) -> None:
+        """初始化对象状态。"""
         super().__init__()
         self.tool_name = tool_name
         self.args_summary = args_summary
         self.selected = False
 
     def render(self) -> Text:
+        """执行 `render` 的内部逻辑。"""
         allow = "[allow]" if self.selected else " allow "
         deny = " deny " if self.selected else "[deny]"
         return Text.assemble(
@@ -250,10 +267,12 @@ class ConfirmPrompt(Static):
         )
 
     def select_allow(self) -> None:
+        """执行 `select_allow` 的内部逻辑。"""
         self.selected = True
         self.refresh()
 
     def select_deny(self) -> None:
+        """执行 `select_deny` 的内部逻辑。"""
         self.selected = False
         self.refresh()
 
@@ -272,6 +291,7 @@ class AskUserPrompt(Static):
     """
 
     def __init__(self, question: str, choices: list[str]) -> None:
+        """初始化对象状态。"""
         super().__init__()
         self.question = question
         self.choices = list(choices or [])
@@ -279,11 +299,13 @@ class AskUserPrompt(Static):
 
     @property
     def selected_choice(self) -> str:
+        """执行 `selected_choice` 的内部逻辑。"""
         if not self.choices:
             return ""
         return self.choices[self.selected_index]
 
     def render(self) -> Text:
+        """执行 `render` 的内部逻辑。"""
         if not self.choices:
             return Text.assemble(
                 Text(self.question + "\n", style="bold #d0ebff"),
@@ -305,11 +327,13 @@ class AskUserPrompt(Static):
         return Text.assemble(*parts)
 
     def select_next(self) -> None:
+        """执行 `select_next` 的内部逻辑。"""
         if self.choices:
             self.selected_index = min(len(self.choices) - 1, self.selected_index + 1)
             self.refresh()
 
     def select_previous(self) -> None:
+        """执行 `select_previous` 的内部逻辑。"""
         if self.choices:
             self.selected_index = max(0, self.selected_index - 1)
             self.refresh()
@@ -335,6 +359,7 @@ class ChatLog(VerticalScroll):
     """
 
     def add_message(self, role: str, content: str, tool_name: str = "") -> Widget:
+        """执行 `add_message` 的内部逻辑。"""
         if role == "user":
             widget = UserMessage(content)
         elif role == "assistant":
@@ -348,12 +373,14 @@ class ChatLog(VerticalScroll):
         return widget
 
     def add_tool_call(self, name: str, args: dict | None = None) -> ToolCard:
+        """执行 `add_tool_call` 的内部逻辑。"""
         card = ToolCard(tool_name=name, args_summary=format_tool_args(name, args))
         self.mount(card)
         self.call_after_refresh(self.scroll_end, animate=False)
         return card
 
     def clear_messages(self) -> None:
+        """执行 `clear_messages` 的内部逻辑。"""
         for child in list(self.children):
             child.remove()
 
@@ -374,25 +401,30 @@ class ThinkingIndicator(Static):
     FRAMES = ("thinking", "thinking.", "thinking..", "thinking...")
 
     def __init__(self) -> None:
+        """初始化对象状态。"""
         super().__init__("")
         self.frame = 0
         self.detail = ""
         self.add_class("hidden")
 
     def show(self, detail: str = "") -> None:
+        """执行 `show` 的内部逻辑。"""
         self.detail = detail
         self.remove_class("hidden")
         self.advance()
 
     def hide(self) -> None:
+        """执行 `hide` 的内部逻辑。"""
         self.add_class("hidden")
         self.update("")
 
     def set_detail(self, detail: str) -> None:
+        """执行 `set_detail` 的内部逻辑。"""
         self.detail = detail
         self.advance()
 
     def advance(self) -> None:
+        """执行 `advance` 的内部逻辑。"""
         label = self.FRAMES[self.frame % len(self.FRAMES)]
         self.frame += 1
         if self.detail:
@@ -411,12 +443,14 @@ class StatusBar(Static):
     """
 
     def __init__(self) -> None:
+        """初始化对象状态。"""
         super().__init__("")
         self.turns = 0
         self.context_text = "context -"
         self.agent_text = ""
 
     def update_agent(self, agent) -> None:
+        """执行 `update_agent` 的内部逻辑。"""
         model = getattr(agent.model_client, "model", "")
         mode = getattr(agent, "runtime_mode", "default")
         session = str(agent.session.get("id", ""))[-10:]
@@ -424,10 +458,12 @@ class StatusBar(Static):
         self._render_status()
 
     def update_turns(self, count: int) -> None:
+        """执行 `update_turns` 的内部逻辑。"""
         self.turns = int(count)
         self._render_status()
 
     def update_context_usage(self, usage: dict | None) -> None:
+        """执行 `update_context_usage` 的内部逻辑。"""
         usage = usage or {}
         used = (
             usage.get("total_estimated_tokens")
@@ -458,6 +494,7 @@ class StatusBar(Static):
         self._render_status()
 
     def _render_status(self) -> None:
+        """执行 `_render_status` 的内部逻辑。"""
         self.update(
             f"{self.agent_text} | turns {self.turns} | {self.context_text}".strip()
         )
@@ -480,6 +517,7 @@ class SlashSuggestions(Static):
     """
 
     def __init__(self) -> None:
+        """初始化对象状态。"""
         super().__init__("")
         self.suggestions: list[SlashCommand] = []
         self.selected_index = 0
@@ -488,6 +526,7 @@ class SlashSuggestions(Static):
     def update_suggestions(
         self, suggestions: list[SlashCommand], selected_index: int = 0
     ) -> None:
+        """执行 `update_suggestions` 的内部逻辑。"""
         self.suggestions = list(suggestions)
         self.selected_index = max(
             0, min(int(selected_index or 0), max(len(self.suggestions) - 1, 0))
@@ -497,9 +536,11 @@ class SlashSuggestions(Static):
         self.refresh()
 
     def hide_suggestions(self) -> None:
+        """执行 `hide_suggestions` 的内部逻辑。"""
         self.update_suggestions([])
 
     def render(self) -> Text:
+        """执行 `render` 的内部逻辑。"""
         if not self.suggestions:
             return Text("")
         lines = []
@@ -530,6 +571,7 @@ class InputBar(Static):
     """
 
     def __init__(self) -> None:
+        """初始化对象状态。"""
         super().__init__()
         self.input = Input(placeholder=f"Ask {PRODUCT_NAME} or type /help")
         self.history: list[str] = []
@@ -538,13 +580,16 @@ class InputBar(Static):
         self._slash_index = 0
 
     def compose(self):
+        """执行 `compose` 的内部逻辑。"""
         yield self.input
         yield SlashSuggestions()
 
     def focus_input(self) -> None:
+        """执行 `focus_input` 的内部逻辑。"""
         self.input.focus()
 
     def set_busy(self, busy: bool) -> None:
+        """执行 `set_busy` 的内部逻辑。"""
         self.input.disabled = bool(busy)
         self.input.placeholder = (
             f"{PRODUCT_NAME} is working..."
@@ -553,12 +598,14 @@ class InputBar(Static):
         )
 
     def history_prev(self) -> None:
+        """执行 `history_prev` 的内部逻辑。"""
         if not self.history:
             return
         self.history_index = max(0, self.history_index - 1)
         self.input.value = self.history[self.history_index]
 
     def history_next(self) -> None:
+        """执行 `history_next` 的内部逻辑。"""
         if not self.history:
             return
         self.history_index = min(len(self.history), self.history_index + 1)
@@ -569,9 +616,11 @@ class InputBar(Static):
         )
 
     def on_input_changed(self, event: Input.Changed) -> None:
+        """执行 `on_input_changed` 的内部逻辑。"""
         self.update_slash_suggestions(event.value)
 
     def update_slash_suggestions(self, text: str | None = None) -> None:
+        """执行 `update_slash_suggestions` 的内部逻辑。"""
         text = self.input.value if text is None else str(text)
         self._slash_suggestions = suggest_commands(text)
         self._slash_index = 0
@@ -580,11 +629,13 @@ class InputBar(Static):
         )
 
     def hide_slash_suggestions(self) -> None:
+        """执行 `hide_slash_suggestions` 的内部逻辑。"""
         self._slash_suggestions = []
         self._slash_index = 0
         self.query_one(SlashSuggestions).hide_suggestions()
 
     def complete_slash_suggestion(self) -> bool:
+        """执行 `complete_slash_suggestion` 的内部逻辑。"""
         if not self._slash_suggestions:
             return False
         command = self._slash_suggestions[self._slash_index]
@@ -599,6 +650,7 @@ class InputBar(Static):
         return True
 
     def move_slash_selection(self, direction: int) -> bool:
+        """执行 `move_slash_selection` 的内部逻辑。"""
         if not self._slash_suggestions:
             return False
         self._slash_index = (self._slash_index + direction) % len(
@@ -610,9 +662,11 @@ class InputBar(Static):
         return True
 
     def apply_slash_completion(self) -> bool:
+        """执行 `apply_slash_completion` 的内部逻辑。"""
         return self.complete_slash_suggestion()
 
 
 def _clip(text: str, limit: int = 1200) -> str:
+    """执行 `_clip` 的内部逻辑。"""
     text = str(text or "")
     return text if len(text) <= limit else text[: limit - 3] + "..."

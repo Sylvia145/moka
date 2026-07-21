@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import os
 import shlex
 import sys
@@ -12,11 +13,13 @@ from pico.core.task_state import TaskState
 
 
 def build_workspace(tmp_path):
+    """执行 `build_workspace` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     return WorkspaceContext.build(tmp_path)
 
 
 def build_agent(tmp_path, outputs, **kwargs):
+    """执行 `build_agent` 的内部逻辑。"""
     workspace = build_workspace(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
     approval_policy = kwargs.pop("approval_policy", "auto")
@@ -30,6 +33,7 @@ def build_agent(tmp_path, outputs, **kwargs):
 
 
 def test_workspace_escape_is_rejected(tmp_path):
+    """执行 `test_workspace_escape_is_rejected` 的内部逻辑。"""
     (tmp_path / "outside.txt").write_text("outside\n", encoding="utf-8")
     agent = build_agent(tmp_path, [])
 
@@ -43,6 +47,7 @@ def test_workspace_escape_is_rejected(tmp_path):
     reason="creating symlinks requires developer-mode privilege on Windows",
 )
 def test_symlink_path_traversal_is_rejected(tmp_path):
+    """执行 `test_symlink_path_traversal_is_rejected` 的内部逻辑。"""
     outside = tmp_path.parent / f"{tmp_path.name}-outside.txt"
     outside.write_text("outside\n", encoding="utf-8")
     (tmp_path / "linked.txt").symlink_to(outside)
@@ -54,6 +59,7 @@ def test_symlink_path_traversal_is_rejected(tmp_path):
 
 
 def test_risky_tool_deny_behavior(tmp_path):
+    """执行 `test_risky_tool_deny_behavior` 的内部逻辑。"""
     agent = build_agent(tmp_path, [], approval_policy="never")
 
     result = agent.run_tool("run_shell", {"command": "echo hi", "timeout": 20})
@@ -62,12 +68,15 @@ def test_risky_tool_deny_behavior(tmp_path):
 
 
 def test_cli_build_agent_wires_secret_env_names_from_parser(tmp_path):
+    """执行 `test_cli_build_agent_wires_secret_env_names_from_parser` 的内部逻辑。"""
     class DummyModelClient:
         def __init__(self, *args, **kwargs):
+            """执行 `__init__` 的内部逻辑。"""
             self.args = args
             self.kwargs = kwargs
 
         def complete(self, prompt, max_new_tokens):
+            """执行 `complete` 的内部逻辑。"""
             raise AssertionError("model should not be invoked")
 
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
@@ -92,12 +101,15 @@ def test_cli_build_agent_wires_secret_env_names_from_parser(tmp_path):
 
 
 def test_cli_build_agent_uses_default_configured_secret_names(tmp_path):
+    """执行 `test_cli_build_agent_uses_default_configured_secret_names` 的内部逻辑。"""
     class DummyModelClient:
         def __init__(self, *args, **kwargs):
+            """执行 `__init__` 的内部逻辑。"""
             self.args = args
             self.kwargs = kwargs
 
         def complete(self, prompt, max_new_tokens):
+            """执行 `complete` 的内部逻辑。"""
             raise AssertionError("model should not be invoked")
 
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
@@ -111,12 +123,15 @@ def test_cli_build_agent_uses_default_configured_secret_names(tmp_path):
 
 
 def test_cli_build_agent_loads_project_env_secrets_before_redaction_setup(tmp_path):
+    """执行 `test_cli_build_agent_loads_project_env_secrets_before_redaction_setup` 的内部逻辑。"""
     class DummyModelClient:
         def __init__(self, *args, **kwargs):
+            """执行 `__init__` 的内部逻辑。"""
             self.args = args
             self.kwargs = kwargs
 
         def complete(self, prompt, max_new_tokens):
+            """执行 `complete` 的内部逻辑。"""
             raise AssertionError("model should not be invoked")
 
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
@@ -128,12 +143,15 @@ def test_cli_build_agent_loads_project_env_secrets_before_redaction_setup(tmp_pa
 
 
 def test_cli_build_agent_reads_secret_names_from_environment_config(tmp_path):
+    """执行 `test_cli_build_agent_reads_secret_names_from_environment_config` 的内部逻辑。"""
     class DummyModelClient:
         def __init__(self, *args, **kwargs):
+            """执行 `__init__` 的内部逻辑。"""
             self.args = args
             self.kwargs = kwargs
 
         def complete(self, prompt, max_new_tokens):
+            """执行 `complete` 的内部逻辑。"""
             raise AssertionError("model should not be invoked")
 
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
@@ -151,6 +169,7 @@ def test_cli_build_agent_reads_secret_names_from_environment_config(tmp_path):
 
 
 def test_run_shell_uses_allowlisted_environment_only(tmp_path):
+    """执行 `test_run_shell_uses_allowlisted_environment_only` 的内部逻辑。"""
     secret = "shh-allowlist-secret"
     agent = build_agent(tmp_path, [], approval_policy="auto")
     # 用单引号表示 Python 字符串，避免与 Windows cmd.exe 的外层双引号冲突；
@@ -171,6 +190,7 @@ def test_run_shell_uses_allowlisted_environment_only(tmp_path):
 def test_shell_env_keeps_windows_system_variables_for_subprocess(tmp_path):
     # shell=True 在 Windows 上依赖 ComSpec/SystemRoot/PATHEXT 来定位 cmd 和系统
     # 目录；allowlist 过滤若漏掉它们，命令会执行但 returncode 恒为 1。
+    """执行 `test_shell_env_keeps_windows_system_variables_for_subprocess` 的内部逻辑。"""
     agent = build_agent(tmp_path, [], approval_policy="auto")
     env = agent.shell_env()
 
@@ -182,6 +202,7 @@ def test_shell_env_keeps_windows_system_variables_for_subprocess(tmp_path):
 
 
 def test_bound_tool_methods_call_tools_module(tmp_path):
+    """执行 `test_bound_tool_methods_call_tools_module` 的内部逻辑。"""
     agent = build_agent(tmp_path, [], approval_policy="auto")
 
     with patch("pico.tools.registry.subprocess.run") as fake_run:
@@ -200,6 +221,7 @@ def test_bound_tool_methods_call_tools_module(tmp_path):
 
 
 def test_configured_secret_env_names_are_redacted_in_trace_and_report(tmp_path):
+    """执行 `test_configured_secret_env_names_are_redacted_in_trace_and_report` 的内部逻辑。"""
     github_pat = "ghp_configured_secret_123"
     gh_pat = "ghp_configured_secret_456"
     with patch.dict(os.environ, {"GITHUB_PAT": github_pat, "GH_PAT": gh_pat}, clear=True):

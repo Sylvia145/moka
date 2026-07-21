@@ -1,4 +1,4 @@
-"""Runtime session switching helpers."""
+"""Pico 运行时实现模块。"""
 
 import uuid
 from datetime import datetime
@@ -12,6 +12,7 @@ from .workspace import now
 
 
 def resume_runtime_session(runtime, session_id):
+    """执行 `resume_runtime_session` 的内部逻辑。"""
     _shutdown_workers(runtime)
     runtime.session = runtime.session_store.load(session_id)
     _rebind(runtime, emit_started=False)
@@ -19,6 +20,7 @@ def resume_runtime_session(runtime, session_id):
 
 
 def clear_runtime_session(runtime):
+    """执行 `clear_runtime_session` 的内部逻辑。"""
     _shutdown_workers(runtime)
     runtime.session = {
         "id": datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:6],
@@ -32,6 +34,7 @@ def clear_runtime_session(runtime):
 
 
 def _rebind(runtime, emit_started):
+    """执行 `_rebind` 的内部逻辑。"""
     runtime._ensure_session_shape()
     runtime.session_event_bus = SessionEventBus(
         runtime.session["id"],
@@ -69,6 +72,7 @@ def _rebind(runtime, emit_started):
 
 
 def _shutdown_workers(runtime):
+    """执行 `_shutdown_workers` 的内部逻辑。"""
     manager = getattr(runtime, "worker_manager", None)
     shutdown = getattr(manager, "shutdown", None)
     if callable(shutdown):

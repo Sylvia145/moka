@@ -1,9 +1,11 @@
+"""Pico 自动化测试模块。"""
 import json
 
 from pico.evaluation.run_evidence import RunEvidence
 
 
 def test_run_evidence_reads_trace_report_and_session_artifacts(tmp_path):
+    """执行 `test_run_evidence_reads_trace_report_and_session_artifacts` 的内部逻辑。"""
     workspace = tmp_path
     run_dir = workspace / ".pico" / "runs" / "run_1"
     session_dir = workspace / ".pico" / "sessions"

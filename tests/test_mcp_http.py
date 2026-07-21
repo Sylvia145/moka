@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 import threading
 import time
@@ -15,6 +16,7 @@ from pico.tools.mcp_http import McpHttpError, McpOutcomeUnknownError
 
 @contextmanager
 def http_mcp_server(mode="json", *, expire_first=False, require_token=None):
+    """执行 `http_mcp_server` 的内部逻辑。"""
     state = {
         "mode": mode,
         "expire_first": expire_first,
@@ -26,6 +28,7 @@ def http_mcp_server(mode="json", *, expire_first=False, require_token=None):
 
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
+            """执行 `do_POST` 的内部逻辑。"""
             length = int(self.headers.get("Content-Length", 0))
             request = json.loads(self.rfile.read(length).decode("utf-8"))
             state["calls"].append({"request": request, "headers": dict(self.headers)})
@@ -78,6 +81,7 @@ def http_mcp_server(mode="json", *, expire_first=False, require_token=None):
             self._send_json(request["id"], {})
 
         def _send_json(self, request_id, result, session=None):
+            """执行 `_send_json` 的内部逻辑。"""
             body = json.dumps({"jsonrpc": "2.0", "id": request_id, "result": result}).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -88,6 +92,7 @@ def http_mcp_server(mode="json", *, expire_first=False, require_token=None):
             self.wfile.write(body)
 
         def _send_sse(self, request_id, result):
+            """执行 `_send_sse` 的内部逻辑。"""
             body = f"event: message\ndata: {json.dumps({'jsonrpc': '2.0', 'id': request_id, 'result': result})}\n\n".encode()
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
@@ -96,6 +101,7 @@ def http_mcp_server(mode="json", *, expire_first=False, require_token=None):
             self.wfile.write(body)
 
         def _send_large(self):
+            """执行 `_send_large` 的内部逻辑。"""
             body = b"x" * 256
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -104,6 +110,7 @@ def http_mcp_server(mode="json", *, expire_first=False, require_token=None):
             self.wfile.write(body)
 
         def log_message(self, _format, *_args):
+            """执行 `log_message` 的内部逻辑。"""
             return
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
@@ -118,10 +125,12 @@ def http_mcp_server(mode="json", *, expire_first=False, require_token=None):
 
 
 def _config(url, **kwargs):
+    """执行 `_config` 的内部逻辑。"""
     return McpServerConfig("remote", transport="streamable_http", url=url, timeout=0.05, **kwargs)
 
 
 def test_streamable_http_json_registers_tools_in_existing_registry(tmp_path):
+    """执行 `test_streamable_http_json_registers_tools_in_existing_registry` 的内部逻辑。"""
     with http_mcp_server() as (state, url):
         workspace = WorkspaceContext.build(tmp_path)
         agent = Pico(
@@ -142,6 +151,7 @@ def test_streamable_http_json_registers_tools_in_existing_registry(tmp_path):
 
 
 def test_streamable_http_supports_sse_tool_discovery():
+    """执行 `test_streamable_http_supports_sse_tool_discovery` 的内部逻辑。"""
     with http_mcp_server("sse") as (_state, url):
         client = create_mcp_client(_config(url))
 
@@ -150,6 +160,7 @@ def test_streamable_http_supports_sse_tool_discovery():
 
 
 def test_streamable_http_recovers_expired_session_for_read_operation():
+    """执行 `test_streamable_http_recovers_expired_session_for_read_operation` 的内部逻辑。"""
     with http_mcp_server(expire_first=True) as (state, url):
         client = create_mcp_client(_config(url, max_retries=1))
 
@@ -159,6 +170,7 @@ def test_streamable_http_recovers_expired_session_for_read_operation():
 
 
 def test_streamable_http_does_not_retry_side_effect_when_result_is_unknown():
+    """执行 `test_streamable_http_does_not_retry_side_effect_when_result_is_unknown` 的内部逻辑。"""
     with http_mcp_server("timeout") as (state, url):
         client = create_mcp_client(_config(url, max_retries=3))
 
@@ -170,6 +182,7 @@ def test_streamable_http_does_not_retry_side_effect_when_result_is_unknown():
 
 
 def test_streamable_http_outcome_unknown_is_preserved_in_agent_trace_metadata(tmp_path):
+    """执行 `test_streamable_http_outcome_unknown_is_preserved_in_agent_trace_metadata` 的内部逻辑。"""
     with http_mcp_server("timeout") as (_state, url):
         agent = Pico(
             model_client=ScriptedModelClient([]),
@@ -185,6 +198,7 @@ def test_streamable_http_outcome_unknown_is_preserved_in_agent_trace_metadata(tm
 
 
 def test_streamable_http_uses_environment_token_without_exposing_value(monkeypatch):
+    """执行 `test_streamable_http_uses_environment_token_without_exposing_value` 的内部逻辑。"""
     token = "moka-test-token-not-for-artifacts"
     monkeypatch.setenv("MOKA_REMOTE_TOKEN", token)
     with http_mcp_server(require_token=token) as (state, url):
@@ -199,6 +213,7 @@ def test_streamable_http_uses_environment_token_without_exposing_value(monkeypat
 
 
 def test_streamable_http_limits_response_size():
+    """执行 `test_streamable_http_limits_response_size` 的内部逻辑。"""
     with http_mcp_server("large") as (_state, url):
         client = create_mcp_client(_config(url, max_response_bytes=64))
 
@@ -208,11 +223,13 @@ def test_streamable_http_limits_response_size():
 
 
 def test_streamable_http_rejects_non_local_plain_http():
+    """执行 `test_streamable_http_rejects_non_local_plain_http` 的内部逻辑。"""
     with pytest.raises(ValueError, match="requires HTTPS"):
         create_mcp_client(McpServerConfig("unsafe", transport="http", url="http://example.com/mcp"))
 
 
 def test_streamable_http_does_not_expose_rejected_token(monkeypatch):
+    """执行 `test_streamable_http_does_not_expose_rejected_token` 的内部逻辑。"""
     token = "moka-token-that-must-not-appear-in-errors"
     monkeypatch.setenv("MOKA_BAD_TOKEN", token)
     with http_mcp_server(require_token="different-token") as (_state, url):

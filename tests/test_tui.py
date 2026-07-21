@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import pytest
 
 from pico import Pico, SessionStore, WorkspaceContext
@@ -5,6 +6,7 @@ from pico.testing import ScriptedModelClient
 
 
 def build_agent(tmp_path, outputs, approval_policy="auto"):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     return Pico(
@@ -16,12 +18,14 @@ def build_agent(tmp_path, outputs, approval_policy="auto"):
 
 
 def assistant_contents(app):
+    """执行 `assistant_contents` 的内部逻辑。"""
     from pico.tui.widgets import AssistantMessage
 
     return [message.content for message in app.query(AssistantMessage)]
 
 
 async def wait_for_assistant(app, pilot, expected="", attempts=40, delay=0.1):
+    """执行 `wait_for_assistant` 的内部逻辑。"""
     for _ in range(attempts):
         await pilot.pause(delay=delay)
         text = "\n".join(assistant_contents(app))
@@ -33,6 +37,7 @@ async def wait_for_assistant(app, pilot, expected="", attempts=40, delay=0.1):
 
 
 async def wait_for_widget(app, pilot, selector, attempts=40, delay=0.1):
+    """执行 `wait_for_widget` 的内部逻辑。"""
     for _ in range(attempts):
         await pilot.pause(delay=delay)
         widgets = list(app.query(selector))
@@ -42,6 +47,7 @@ async def wait_for_widget(app, pilot, selector, attempts=40, delay=0.1):
 
 
 async def wait_for_tool_card_status(app, pilot, status, attempts=40, delay=0.1):
+    """执行 `wait_for_tool_card_status` 的内部逻辑。"""
     from pico.tui.widgets import ToolCard
 
     for _ in range(attempts):
@@ -53,6 +59,7 @@ async def wait_for_tool_card_status(app, pilot, status, attempts=40, delay=0.1):
 
 
 async def wait_for_input_ready(bar, pilot, attempts=40, delay=0.1):
+    """执行 `wait_for_input_ready` 的内部逻辑。"""
     for _ in range(attempts):
         await pilot.pause(delay=delay)
         if not bar.input.disabled and bar.input.has_focus:
@@ -61,6 +68,7 @@ async def wait_for_input_ready(bar, pilot, attempts=40, delay=0.1):
 
 
 async def wait_for_layout(widget, pilot, attempts=40, delay=0.1):
+    """执行 `wait_for_layout` 的内部逻辑。"""
     for _ in range(attempts):
         await pilot.pause(delay=delay)
         if widget.region.width > 0 and widget.region.height > 0:
@@ -69,11 +77,13 @@ async def wait_for_layout(widget, pilot, attempts=40, delay=0.1):
 
 
 def rendered_text(widget) -> str:
+    """执行 `rendered_text` 的内部逻辑。"""
     rendered = widget.render()
     return getattr(rendered, "plain", str(rendered))
 
 
 def test_tui_uses_moka_branding():
+    """执行 `test_tui_uses_moka_branding` 的内部逻辑。"""
     from pico.tui.app import PicoTuiApp
     from pico.tui.widgets import AssistantMessage, InputBar, WelcomeBanner
 
@@ -91,6 +101,7 @@ def test_tui_uses_moka_branding():
 
 
 def test_cli_defaults_interactive_tty_mode_to_tui(monkeypatch):
+    """执行 `test_cli_defaults_interactive_tty_mode_to_tui` 的内部逻辑。"""
     from pico.cli import build_arg_parser, interaction_mode
 
     monkeypatch.setattr(
@@ -102,6 +113,7 @@ def test_cli_defaults_interactive_tty_mode_to_tui(monkeypatch):
 
 
 def test_cli_keeps_prompt_as_one_shot_mode():
+    """执行 `test_cli_keeps_prompt_as_one_shot_mode` 的内部逻辑。"""
     from pico.cli import build_arg_parser, interaction_mode
 
     args = build_arg_parser().parse_args(["inspect", "tests"])
@@ -110,6 +122,7 @@ def test_cli_keeps_prompt_as_one_shot_mode():
 
 
 def test_cli_repl_flag_restores_plain_repl():
+    """执行 `test_cli_repl_flag_restores_plain_repl` 的内部逻辑。"""
     from pico.cli import build_arg_parser, interaction_mode
 
     args = build_arg_parser().parse_args(["--repl", "--cwd", "/tmp/workspace"])
@@ -118,6 +131,7 @@ def test_cli_repl_flag_restores_plain_repl():
 
 
 def test_cli_uses_plain_repl_for_piped_stdin(monkeypatch):
+    """执行 `test_cli_uses_plain_repl_for_piped_stdin` 的内部逻辑。"""
     from pico.cli import build_arg_parser, interaction_mode
 
     monkeypatch.setattr(
@@ -129,6 +143,7 @@ def test_cli_uses_plain_repl_for_piped_stdin(monkeypatch):
 
 
 def test_cli_accepts_explicit_tui_flag():
+    """执行 `test_cli_accepts_explicit_tui_flag` 的内部逻辑。"""
     from pico.cli import build_arg_parser, interaction_mode
 
     args = build_arg_parser().parse_args(["--tui", "--cwd", "/tmp/workspace"])
@@ -139,6 +154,7 @@ def test_cli_accepts_explicit_tui_flag():
 
 
 def test_tui_entrypoint_uses_moka_error_message(capsys):
+    """执行 `test_tui_entrypoint_uses_moka_error_message` 的内部逻辑。"""
     from pico.tui.main import main
 
     result = main(["one-shot prompts are unsupported"])
@@ -148,6 +164,7 @@ def test_tui_entrypoint_uses_moka_error_message(capsys):
 
 
 def test_status_bar_shows_runtime_identity(tmp_path):
+    """执行 `test_status_bar_shows_runtime_identity` 的内部逻辑。"""
     from pico.tui.widgets import StatusBar
 
     agent = build_agent(tmp_path, [])
@@ -161,6 +178,7 @@ def test_status_bar_shows_runtime_identity(tmp_path):
 
 
 def test_status_bar_reads_context_usage_governance_fields():
+    """执行 `test_status_bar_reads_context_usage_governance_fields` 的内部逻辑。"""
     from pico.tui.widgets import StatusBar
 
     status = StatusBar()
@@ -177,6 +195,7 @@ def test_status_bar_reads_context_usage_governance_fields():
 
 
 def test_status_bar_optionally_shows_context_pressure_fields():
+    """执行 `test_status_bar_optionally_shows_context_pressure_fields` 的内部逻辑。"""
     from pico.tui.widgets import StatusBar
 
     status = StatusBar()
@@ -199,6 +218,7 @@ def test_status_bar_optionally_shows_context_pressure_fields():
 
 
 def test_status_bar_omits_optional_context_pressure_fields_when_absent():
+    """执行 `test_status_bar_omits_optional_context_pressure_fields_when_absent` 的内部逻辑。"""
     from pico.tui.widgets import StatusBar
 
     status = StatusBar()
@@ -218,6 +238,7 @@ def test_status_bar_omits_optional_context_pressure_fields_when_absent():
 
 
 def test_cli_plan_mode_and_session_commands_expose_runtime_state(tmp_path):
+    """执行 `test_cli_plan_mode_and_session_commands_expose_runtime_state` 的内部逻辑。"""
     from pico.cli import handle_repl_command
 
     agent = build_agent(tmp_path, [])
@@ -249,6 +270,7 @@ def test_cli_plan_mode_and_session_commands_expose_runtime_state(tmp_path):
 
 
 def test_slash_command_registry_suggests_and_parses_subagent():
+    """执行 `test_slash_command_registry_suggests_and_parses_subagent` 的内部逻辑。"""
     from pico.commands.slash import (
         parse_subagent_args,
         resolve_command,
@@ -274,6 +296,7 @@ def test_slash_command_registry_suggests_and_parses_subagent():
 
 @pytest.mark.asyncio
 async def test_tui_slash_suggestions_complete_partial_command(tmp_path):
+    """执行 `test_tui_slash_suggestions_complete_partial_command` 的内部逻辑。"""
     from pico.tui.app import PicoTuiApp
     from pico.tui.widgets import InputBar, SlashSuggestions
 
@@ -296,6 +319,7 @@ async def test_tui_slash_suggestions_complete_partial_command(tmp_path):
 
 
 def test_agents_slash_command_shows_worker_status(tmp_path):
+    """执行 `test_agents_slash_command_shows_worker_status` 的内部逻辑。"""
     from pico.cli import handle_repl_command
 
     agent = build_agent(tmp_path, [])
@@ -308,6 +332,7 @@ def test_agents_slash_command_shows_worker_status(tmp_path):
 
 
 def test_subagent_slash_command_launches_explore_worker(tmp_path):
+    """执行 `test_subagent_slash_command_launches_explore_worker` 的内部逻辑。"""
     from pico.cli import handle_repl_command
 
     agent = build_agent(tmp_path, ["<final>Subagent checked README.</final>"])
@@ -324,6 +349,7 @@ def test_subagent_slash_command_launches_explore_worker(tmp_path):
 
 @pytest.mark.asyncio
 async def test_tui_help_command_uses_existing_repl_commands(tmp_path):
+    """执行 `test_tui_help_command_uses_existing_repl_commands` 的内部逻辑。"""
     from pico.tui.app import PicoTuiApp
     from pico.tui.widgets import InputBar
 
@@ -343,6 +369,7 @@ async def test_tui_help_command_uses_existing_repl_commands(tmp_path):
 
 @pytest.mark.asyncio
 async def test_tui_runs_agent_turn_and_renders_final_answer(tmp_path):
+    """执行 `test_tui_runs_agent_turn_and_renders_final_answer` 的内部逻辑。"""
     from pico.tui.app import PicoTuiApp
     from pico.tui.widgets import InputBar
 
@@ -360,6 +387,7 @@ async def test_tui_runs_agent_turn_and_renders_final_answer(tmp_path):
 
 @pytest.mark.asyncio
 async def test_tui_hides_welcome_after_first_turn_so_chat_stays_visible(tmp_path):
+    """执行 `test_tui_hides_welcome_after_first_turn_so_chat_stays_visible` 的内部逻辑。"""
     from pico.tui.app import PicoTuiApp
     from pico.tui.widgets import ChatLog, InputBar, WelcomeBanner
 
@@ -385,6 +413,7 @@ async def test_tui_hides_welcome_after_first_turn_so_chat_stays_visible(tmp_path
 
 @pytest.mark.asyncio
 async def test_tui_chat_stream_uses_terminal_transcript_layout(tmp_path):
+    """执行 `test_tui_chat_stream_uses_terminal_transcript_layout` 的内部逻辑。"""
     from pico.tui.app import PicoTuiApp
     from pico.tui.widgets import AssistantMessage, ChatLog, InputBar, UserMessage
 
@@ -422,6 +451,7 @@ async def test_tui_chat_stream_uses_terminal_transcript_layout(tmp_path):
 
 @pytest.mark.asyncio
 async def test_tui_renders_tool_card_result(tmp_path):
+    """执行 `test_tui_renders_tool_card_result` 的内部逻辑。"""
     from pico.tui.app import PicoTuiApp
     from pico.tui.widgets import InputBar, ToolCard
 
@@ -448,6 +478,7 @@ async def test_tui_renders_tool_card_result(tmp_path):
 
 @pytest.mark.asyncio
 async def test_tui_approval_prompt_controls_risky_tool(tmp_path):
+    """执行 `test_tui_approval_prompt_controls_risky_tool` 的内部逻辑。"""
     from pico.tui.app import PicoTuiApp
     from pico.tui.widgets import ConfirmPrompt, InputBar
 
@@ -479,6 +510,7 @@ async def test_tui_approval_prompt_controls_risky_tool(tmp_path):
 
 @pytest.mark.asyncio
 async def test_tui_ask_user_prompt_returns_selected_choice(tmp_path):
+    """执行 `test_tui_ask_user_prompt_returns_selected_choice` 的内部逻辑。"""
     from pico.tui.app import PicoTuiApp
     from pico.tui.widgets import AskUserPrompt, InputBar
 

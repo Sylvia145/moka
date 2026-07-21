@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Pico 项目运行与验证脚本。"""
 import argparse
 import json
 import sys
@@ -12,6 +13,7 @@ from pico.evaluation.metrics import run_provider_experiments  # noqa: E402
 
 
 def build_arg_parser():
+    """执行 `build_arg_parser` 的内部逻辑。"""
     parser = argparse.ArgumentParser(description="Run GPT, Claude, and DeepSeek provider experiments for pico benchmark tasks.")
     parser.add_argument("--benchmark-path", default="benchmarks/coding_tasks.json", help="Path to benchmark task JSON.")
     parser.add_argument("--workspace-root", default="artifacts/provider-workspaces", help="Workspace root for provider experiment copies.")
@@ -22,6 +24,7 @@ def build_arg_parser():
 
 
 def main(argv=None):
+    """执行 `main` 的内部逻辑。"""
     args = build_arg_parser().parse_args(argv)
     payload = run_provider_experiments(
         benchmark_path=args.benchmark_path,

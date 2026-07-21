@@ -1,4 +1,4 @@
-"""Todo ledger tool definitions."""
+"""Pico 运行时实现模块。"""
 
 TODO_TOOL_SPECS = {
     "todo_add": {
@@ -23,6 +23,7 @@ TODO_TOOL_EXAMPLES = {
 
 
 def tool_todo_add(agent, args):
+    """执行 `tool_todo_add` 的内部逻辑。"""
     item = agent.todo_ledger.add(
         args["content"],
         status=args.get("status", "pending"),
@@ -33,6 +34,7 @@ def tool_todo_add(agent, args):
 
 
 def tool_todo_update(agent, args):
+    """执行 `tool_todo_update` 的内部逻辑。"""
     item = agent.todo_ledger.update(
         args["todo_id"],
         status=args.get("status"),
@@ -44,4 +46,5 @@ def tool_todo_update(agent, args):
 
 
 def tool_todo_list(agent, args):
+    """执行 `tool_todo_list` 的内部逻辑。"""
     return agent.todo_ledger.render_list()

@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 from pico.core.context_manager import SectionRender
 from pico.core.context_sections import CURRENT_REQUEST_SECTION, REDUCTION_ORDER, SECTION_ORDER
 from pico.core.context_report import ContextReportBuilder
@@ -9,10 +10,12 @@ class DummyAgent:
     skills = {}
 
     def available_tools(self):
+        """执行 `available_tools` 的内部逻辑。"""
         return {}
 
 
 def test_context_report_builder_matches_existing_metadata_contract():
+    """执行 `test_context_report_builder_matches_existing_metadata_contract` 的内部逻辑。"""
     agent = DummyAgent()
     rendered = {
         "prefix": SectionRender(raw="prefix raw", budget=100, rendered="prefix rendered", details={}),

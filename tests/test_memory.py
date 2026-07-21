@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 import hashlib
 import subprocess
@@ -28,6 +29,7 @@ from pico.testing import ScriptedModelClient
 
 
 def build_runtime_agent(tmp_path, outputs, **kwargs):
+    """执行 `build_runtime_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     return Pico(
         model_client=ScriptedModelClient(outputs),
@@ -39,12 +41,14 @@ def build_runtime_agent(tmp_path, outputs, **kwargs):
 
 
 def latest_dream_report(memory_root):
+    """执行 `latest_dream_report` 的内部逻辑。"""
     reports = sorted((memory_root / "dream_reports").glob("*.json"))
     assert reports
     return json.loads(reports[-1].read_text(encoding="utf-8"))
 
 
 def test_working_memory_tracks_summary_and_recent_files():
+    """执行 `test_working_memory_tracks_summary_and_recent_files` 的内部逻辑。"""
     memory = LayeredMemory()
 
     memory.set_task_summary("Investigate flaky tests")
@@ -61,6 +65,7 @@ def test_working_memory_tracks_summary_and_recent_files():
 
 
 def test_episodic_notes_append_and_retrieve_deterministically():
+    """执行 `test_episodic_notes_append_and_retrieve_deterministically` 的内部逻辑。"""
     memory = LayeredMemory()
 
     memory.append_note("Exact tag note", tags=("recall",), created_at="2026-04-07T10:00:00+00:00")
@@ -90,6 +95,7 @@ def test_episodic_notes_append_and_retrieve_deterministically():
 
 
 def test_retrieval_view_structured_reports_selected_and_rejected_reasons():
+    """执行 `test_retrieval_view_structured_reports_selected_and_rejected_reasons` 的内部逻辑。"""
     memory = LayeredMemory()
 
     memory.append_note("alpha selected note", tags=("alpha",), created_at="2026-04-07T10:04:00+00:00")
@@ -112,6 +118,7 @@ def test_retrieval_view_structured_reports_selected_and_rejected_reasons():
 
 
 def test_structured_retrieval_rejects_stale_evidence_and_scope_mismatch():
+    """执行 `test_structured_retrieval_rejects_stale_evidence_and_scope_mismatch` 的内部逻辑。"""
     memory = LayeredMemory()
     memory.append_note("alpha valid note", tags=("alpha",), created_at="2026-04-07T10:03:00+00:00")
     memory.append_note("alpha stale evidence note", tags=("alpha",), created_at="2026-04-07T10:02:00+00:00")
@@ -128,6 +135,7 @@ def test_structured_retrieval_rejects_stale_evidence_and_scope_mismatch():
 
 
 def test_file_summaries_use_canonical_paths_and_freshness(tmp_path):
+    """执行 `test_file_summaries_use_canonical_paths_and_freshness` 的内部逻辑。"""
     file_path = tmp_path / "sample.txt"
     file_path.write_text("alpha\n", encoding="utf-8")
     memory = LayeredMemory(workspace_root=tmp_path)
@@ -153,6 +161,7 @@ def test_file_summaries_use_canonical_paths_and_freshness(tmp_path):
     reason="git rev-parse returns a path whose normalization differs on Windows",
 )
 def test_workspace_fingerprint_uses_git_root_when_available(tmp_path):
+    """执行 `test_workspace_fingerprint_uses_git_root_when_available` 的内部逻辑。"""
     subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
     (tmp_path / "nested").mkdir()
     expected = hashlib.sha256(str(tmp_path.resolve()).encode("utf-8")).hexdigest()[:12]
@@ -161,12 +170,14 @@ def test_workspace_fingerprint_uses_git_root_when_available(tmp_path):
 
 
 def test_workspace_fingerprint_uses_resolved_path_for_non_git_dir(tmp_path):
+    """执行 `test_workspace_fingerprint_uses_resolved_path_for_non_git_dir` 的内部逻辑。"""
     expected = hashlib.sha256(str(tmp_path.resolve()).encode("utf-8")).hexdigest()[:12]
 
     assert workspace_fingerprint(tmp_path) == expected
 
 
 def test_anchor_hash_returns_hash_for_files_at_or_below_size_limit(tmp_path):
+    """执行 `test_anchor_hash_returns_hash_for_files_at_or_below_size_limit` 的内部逻辑。"""
     path = tmp_path / "nine-mib.bin"
     payload = b"a" * (9 * 1024 * 1024)
     path.write_bytes(payload)
@@ -175,6 +186,7 @@ def test_anchor_hash_returns_hash_for_files_at_or_below_size_limit(tmp_path):
 
 
 def test_anchor_hash_returns_none_for_large_or_missing_files(tmp_path):
+    """执行 `test_anchor_hash_returns_none_for_large_or_missing_files` 的内部逻辑。"""
     large_path = tmp_path / "eleven-mib.bin"
     large_path.write_bytes(b"a" * (11 * 1024 * 1024))
 
@@ -183,6 +195,7 @@ def test_anchor_hash_returns_none_for_large_or_missing_files(tmp_path):
 
 
 def test_secret_patterns_match_supported_secret_shapes():
+    """执行 `test_secret_patterns_match_supported_secret_shapes` 的内部逻辑。"""
     positives = [
         "sk-" + "A" * 20,
         "AKIA" + "0" * 16,
@@ -196,6 +209,7 @@ def test_secret_patterns_match_supported_secret_shapes():
 
 
 def test_secret_patterns_do_not_match_short_or_context_free_random_text():
+    """执行 `test_secret_patterns_do_not_match_short_or_context_free_random_text` 的内部逻辑。"""
     negatives = [
         "abc123",
         "A" * 40,
@@ -207,6 +221,7 @@ def test_secret_patterns_do_not_match_short_or_context_free_random_text():
 
 
 def test_process_notes_keep_kind_and_latest_duplicate_wins():
+    """执行 `test_process_notes_keep_kind_and_latest_duplicate_wins` 的内部逻辑。"""
     memory = LayeredMemory()
 
     memory.append_note(
@@ -230,6 +245,7 @@ def test_process_notes_keep_kind_and_latest_duplicate_wins():
 
 
 def test_durable_memory_index_and_topic_notes_are_loaded_and_retrieved(tmp_path):
+    """执行 `test_durable_memory_index_and_topic_notes_are_loaded_and_retrieved` 的内部逻辑。"""
     memory_root = tmp_path / ".pico" / "memory"
     topics_dir = memory_root / "topics"
     topics_dir.mkdir(parents=True)
@@ -262,6 +278,7 @@ def test_durable_memory_index_and_topic_notes_are_loaded_and_retrieved(tmp_path)
 
 
 def test_structured_durable_sidecar_migration_preserves_topic_markdown(tmp_path):
+    """执行 `test_structured_durable_sidecar_migration_preserves_topic_markdown` 的内部逻辑。"""
     memory_root = tmp_path / ".pico" / "memory"
     topics_dir = memory_root / "topics"
     topics_dir.mkdir(parents=True)
@@ -299,6 +316,7 @@ def test_structured_durable_sidecar_migration_preserves_topic_markdown(tmp_path)
 
 
 def test_structured_durable_sidecar_ignores_unparsed_topic_sections(tmp_path):
+    """执行 `test_structured_durable_sidecar_ignores_unparsed_topic_sections` 的内部逻辑。"""
     memory_root = tmp_path / ".pico" / "memory"
     topics_dir = memory_root / "topics"
     topics_dir.mkdir(parents=True)
@@ -327,6 +345,7 @@ def test_structured_durable_sidecar_ignores_unparsed_topic_sections(tmp_path):
 
 
 def test_structured_durable_promote_records_supersede_metadata(tmp_path):
+    """执行 `test_structured_durable_promote_records_supersede_metadata` 的内部逻辑。"""
     memory = LayeredMemory(workspace_root=tmp_path)
 
     promoted, superseded = memory.promote_durable(
@@ -355,6 +374,7 @@ def test_structured_durable_promote_records_supersede_metadata(tmp_path):
 
 
 def test_stale_evidence_rejects_durable_note_when_anchor_changes(tmp_path):
+    """执行 `test_stale_evidence_rejects_durable_note_when_anchor_changes` 的内部逻辑。"""
     anchor = tmp_path / "anchor.txt"
     anchor.write_text("old\n", encoding="utf-8")
     memory = LayeredMemory(workspace_root=tmp_path)
@@ -374,6 +394,7 @@ def test_stale_evidence_rejects_durable_note_when_anchor_changes(tmp_path):
 
 
 def test_quarantined_durable_note_is_rejected_after_promotion(tmp_path):
+    """执行 `test_quarantined_durable_note_is_rejected_after_promotion` 的内部逻辑。"""
     memory = LayeredMemory(workspace_root=tmp_path)
 
     promoted, _ = memory.promote_durable(
@@ -387,6 +408,7 @@ def test_quarantined_durable_note_is_rejected_after_promotion(tmp_path):
 
 
 def test_kairos_daily_log_index_policy_and_memory_tag_helpers(tmp_path):
+    """执行 `test_kairos_daily_log_index_policy_and_memory_tag_helpers` 的内部逻辑。"""
     memory_root = tmp_path / ".pico" / "memory"
 
     ensure_memory_dir(memory_root)
@@ -411,6 +433,7 @@ def test_kairos_daily_log_index_policy_and_memory_tag_helpers(tmp_path):
 
 
 def test_kairos_memory_system_section_defines_file_contract_and_forget_policy(tmp_path):
+    """执行 `test_kairos_memory_system_section_defines_file_contract_and_forget_policy` 的内部逻辑。"""
     memory_root = tmp_path / ".pico" / "memory"
 
     policy = build_memory_system_section(memory_root)
@@ -430,6 +453,7 @@ def test_kairos_memory_system_section_defines_file_contract_and_forget_policy(tm
 
 
 def test_dream_prompt_targets_repo_local_memory_assets(tmp_path):
+    """执行 `test_dream_prompt_targets_repo_local_memory_assets` 的内部逻辑。"""
     memory_root = tmp_path / ".pico" / "memory"
 
     prompt = build_dream_prompt(memory_root, transcript_dir=str(tmp_path / ".pico" / "sessions"), session_ids=["s1", "s2"])
@@ -442,6 +466,7 @@ def test_dream_prompt_targets_repo_local_memory_assets(tmp_path):
 
 
 def test_dream_prompt_uses_four_phase_filesystem_maintenance_flow(tmp_path):
+    """执行 `test_dream_prompt_uses_four_phase_filesystem_maintenance_flow` 的内部逻辑。"""
     memory_root = tmp_path / ".pico" / "memory"
     transcript_dir = tmp_path / ".pico" / "sessions"
 
@@ -462,6 +487,7 @@ def test_dream_prompt_uses_four_phase_filesystem_maintenance_flow(tmp_path):
 
 
 def test_dream_writes_quality_report_under_memory_dir(tmp_path):
+    """执行 `test_dream_writes_quality_report_under_memory_dir` 的内部逻辑。"""
     agent = build_runtime_agent(
         tmp_path,
         [
@@ -491,6 +517,7 @@ def test_dream_writes_quality_report_under_memory_dir(tmp_path):
 
 
 def test_auto_dream_writes_quality_report_under_memory_dir(tmp_path):
+    """执行 `test_auto_dream_writes_quality_report_under_memory_dir` 的内部逻辑。"""
     for index in range(2):
         session_path = tmp_path / ".pico" / "sessions" / f"older-{index}.json"
         session_path.parent.mkdir(parents=True, exist_ok=True)
@@ -516,6 +543,7 @@ def test_auto_dream_writes_quality_report_under_memory_dir(tmp_path):
 
 
 def test_consolidation_lock_can_be_reacquired_after_release(tmp_path):
+    """执行 `test_consolidation_lock_can_be_reacquired_after_release` 的内部逻辑。"""
     memory_root = tmp_path / ".pico" / "memory"
 
     assert try_acquire_lock(memory_root) is True
@@ -525,6 +553,7 @@ def test_consolidation_lock_can_be_reacquired_after_release(tmp_path):
 
 
 def test_session_scan_deduplicates_session_files_and_event_logs(tmp_path):
+    """执行 `test_session_scan_deduplicates_session_files_and_event_logs` 的内部逻辑。"""
     sessions_dir = tmp_path / ".pico" / "sessions"
     sessions_dir.mkdir(parents=True)
     (sessions_dir / "s1.json").write_text("{}", encoding="utf-8")

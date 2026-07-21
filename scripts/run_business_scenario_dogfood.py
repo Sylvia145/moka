@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run business-shaped Pico dogfood scenarios against a real provider."""
+"""Pico 项目运行与验证脚本。"""
 
 from __future__ import annotations
 
@@ -49,6 +49,7 @@ def run_dogfood(
     max_new_tokens=1024,
     scenario_ids=None,
 ):
+    """执行 `run_dogfood` 的内部逻辑。"""
     output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     client_factory, provider_meta = _build_client_factory(
@@ -90,6 +91,7 @@ def run_dogfood(
 
 
 def render_markdown(summary):
+    """执行 `render_markdown` 的内部逻辑。"""
     provider = summary.get("provider", {})
     lines = [
         "# Pico Business Scenario Dogfood",
@@ -115,6 +117,7 @@ def render_markdown(summary):
 
 
 def _run_scenario(output_dir, scenario_id, runner, client_factory, max_steps, max_new_tokens):
+    """执行 `_run_scenario` 的内部逻辑。"""
     workspace = output_dir / "workspaces" / scenario_id
     if workspace.exists():
         _remove_tree(workspace)
@@ -123,7 +126,7 @@ def _run_scenario(output_dir, scenario_id, runner, client_factory, max_steps, ma
         record = runner(output_dir, workspace, client_factory, max_steps, max_new_tokens)
         record["status"] = "passed" if all(check["status"] == "passed" for check in record["checks"]) else "failed"
         return record
-    except Exception as exc:  # noqa: BLE001 - dogfood must retain scenario failure evidence.
+    except Exception as exc:  # noqa: BLE001 - 试运行必须保留场景失败证据。
         return {
             "id": scenario_id,
             "status": "failed",
@@ -134,6 +137,7 @@ def _run_scenario(output_dir, scenario_id, runner, client_factory, max_steps, ma
 
 
 def _scenario_order_pricing_bugfix(output_dir, workspace, client_factory, max_steps, max_new_tokens):
+    """执行 `_scenario_order_pricing_bugfix` 的内部逻辑。"""
     src = workspace / "src"
     tests = workspace / "tests"
     src.mkdir()
@@ -177,6 +181,7 @@ def _scenario_order_pricing_bugfix(output_dir, workspace, client_factory, max_st
 
 
 def _scenario_release_readiness_review(output_dir, workspace, client_factory, max_steps, max_new_tokens):
+    """执行 `_scenario_release_readiness_review` 的内部逻辑。"""
     (workspace / "README.md").write_text("# Billing API\n\nRelease candidate for tenant billing.\n", encoding="utf-8")
     (workspace / ".env.example").write_text("DATABASE_URL=\nSTRIPE_API_KEY=\n", encoding="utf-8")
     (workspace / "deploy.md").write_text("- migrations applied\n- rollback owner assigned\n", encoding="utf-8")
@@ -218,6 +223,7 @@ blocking/non-blocking checklist to reports/release-readiness.md. Do not edit sou
 
 
 def _scenario_incident_resume_fix(output_dir, workspace, client_factory, max_steps, max_new_tokens):
+    """执行 `_scenario_incident_resume_fix` 的内部逻辑。"""
     src = workspace / "src"
     tests = workspace / "tests"
     src.mkdir()
@@ -291,6 +297,7 @@ def _scenario_incident_resume_fix(output_dir, workspace, client_factory, max_ste
 def _scenario_release_governance_with_isolated_worker(
     output_dir, workspace, client_factory, max_steps, max_new_tokens
 ):
+    """执行 `_scenario_release_governance_with_isolated_worker` 的内部逻辑。"""
     server_path = prepare_release_governance_workspace(workspace)
     agent = _build_agent(
         workspace,
@@ -319,6 +326,7 @@ def _scenario_release_governance_with_isolated_worker(
 def _scenario_release_governance_over_http(
     output_dir, workspace, client_factory, max_steps, max_new_tokens
 ):
+    """执行 `_scenario_release_governance_over_http` 的内部逻辑。"""
     prepare_release_governance_workspace(workspace)
     with release_policy_http_server(response_mode="sse") as (url, _state):
         agent = _build_agent(
@@ -346,6 +354,7 @@ def _scenario_release_governance_over_http(
 
 
 def _build_agent(workspace, client_factory, max_steps=8, max_new_tokens=1024, mcp_servers=None):
+    """执行 `_build_agent` 的内部逻辑。"""
     return Pico(
         model_client=client_factory(),
         workspace=_scenario_workspace(workspace),
@@ -358,10 +367,12 @@ def _build_agent(workspace, client_factory, max_steps=8, max_new_tokens=1024, mc
 
 
 def _scenario_workspace(workspace):
+    """执行 `_scenario_workspace` 的内部逻辑。"""
     return WorkspaceContext.build(workspace, repo_root_override=workspace)
 
 
 def _build_client_factory(*, config_path=None, provider=None, model=None, base_url=None, api_key=None):
+    """执行 `_build_client_factory` 的内部逻辑。"""
     config = resolve_provider_config(
         provider,
         start=ROOT,
@@ -374,6 +385,7 @@ def _build_client_factory(*, config_path=None, provider=None, model=None, base_u
         raise ValueError(f"provider {config.name!r} has no api key; configure .pico.toml or pass --api-key")
 
     def factory():
+        """执行 `factory` 的内部逻辑。"""
         if config.protocol == "openai":
             return OpenAICompatibleModelClient(
                 model=config.model,
@@ -401,6 +413,7 @@ def _build_client_factory(*, config_path=None, provider=None, model=None, base_u
 
 
 def _finalize(output_dir, workspace, agent, scenario_id, checks):
+    """执行 `_finalize` 的内部逻辑。"""
     run_dir = agent.current_run_dir
     report_path = run_dir / "report.json"
     trace_path = run_dir / "trace.jsonl"
@@ -424,6 +437,7 @@ def _finalize(output_dir, workspace, agent, scenario_id, checks):
 
 
 def _read_events(agent):
+    """执行 `_read_events` 的内部逻辑。"""
     return [
         json.loads(line)
         for line in agent.session_event_bus.path.read_text(encoding="utf-8").splitlines()
@@ -432,6 +446,7 @@ def _read_events(agent):
 
 
 def _history_contains(agent, tool_name, text):
+    """执行 `_history_contains` 的内部逻辑。"""
     return any(
         item.get("role") == "tool"
         and item.get("name") == tool_name
@@ -441,6 +456,7 @@ def _history_contains(agent, tool_name, text):
 
 
 def _tool_succeeded(agent, tool_name):
+    """执行 `_tool_succeeded` 的内部逻辑。"""
     return any(
         item.get("role") == "tool"
         and item.get("name") == tool_name
@@ -450,6 +466,7 @@ def _tool_succeeded(agent, tool_name):
 
 
 def _run_tests(workspace):
+    """执行 `_run_tests` 的内部逻辑。"""
     return subprocess.run(
         [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
         cwd=workspace,
@@ -464,14 +481,17 @@ def _run_tests(workspace):
 
 
 def _check(name, condition, detail=""):
+    """执行 `_check` 的内部逻辑。"""
     return {"name": name, "status": "passed" if condition else "failed", "detail": str(detail)}
 
 
 def _relpath(path, root):
+    """执行 `_relpath` 的内部逻辑。"""
     return Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
 
 
 def _remove_tree(path):
+    """执行 `_remove_tree` 的内部逻辑。"""
     for child in sorted(path.rglob("*"), key=lambda item: len(item.parts), reverse=True):
         if child.is_dir():
             child.rmdir()
@@ -481,6 +501,7 @@ def _remove_tree(path):
 
 
 def build_arg_parser():
+    """执行 `build_arg_parser` 的内部逻辑。"""
     parser = argparse.ArgumentParser(description="Run Pico business scenario dogfood against a real provider.")
     parser.add_argument("--output-dir", default="/tmp/pico-business-scenario-dogfood", help="Directory for workspaces and summary artifacts.")
     parser.add_argument("--config", default=None, help="Path to a Pico TOML config file.")
@@ -495,6 +516,7 @@ def build_arg_parser():
 
 
 def main(argv=None):
+    """执行 `main` 的内部逻辑。"""
     args = build_arg_parser().parse_args(argv)
     summary = run_dogfood(
         Path(args.output_dir),

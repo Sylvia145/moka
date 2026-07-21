@@ -1,4 +1,4 @@
-"""Structured provider failure types."""
+"""Pico 运行时实现模块。"""
 
 from urllib.parse import urlsplit, urlunsplit
 
@@ -19,6 +19,7 @@ class ProviderError(RuntimeError):
         body_excerpt="",
         cause_type="",
     ):
+        """初始化对象状态。"""
         super().__init__(message)
         self.provider = str(provider or "")
         self.model = str(model or "")
@@ -32,6 +33,7 @@ class ProviderError(RuntimeError):
         self.cause_type = str(cause_type or "")
 
     def to_metadata(self):
+        """执行 `to_metadata` 的内部逻辑。"""
         payload = {
             "provider_error": {
                 "code": self.code,
@@ -57,6 +59,7 @@ class ProviderError(RuntimeError):
 
 
 def _clip(value, limit):
+    """执行 `_clip` 的内部逻辑。"""
     text = str(value or "")
     if len(text) <= limit:
         return text
@@ -64,6 +67,7 @@ def _clip(value, limit):
 
 
 def sanitize_url(value):
+    """执行 `sanitize_url` 的内部逻辑。"""
     text = str(value or "")
     if not text:
         return ""

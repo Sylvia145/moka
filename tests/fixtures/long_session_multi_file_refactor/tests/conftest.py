@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import sys
 from pathlib import Path
 

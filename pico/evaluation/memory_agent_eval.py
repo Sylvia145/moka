@@ -1,4 +1,4 @@
-"""Provider-free coding-agent memory contract and challenge benchmark."""
+"""Pico 运行时实现模块。"""
 
 import json
 import re
@@ -42,20 +42,24 @@ STOPWORDS = {
 
 
 def _captured_at():
+    """执行 `_captured_at` 的内部逻辑。"""
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def _safe_ratio(numerator, denominator):
+    """执行 `_safe_ratio` 的内部逻辑。"""
     if not denominator:
         return 0.0
     return numerator / denominator
 
 
 def _pct(value):
+    """执行 `_pct` 的内部逻辑。"""
     return f"{float(value):.2%}"
 
 
 def _write_json(path, payload):
+    """执行 `_write_json` 的内部逻辑。"""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -63,6 +67,7 @@ def _write_json(path, payload):
 
 
 def _load_json_if_exists(path):
+    """执行 `_load_json_if_exists` 的内部逻辑。"""
     path = Path(path)
     if not path.exists():
         return None
@@ -70,30 +75,37 @@ def _load_json_if_exists(path):
 
 
 def _tokens(text):
+    """执行 `_tokens` 的内部逻辑。"""
     return {token for token in re.findall(r"[a-z0-9_/-]+", str(text).lower()) if token not in STOPWORDS}
 
 
 def _note_id(note):
+    """执行 `_note_id` 的内部逻辑。"""
     return str(note.get("note_id") or note.get("memory_id") or "").strip()
 
 
 def _selected_texts(structured):
+    """执行 `_selected_texts` 的内部逻辑。"""
     return [note["text"] for note in structured["selected"]]
 
 
 def _selected_ids(structured):
+    """执行 `_selected_ids` 的内部逻辑。"""
     return [_note_id(note) for note in structured["selected"] if _note_id(note)]
 
 
 def _rejected_reasons(structured):
+    """执行 `_rejected_reasons` 的内部逻辑。"""
     return {note["text"]: note.get("reject_reason", "") for note in structured["rejected"]}
 
 
 def _selected_contains(structured, text):
+    """执行 `_selected_contains` 的内部逻辑。"""
     return text in _selected_texts(structured)
 
 
 def _simple_answer(structured, required_texts, expected_answer, abstain=False):
+    """执行 `_simple_answer` 的内部逻辑。"""
     selected = set(_selected_texts(structured))
     if abstain:
         return "unknown" if not selected else "unsupported"
@@ -101,6 +113,7 @@ def _simple_answer(structured, required_texts, expected_answer, abstain=False):
 
 
 def _contract_row(case_id, category, query, structured, required_texts, forbidden_texts, expected_answer, answer):
+    """执行 `_contract_row` 的内部逻辑。"""
     selected = _selected_texts(structured)
     required_ids = [
         _note_id(note)
@@ -135,6 +148,7 @@ def _contract_row(case_id, category, query, structured, required_texts, forbidde
 
 
 def _direct_recall_case():
+    """执行 `_direct_recall_case` 的内部逻辑。"""
     memory = LayeredMemory()
     fact = "deploy target is staging"
     memory.append_note(fact, tags=("deploy",), created_at="2026-06-24T10:00:00+00:00")
@@ -152,6 +166,7 @@ def _direct_recall_case():
 
 
 def _irrelevant_distractor_case():
+    """执行 `_irrelevant_distractor_case` 的内部逻辑。"""
     memory = LayeredMemory()
     distractor = "deploy key is blue and unrelated"
     fact = "deploy key is red"
@@ -171,6 +186,7 @@ def _irrelevant_distractor_case():
 
 
 def _knowledge_update_case():
+    """执行 `_knowledge_update_case` 的内部逻辑。"""
     memory = LayeredMemory()
     old_fact = "capital is X"
     new_fact = "capital is Y"
@@ -198,6 +214,7 @@ def _knowledge_update_case():
 
 
 def _selective_forgetting_case():
+    """执行 `_selective_forgetting_case` 的内部逻辑。"""
     memory = LayeredMemory()
     forbidden = "unsafe memory should be forgotten"
     safe = "safe memory policy is active"
@@ -222,6 +239,7 @@ def _selective_forgetting_case():
 
 
 def _stale_evidence_case():
+    """执行 `_stale_evidence_case` 的内部逻辑。"""
     with tempfile.TemporaryDirectory(prefix="pico-memory-agent-stale-") as temp_dir:
         workspace_root = Path(temp_dir)
         (workspace_root / "README.md").write_text("demo\n", encoding="utf-8")
@@ -252,6 +270,7 @@ def _stale_evidence_case():
 
 
 def _secret_safety_case():
+    """执行 `_secret_safety_case` 的内部逻辑。"""
     memory = LayeredMemory()
     secret = "api key sk-AAAAAAAAAAAAAAAAAAAA for service X"
     memory.append_note(secret, tags=("config",), created_at="2026-06-24T10:00:00+00:00")
@@ -273,6 +292,7 @@ def _secret_safety_case():
 
 
 def _no_evidence_abstention_case():
+    """执行 `_no_evidence_abstention_case` 的内部逻辑。"""
     memory = LayeredMemory()
     memory.append_note("build tool is uv", tags=("build",), created_at="2026-06-24T10:00:00+00:00")
     structured = memory.retrieval_view_structured("payment provider", limit=3)
@@ -291,6 +311,7 @@ def _no_evidence_abstention_case():
 
 
 def _multi_session_reasoning_case():
+    """执行 `_multi_session_reasoning_case` 的内部逻辑。"""
     memory = LayeredMemory()
     first = "session one decided the benchmark target is memory"
     second = "session two decided the report format is markdown"
@@ -315,6 +336,7 @@ def _multi_session_reasoning_case():
 
 
 def run_memory_agent_cases():
+    """执行 `run_memory_agent_cases` 的内部逻辑。"""
     return [
         _direct_recall_case(),
         _irrelevant_distractor_case(),
@@ -328,6 +350,7 @@ def run_memory_agent_cases():
 
 
 def _summarize_contract(rows, memory_ablation=None, memory_fidelity=None, recovery_ablation=None, dream_quality=None):
+    """执行 `_summarize_contract` 的内部逻辑。"""
     evidence_rows = [row for row in rows if row["required_evidence_total"] > 0]
     selected_count = sum(len(row["selected_evidence_ids"]) for row in rows)
     relevant_selected = sum(row["required_evidence_selected"] for row in rows)
@@ -395,6 +418,7 @@ def _summarize_contract(rows, memory_ablation=None, memory_fidelity=None, recove
 
 
 def _memory_ablation_summary(memory_ablation):
+    """执行 `_memory_ablation_summary` 的内部逻辑。"""
     if not memory_ablation:
         return {}
     variants = memory_ablation.get("variants", {})
@@ -410,6 +434,7 @@ def _memory_ablation_summary(memory_ablation):
 
 
 def _mem(memory_id, text, answer, tags=(), created_at="2026-06-24T10:00:00+00:00", status="active", **flags):
+    """执行 `_mem` 的内部逻辑。"""
     note = {
         "memory_id": memory_id,
         "note_id": memory_id,
@@ -425,6 +450,7 @@ def _mem(memory_id, text, answer, tags=(), created_at="2026-06-24T10:00:00+00:00
 
 
 def _case(case_id, category, query, expected_answer, notes, required_ids=(), forbidden_ids=(), **flags):
+    """执行 `_case` 的内部逻辑。"""
     return {
         "id": case_id,
         "category": category,
@@ -438,6 +464,7 @@ def _case(case_id, category, query, expected_answer, notes, required_ids=(), for
 
 
 def _build_challenge_cases():
+    """执行 `_build_challenge_cases` 的内部逻辑。"""
     return [
         _case(
             "info_extract_test_command",
@@ -1032,6 +1059,7 @@ def _build_challenge_cases():
 
 
 def _state_for_case(case):
+    """执行 `_state_for_case` 的内部逻辑。"""
     notes = []
     for index, note in enumerate(case["notes"]):
         normalized = {
@@ -1052,6 +1080,7 @@ def _state_for_case(case):
 
 
 def _active_note(note):
+    """执行 `_active_note` 的内部逻辑。"""
     return not (
         note.get("status") in {"superseded", "quarantined"}
         or note.get("stale_evidence")
@@ -1060,6 +1089,7 @@ def _active_note(note):
 
 
 def _select_structured_notes(case, enforce_rejections):
+    """执行 `_select_structured_notes` 的内部逻辑。"""
     state = _state_for_case(case)
     if enforce_rejections:
         structured = retrieval_view_structured(state, case["query"], limit=case.get("limit", 3))
@@ -1072,6 +1102,7 @@ def _select_structured_notes(case, enforce_rejections):
 
 
 def _rank_case_notes(case, include_unsafe=False):
+    """执行 `_rank_case_notes` 的内部逻辑。"""
     query_tokens = _tokens(case["query"])
     ranked = []
     for index, note in enumerate(case["notes"]):
@@ -1087,6 +1118,7 @@ def _rank_case_notes(case, include_unsafe=False):
 
 
 def _select_variant_notes(case, variant):
+    """执行 `_select_variant_notes` 的内部逻辑。"""
     if variant == "memory_off":
         return [], {}
     if variant == "memory_on":
@@ -1099,6 +1131,7 @@ def _select_variant_notes(case, variant):
 
 
 def _answer_from_selected(case, selected, variant):
+    """执行 `_answer_from_selected` 的内部逻辑。"""
     selected_ids = {note["memory_id"] for note in selected}
     required = set(case.get("required_evidence_ids", []))
     forbidden = set(case.get("forbidden_memory_ids", []))
@@ -1118,6 +1151,7 @@ def _answer_from_selected(case, selected, variant):
 
 
 def _challenge_row(case, variant, selected, rejected_reasons):
+    """执行 `_challenge_row` 的内部逻辑。"""
     selected_ids = [note["memory_id"] for note in selected]
     required_ids = list(case.get("required_evidence_ids", []))
     forbidden_ids = list(case.get("forbidden_memory_ids", []))
@@ -1164,24 +1198,29 @@ def _challenge_row(case, variant, selected, rejected_reasons):
 
 
 def _run_challenge_case(case, variant):
+    """执行 `_run_challenge_case` 的内部逻辑。"""
     selected, rejected_reasons = _select_variant_notes(case, variant)
     return _challenge_row(case, variant, selected, rejected_reasons)
 
 
 def _category_count(rows, category):
+    """执行 `_category_count` 的内部逻辑。"""
     return sum(1 for row in rows if row["category"] == category)
 
 
 def _category_success(rows, category):
+    """执行 `_category_success` 的内部逻辑。"""
     category_rows = [row for row in rows if row["category"] == category]
     return _safe_ratio(sum(1 for row in category_rows if row["passed"]), len(category_rows))
 
 
 def _flag_count(rows, flag):
+    """执行 `_flag_count` 的内部逻辑。"""
     return sum(1 for row in rows if row.get(flag))
 
 
 def _summarize_challenge_rows(rows):
+    """执行 `_summarize_challenge_rows` 的内部逻辑。"""
     total = len(rows)
     required_total = sum(len(row["required_evidence_ids"]) for row in rows)
     required_selected = sum(len(set(row["required_evidence_ids"]) & set(row["selected_evidence_ids"])) for row in rows)
@@ -1208,6 +1247,7 @@ def _summarize_challenge_rows(rows):
 
 
 def _compare_variants(memory_on, baseline):
+    """执行 `_compare_variants` 的内部逻辑。"""
     return {
         "answer_accuracy_delta": memory_on["answer_accuracy"] - baseline["answer_accuracy"],
         "evidence_recall_delta": memory_on["evidence_recall_at_k"] - baseline["evidence_recall_at_k"],
@@ -1220,6 +1260,7 @@ def _compare_variants(memory_on, baseline):
 
 
 def run_memory_challenge_payload():
+    """执行 `run_memory_challenge_payload` 的内部逻辑。"""
     cases = _build_challenge_cases()
     variants = {}
     for variant in CHALLENGE_VARIANTS:
@@ -1242,6 +1283,7 @@ def run_memory_challenge_payload():
 
 
 def render_memory_evaluation_report(artifact):
+    """执行 `render_memory_evaluation_report` 的内部逻辑。"""
     contract = artifact["contract"]
     challenge = artifact["challenge"]
     memory_on = challenge["variants"]["memory_on"]["summary"]
@@ -1348,6 +1390,7 @@ def render_memory_evaluation_report(artifact):
 
 
 def _top_level_summary(contract_summary, challenge, memory_ablation):
+    """执行 `_top_level_summary` 的内部逻辑。"""
     memory_on = challenge["variants"]["memory_on"]["summary"]
     memory_efficiency = _memory_ablation_summary(memory_ablation)
     return {
@@ -1380,6 +1423,7 @@ def _top_level_summary(contract_summary, challenge, memory_ablation):
 
 
 def run_memory_challenge_v1(artifact_path=DEFAULT_CHALLENGE_ARTIFACT_PATH):
+    """执行 `run_memory_challenge_v1` 的内部逻辑。"""
     return _write_json(artifact_path, run_memory_challenge_payload())
 
 
@@ -1392,6 +1436,7 @@ def run_memory_agent_eval_v1(
     dream_quality_path=DEFAULT_DREAM_QUALITY_PATH,
     recovery_ablation_path=DEFAULT_RECOVERY_ABLATION_PATH,
 ):
+    """执行 `run_memory_agent_eval_v1` 的内部逻辑。"""
     memory_ablation = _load_json_if_exists(memory_ablation_path)
     memory_fidelity = _load_json_if_exists(memory_fidelity_path)
     dream_quality = _load_json_if_exists(dream_quality_path)

@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 from pico import Pico, SessionStore, WorkspaceContext
 from pico.core.compact import CompactPlan
 from pico.core.context_manager import ContextManager
@@ -5,6 +6,7 @@ from pico.testing import ScriptedModelClient
 
 
 def build_agent(tmp_path, outputs=None):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     return Pico(
         model_client=ScriptedModelClient(outputs or []),
@@ -15,11 +17,13 @@ def build_agent(tmp_path, outputs=None):
 
 
 def add_turn(agent, index, content_size=24):
+    """执行 `add_turn` 的内部逻辑。"""
     agent.record({"role": "user", "content": f"request {index} " + ("x" * content_size)})
     agent.record({"role": "assistant", "content": f"answer {index} " + ("y" * content_size)})
 
 
 def test_plan_is_deterministic_and_does_not_mutate_session(tmp_path):
+    """执行 `test_plan_is_deterministic_and_does_not_mutate_session` 的内部逻辑。"""
     agent = build_agent(tmp_path)
     for index in range(4):
         add_turn(agent, index)
@@ -38,6 +42,7 @@ def test_plan_is_deterministic_and_does_not_mutate_session(tmp_path):
 
 
 def test_first_compact_creates_boundary_before_protected_recent_turns(tmp_path):
+    """执行 `test_first_compact_creates_boundary_before_protected_recent_turns` 的内部逻辑。"""
     agent = build_agent(tmp_path)
     for index in range(5):
         add_turn(agent, index)
@@ -56,6 +61,7 @@ def test_first_compact_creates_boundary_before_protected_recent_turns(tmp_path):
 
 
 def test_llm_compact_creates_handoff_summary_and_records_usage(tmp_path):
+    """执行 `test_llm_compact_creates_handoff_summary_and_records_usage` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -102,6 +108,7 @@ Ship LLM handoff compaction.
 
 
 def test_llm_compact_parse_failure_falls_back_to_deterministic(tmp_path):
+    """执行 `test_llm_compact_parse_failure_falls_back_to_deterministic` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["not a handoff summary"])
     for index in range(5):
         add_turn(agent, index)
@@ -115,6 +122,7 @@ def test_llm_compact_parse_failure_falls_back_to_deterministic(tmp_path):
 
 
 def test_second_compact_only_summarizes_delta_since_previous_boundary(tmp_path):
+    """执行 `test_second_compact_only_summarizes_delta_since_previous_boundary` 的内部逻辑。"""
     agent = build_agent(tmp_path)
     for index in range(5):
         add_turn(agent, index)
@@ -135,6 +143,7 @@ def test_second_compact_only_summarizes_delta_since_previous_boundary(tmp_path):
 
 
 def test_no_delta_compact_returns_summary_without_history_mutation(tmp_path):
+    """执行 `test_no_delta_compact_returns_summary_without_history_mutation` 的内部逻辑。"""
     agent = build_agent(tmp_path)
     for index in range(2):
         add_turn(agent, index)
@@ -151,6 +160,7 @@ def test_no_delta_compact_returns_summary_without_history_mutation(tmp_path):
 
 
 def test_existing_session_without_context_summary_compacts_successfully(tmp_path):
+    """执行 `test_existing_session_without_context_summary_compacts_successfully` 的内部逻辑。"""
     agent = build_agent(tmp_path)
     for index in range(4):
         add_turn(agent, index)
@@ -164,6 +174,7 @@ def test_existing_session_without_context_summary_compacts_successfully(tmp_path
 
 
 def test_auto_over_budget_no_delta_records_no_summary_call(tmp_path):
+    """执行 `test_auto_over_budget_no_delta_records_no_summary_call` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>done</final>"])
     for index in range(3):
         agent.record(
@@ -193,6 +204,7 @@ def test_auto_over_budget_no_delta_records_no_summary_call(tmp_path):
 
 
 def test_deterministic_compact_preserves_early_user_constraints(tmp_path):
+    """执行 `test_deterministic_compact_preserves_early_user_constraints` 的内部逻辑。"""
     agent = build_agent(tmp_path)
     agent.record({"role": "user", "content": "修 compact，但是不要改公共 API。"})
     agent.record({"role": "assistant", "content": "收到。"})
@@ -207,6 +219,7 @@ def test_deterministic_compact_preserves_early_user_constraints(tmp_path):
 
 
 def test_deterministic_compact_empty_evidence_fields_render_dash(tmp_path):
+    """执行 `test_deterministic_compact_empty_evidence_fields_render_dash` 的内部逻辑。"""
     agent = build_agent(tmp_path)
     for index in range(4):
         add_turn(agent, index)
@@ -222,6 +235,7 @@ def test_deterministic_compact_empty_evidence_fields_render_dash(tmp_path):
 
 
 def test_deterministic_compact_extracts_mixed_language_evidence(tmp_path):
+    """执行 `test_deterministic_compact_extracts_mixed_language_evidence` 的内部逻辑。"""
     agent = build_agent(tmp_path)
     agent.record(
         {

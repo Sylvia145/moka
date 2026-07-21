@@ -1,9 +1,10 @@
-"""Architecture budget tests for runtime module boundaries."""
+"""Pico 自动化测试模块。"""
 
 from pathlib import Path
 
 
 def test_core_modules_stay_below_entropy_budget():
+    """执行 `test_core_modules_stay_below_entropy_budget` 的内部逻辑。"""
     root = Path(__file__).resolve().parents[1]
     budgets = {
         "pico/core/runtime.py": 950,

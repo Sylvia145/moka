@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 from pico.core.context_handoff import HandoffAdapter, HandoffParser, HandoffSummary, render_handoff_summary
 from pico.testing import ScriptedModelClient
 
@@ -27,6 +28,7 @@ Implement context handoff compaction.
 
 
 def test_parser_valid_output_extracts_sections():
+    """执行 `test_parser_valid_output_extracts_sections` 的内部逻辑。"""
     summary = HandoffParser().parse(VALID_HANDOFF)
 
     assert summary.goal == "Implement context handoff compaction."
@@ -39,6 +41,7 @@ def test_parser_valid_output_extracts_sections():
 
 
 def test_parser_missing_optional_sections_keeps_required_fields():
+    """执行 `test_parser_missing_optional_sections_keeps_required_fields` 的内部逻辑。"""
     summary = HandoffParser().parse(
         """## Goal
 Keep going.
@@ -54,6 +57,7 @@ Keep going.
 
 
 def test_parser_missing_goal_signals_parse_failure():
+    """执行 `test_parser_missing_goal_signals_parse_failure` 的内部逻辑。"""
     summary = HandoffParser().parse(
         """## Next Steps
 - Continue
@@ -66,6 +70,7 @@ def test_parser_missing_goal_signals_parse_failure():
 
 
 def test_render_handoff_summary_preserves_critical_sections():
+    """执行 `test_render_handoff_summary_preserves_critical_sections` 的内部逻辑。"""
     text = render_handoff_summary(HandoffParser().parse(VALID_HANDOFF))
 
     assert "## Goal\nImplement context handoff compaction." in text
@@ -75,6 +80,7 @@ def test_render_handoff_summary_preserves_critical_sections():
 
 
 def test_adapter_success_records_usage_and_prompt_context():
+    """执行 `test_adapter_success_records_usage_and_prompt_context` 的内部逻辑。"""
     client = ScriptedModelClient([VALID_HANDOFF])
     client.last_completion_metadata = {
         "input_tokens": 120,
@@ -101,6 +107,7 @@ def test_adapter_success_records_usage_and_prompt_context():
 
 
 def test_adapter_model_failure_returns_none_and_clears_usage():
+    """执行 `test_adapter_model_failure_returns_none_and_clears_usage` 的内部逻辑。"""
     adapter = HandoffAdapter(ScriptedModelClient([RuntimeError("boom")]))
 
     assert adapter.generate("delta") is None
@@ -108,6 +115,7 @@ def test_adapter_model_failure_returns_none_and_clears_usage():
 
 
 def test_adapter_parse_failure_returns_none_but_records_usage():
+    """执行 `test_adapter_parse_failure_returns_none_but_records_usage` 的内部逻辑。"""
     client = ScriptedModelClient(["garbage"])
     client.last_completion_metadata = {"input_tokens": 12, "output_tokens": 3}
     adapter = HandoffAdapter(client)
@@ -119,12 +127,14 @@ def test_adapter_parse_failure_returns_none_but_records_usage():
 
 
 def test_adapter_missing_next_steps_returns_none():
+    """执行 `test_adapter_missing_next_steps_returns_none` 的内部逻辑。"""
     adapter = HandoffAdapter(ScriptedModelClient(["## Goal\nKeep going.\n"]))
 
     assert adapter.generate("delta") is None
 
 
 def test_adapter_bad_usage_metadata_does_not_break_handoff():
+    """执行 `test_adapter_bad_usage_metadata_does_not_break_handoff` 的内部逻辑。"""
     client = ScriptedModelClient([VALID_HANDOFF])
     client.last_completion_metadata = {
         "input_tokens": "not-a-number",
@@ -144,6 +154,7 @@ def test_adapter_bad_usage_metadata_does_not_break_handoff():
 
 
 def test_adapter_negative_usage_metadata_is_clamped_to_zero():
+    """执行 `test_adapter_negative_usage_metadata_is_clamped_to_zero` 的内部逻辑。"""
     client = ScriptedModelClient([VALID_HANDOFF])
     client.last_completion_metadata = {
         "input_tokens": -10,

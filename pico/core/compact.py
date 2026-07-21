@@ -1,4 +1,4 @@
-"""Session compaction boundary."""
+"""Pico 运行时实现模块。"""
 
 from dataclasses import asdict, dataclass
 
@@ -19,14 +19,17 @@ class CompactPlan:
     no_op_reason: str | None
 
     def to_dict(self):
+        """执行 `to_dict` 的内部逻辑。"""
         return asdict(self)
 
 
 class CompactManager:
     def __init__(self, agent):
+        """初始化对象状态。"""
         self.agent = agent
 
     def plan(self, trigger="manual", keep_recent_turns=2):
+        """执行 `plan` 的内部逻辑。"""
         selected = self._select(keep_recent_turns)
         metadata = dict(self.agent.session.get("context_summary", {}) or {})
         prior = selected["prior_summary"]
@@ -48,6 +51,7 @@ class CompactManager:
         )
 
     def compact(self, trigger="manual", keep_recent_turns=2, summary_mode="deterministic"):
+        """执行 `compact` 的内部逻辑。"""
         plan = self.plan(trigger=trigger, keep_recent_turns=keep_recent_turns)
         history = list(self.agent.session.get("history", []))
         selected = self._select(keep_recent_turns)
@@ -102,6 +106,7 @@ class CompactManager:
 
     @staticmethod
     def _group(history):
+        """执行 `_group` 的内部逻辑。"""
         groups = []
         by_id = {}
         for item in history:
@@ -113,6 +118,7 @@ class CompactManager:
         return groups
 
     def _select(self, keep_recent_turns):
+        """执行 `_select` 的内部逻辑。"""
         keep_recent_turns = int(keep_recent_turns)
         history = list(self.agent.session.get("history", []))
         groups = self._group(history)
@@ -135,6 +141,7 @@ class CompactManager:
         return {"compactable_items": compactable, "protected_items": protected, "delta_items": delta, "prior_summary": prior_summary}
 
     def _prior_summary(self, history):
+        """执行 `_prior_summary` 的内部逻辑。"""
         metadata = dict(self.agent.session.get("context_summary", {}) or {})
         summary_event_id = str(metadata.get("summary_event_id", ""))
         summaries = [item for item in history if item.get("kind") == "compact_summary"]
@@ -144,6 +151,7 @@ class CompactManager:
         return summaries[-1] if summaries else None
 
     def _context_summary(self, plan, summary_item, selected):
+        """执行 `_context_summary` 的内部逻辑。"""
         previous = dict(self.agent.session.get("context_summary", {}) or {})
         last_index, last_item = selected["delta_items"][-1]
         return {
@@ -155,6 +163,7 @@ class CompactManager:
         }
 
     def _compact_summary_text(self, delta_items, prior_text, summary_mode):
+        """执行 `_compact_summary_text` 的内部逻辑。"""
         if summary_mode != "llm":
             return summarize_compact_items(delta_items, prior_text=prior_text), "deterministic", None
         adapter = HandoffAdapter(self.agent.model_client)
@@ -174,6 +183,7 @@ class CompactManager:
         summary_mode="deterministic",
         compact_call_usage=None,
     ):
+        """执行 `_summary` 的内部逻辑。"""
         pre_chars = sum(len(str(item.get("content", ""))) for item in before)
         post_chars = sum(len(str(item.get("content", ""))) for item in after)
         context_summary = dict(self.agent.session.get("context_summary", {}) or {})
@@ -202,14 +212,17 @@ class CompactManager:
 
     @staticmethod
     def _tokens(history):
+        """执行 `_tokens` 的内部逻辑。"""
         return estimate_tokens(sum(len(str(item.get("content", ""))) for item in history))
 
     @staticmethod
     def _event_key(item, index):
+        """执行 `_event_key` 的内部逻辑。"""
         return str(item.get("event_id") or f"legacy_{index:06d}")
 
     @staticmethod
     def _persistent_summary(summary):
+        """执行 `_persistent_summary` 的内部逻辑。"""
         persisted = dict(summary)
         persisted.pop("compact_call_usage", None)
         return persisted

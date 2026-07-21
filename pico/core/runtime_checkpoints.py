@@ -1,4 +1,4 @@
-"""Runtime workspace snapshot and checkpoint helpers."""
+"""Pico 运行时实现模块。"""
 
 import hashlib
 import uuid
@@ -16,6 +16,7 @@ CHECKPOINT_SCHEMA_MISMATCH_STATUS = "schema-mismatch"
 
 class RuntimeCheckpointsMixin:
     def capture_workspace_snapshot(self):
+        """执行 `capture_workspace_snapshot` 的内部逻辑。"""
         snapshot = {}
         for path in self.root.rglob("*"):
             try:
@@ -32,6 +33,7 @@ class RuntimeCheckpointsMixin:
 
     @staticmethod
     def diff_workspace_snapshots(before, after):
+        """执行 `diff_workspace_snapshots` 的内部逻辑。"""
         changed_paths = []
         summaries = []
         for path in sorted(set(before) | set(after)):
@@ -47,6 +49,7 @@ class RuntimeCheckpointsMixin:
         return changed_paths, summaries
 
     def create_checkpoint(self, task_state, user_message, trigger):
+        """执行 `create_checkpoint` 的内部逻辑。"""
         state = self.checkpoint_state()
         current = self.current_checkpoint()
         checkpoint_id = "ckpt_" + uuid.uuid4().hex[:8]
@@ -79,6 +82,7 @@ class RuntimeCheckpointsMixin:
         return checkpoint
 
     def current_runtime_identity(self):
+        """执行 `current_runtime_identity` 的内部逻辑。"""
         return {
             "session_id": self.session.get("id", ""),
             "cwd": str(self.root),
@@ -99,10 +103,12 @@ class RuntimeCheckpointsMixin:
         }
 
     def checkpoint_state(self):
+        """执行 `checkpoint_state` 的内部逻辑。"""
         self._ensure_session_shape()
         return self.session["checkpoints"]
 
     def current_checkpoint(self):
+        """执行 `current_checkpoint` 的内部逻辑。"""
         state = self.checkpoint_state()
         checkpoint_id = str(state.get("current_id", "")).strip()
         if not checkpoint_id:
@@ -110,11 +116,13 @@ class RuntimeCheckpointsMixin:
         return state.get("items", {}).get(checkpoint_id)
 
     def invalidate_stale_memory(self):
+        """执行 `invalidate_stale_memory` 的内部逻辑。"""
         invalidated = self.memory.invalidate_stale_file_summaries()
         self.session["memory"] = self.memory.to_dict()
         return invalidated
 
     def evaluate_resume_state(self):
+        """执行 `evaluate_resume_state` 的内部逻辑。"""
         previous_resume_state = dict(self.session.get("resume_state", {}) or {})
         invalidated = self.invalidate_stale_memory()
         checkpoint = self.current_checkpoint()
@@ -181,6 +189,7 @@ class RuntimeCheckpointsMixin:
         return resume_state
 
     def render_checkpoint_text(self):
+        """执行 `render_checkpoint_text` 的内部逻辑。"""
         checkpoint = self.current_checkpoint()
         if not checkpoint:
             return ""

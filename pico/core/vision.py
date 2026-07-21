@@ -1,4 +1,4 @@
-"""Vision inspection helper for image-aware tools."""
+"""Pico 运行时实现模块。"""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from .media import load_workspace_image
 
 
 def inspect_image_with_model(agent, path, question, profile="general", output_schema=""):
+    """执行 `inspect_image_with_model` 的内部逻辑。"""
     loaded = load_workspace_image(agent, path)
     prompt = image_inspection_prompt(
         loaded.metadata["path"], question, profile, output_schema
@@ -46,15 +47,17 @@ def inspect_image_with_model(agent, path, question, profile="general", output_sc
 
 
 def complete_model_with_timeout(model_client, model_input, max_new_tokens):
+    """执行 `complete_model_with_timeout` 的内部逻辑。"""
     timeout = getattr(model_client, "timeout", None)
     if not timeout:
         return complete_model(model_client, model_input, max_new_tokens)
     results = queue.Queue(maxsize=1)
 
     def worker():
+        """执行 `worker` 的内部逻辑。"""
         try:
             results.put((complete_model(model_client, model_input, max_new_tokens), None))
-        except Exception as exc:  # pragma: no cover - exercised through caller paths
+        except Exception as exc:  # pragma: no cover - 由调用方路径覆盖
             results.put((None, exc))
 
     thread = threading.Thread(target=worker, daemon=True)
@@ -69,6 +72,7 @@ def complete_model_with_timeout(model_client, model_input, max_new_tokens):
 
 
 def image_inspection_prompt(path, question, profile, output_schema):
+    """执行 `image_inspection_prompt` 的内部逻辑。"""
     question_text = str(question or "")
     lines = [
         "Inspect this workspace image for a coding-agent task.",
@@ -88,12 +92,14 @@ def image_inspection_prompt(path, question, profile, output_schema):
 
 
 def _needs_complete_visual_extraction(question, profile, output_schema):
+    """执行 `_needs_complete_visual_extraction` 的内部逻辑。"""
     text = " ".join(str(value or "").lower() for value in (question, profile, output_schema))
     keywords = ("ocr", "extract", "all rows", "every visible row", "list rows", "table", "csv")
     return any(keyword in text for keyword in keywords)
 
 
 def image_suffix(mime_type):
+    """执行 `image_suffix` 的内部逻辑。"""
     return {
         "image/gif": ".gif",
         "image/jpeg": ".jpg",

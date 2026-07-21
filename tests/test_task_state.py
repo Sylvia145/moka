@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 from pico.core.task_state import (
     STOP_REASON_FINAL_ANSWER_RETURNED,
     STOP_REASON_RETRY_LIMIT_REACHED,
@@ -7,6 +8,7 @@ from pico.core.task_state import (
 
 
 def test_task_state_starts_running_with_empty_progress():
+    """执行 `test_task_state_starts_running_with_empty_progress` 的内部逻辑。"""
     state = TaskState.create(run_id="run_001", task_id="task_001", user_request="Inspect the repo.")
 
     assert state.task_id == "task_001"
@@ -21,6 +23,7 @@ def test_task_state_starts_running_with_empty_progress():
 
 
 def test_task_state_records_success_and_final_answer():
+    """执行 `test_task_state_records_success_and_final_answer` 的内部逻辑。"""
     state = TaskState.create(run_id="run_002", task_id="task_002", user_request="Fix the bug.")
     state.record_attempt()
     state.record_tool("read_file")
@@ -35,6 +38,7 @@ def test_task_state_records_success_and_final_answer():
 
 
 def test_task_state_records_step_limit_stop_reason():
+    """执行 `test_task_state_records_step_limit_stop_reason` 的内部逻辑。"""
     state = TaskState.create(run_id="run_003", task_id="task_003", user_request="Try again.")
 
     state.stop_step_limit()
@@ -44,6 +48,7 @@ def test_task_state_records_step_limit_stop_reason():
 
 
 def test_task_state_records_retry_limit_stop_reason():
+    """执行 `test_task_state_records_retry_limit_stop_reason` 的内部逻辑。"""
     state = TaskState.create(run_id="run_004", task_id="task_004", user_request="Try again.")
 
     state.stop_retry_limit()
@@ -53,6 +58,7 @@ def test_task_state_records_retry_limit_stop_reason():
 
 
 def test_task_state_snapshot_keeps_final_answer():
+    """执行 `test_task_state_snapshot_keeps_final_answer` 的内部逻辑。"""
     state = TaskState.create(run_id="run_005", task_id="task_005", user_request="Return the answer.")
     state.finish_success("Final answer.")
 
@@ -63,6 +69,7 @@ def test_task_state_snapshot_keeps_final_answer():
 
 
 def test_task_state_snapshot_keeps_checkpoint_reference_without_body():
+    """执行 `test_task_state_snapshot_keeps_checkpoint_reference_without_body` 的内部逻辑。"""
     state = TaskState.create(run_id="run_006", task_id="task_006", user_request="Resume the task.")
     state.checkpoint_id = "ckpt_001"
     state.resume_status = "full-valid"

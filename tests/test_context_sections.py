@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 from pico.core.context_sections import (
     DEFAULT_SECTION_BUDGETS,
     MIN_SECTION_BUDGETS,
@@ -14,6 +15,7 @@ from pico.core.context_manager import ContextManager
 
 
 def test_context_section_policy_registry_preserves_order_and_budget_data():
+    """执行 `test_context_section_policy_registry_preserves_order_and_budget_data` 的内部逻辑。"""
     assert SECTION_ORDER == ("prefix", "memory", "skills", "relevant_memory", "history", "current_request")
     assert [policy.name for policy in SECTION_POLICIES] == list(SECTION_ORDER)
     assert all(isinstance(policy, ContextSectionPolicy) for policy in SECTION_POLICIES)
@@ -39,6 +41,7 @@ def test_context_section_policy_registry_preserves_order_and_budget_data():
 
 
 def test_context_section_policy_records_sources_and_non_reducible_request():
+    """执行 `test_context_section_policy_records_sources_and_non_reducible_request` 的内部逻辑。"""
     policies = {policy.name: policy for policy in SECTION_POLICIES}
 
     assert policies["prefix"].sources == ("workspace_prefix",)
@@ -76,6 +79,7 @@ def test_context_section_policy_records_sources_and_non_reducible_request():
 
 
 def test_context_manager_exports_legacy_section_policy_names():
+    """执行 `test_context_manager_exports_legacy_section_policy_names` 的内部逻辑。"""
     from pico.core.context_manager import (
         DEFAULT_REDUCTION_ORDER,
         DEFAULT_SECTION_FLOORS,
@@ -90,12 +94,14 @@ def test_context_manager_exports_legacy_section_policy_names():
 
 
 def test_context_manager_default_floors_match_section_registry():
+    """执行 `test_context_manager_default_floors_match_section_registry` 的内部逻辑。"""
     manager = ContextManager(agent=object())
 
     assert manager.section_floors == MIN_SECTION_BUDGETS
 
 
 def test_context_manager_recomputes_floors_for_mutated_custom_budgets():
+    """执行 `test_context_manager_recomputes_floors_for_mutated_custom_budgets` 的内部逻辑。"""
     manager = ContextManager(agent=object())
     manager.section_budgets = {"prefix": 120, "memory": 120, "relevant_memory": 120, "history": 160, "extra": 80}
 

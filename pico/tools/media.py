@@ -1,4 +1,4 @@
-"""Media inspection tools."""
+"""Pico 运行时实现模块。"""
 
 from ..core import vision
 
@@ -23,6 +23,7 @@ MEDIA_TOOL_EXAMPLES = {
 
 
 def validate_media_runtime(agent, name, args):
+    """执行 `validate_media_runtime` 的内部逻辑。"""
     if name == "inspect_image":
         path = agent.path(args["path"])
         if not path.is_file():
@@ -30,6 +31,7 @@ def validate_media_runtime(agent, name, args):
 
 
 def tool_inspect_image(agent, args):
+    """执行 `tool_inspect_image` 的内部逻辑。"""
     return vision.inspect_image_with_model(
         agent,
         args["path"],

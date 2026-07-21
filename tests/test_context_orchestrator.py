@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 from pico import Pico, SessionStore, WorkspaceContext
 from pico.core.context_budget_summary import context_budget_summary
 from pico.core.context_manager import ContextManager
@@ -5,6 +6,7 @@ from pico.testing import ScriptedModelClient
 
 
 def build_agent(tmp_path, outputs=None):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     return Pico(
         model_client=ScriptedModelClient(outputs or []),
@@ -15,6 +17,7 @@ def build_agent(tmp_path, outputs=None):
 
 
 def test_orchestrator_build_wraps_context_manager_without_low_pressure_prompt_drift(tmp_path):
+    """执行 `test_orchestrator_build_wraps_context_manager_without_low_pressure_prompt_drift` 的内部逻辑。"""
     agent = build_agent(tmp_path)
     agent.memory.append_note("deploy key is red", tags=("deploy",), created_at="2026-04-07T10:00:00+00:00")
     expected_prompt, _ = ContextManager(agent).build("Where is the deploy key?")
@@ -35,6 +38,7 @@ def test_orchestrator_build_wraps_context_manager_without_low_pressure_prompt_dr
 
 
 def test_orchestrator_build_records_no_op_auto_compaction_decision(tmp_path):
+    """执行 `test_orchestrator_build_records_no_op_auto_compaction_decision` 的内部逻辑。"""
     agent = build_agent(tmp_path)
     for index in range(3):
         agent.record(
@@ -64,6 +68,7 @@ def test_orchestrator_build_records_no_op_auto_compaction_decision(tmp_path):
 
 
 def test_orchestrator_tier3_triggers_llm_compaction_before_prompt_over_budget(tmp_path):
+    """执行 `test_orchestrator_tier3_triggers_llm_compaction_before_prompt_over_budget` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -100,6 +105,7 @@ Continue the large task.
 
 
 def test_orchestrator_tier3_insufficient_delta_does_not_compact(tmp_path):
+    """执行 `test_orchestrator_tier3_insufficient_delta_does_not_compact` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["unused"])
     agent.model_client.context_window = 200
     agent.record({"role": "user", "content": "request " + ("x" * 900)})
@@ -115,6 +121,7 @@ def test_orchestrator_tier3_insufficient_delta_does_not_compact(tmp_path):
 
 
 def test_orchestrator_explains_over_budget_short_history_without_compaction(tmp_path):
+    """执行 `test_orchestrator_explains_over_budget_short_history_without_compaction` 的内部逻辑。"""
     agent = build_agent(tmp_path)
     agent.context_manager = ContextManager(
         agent,
@@ -133,6 +140,7 @@ def test_orchestrator_explains_over_budget_short_history_without_compaction(tmp_
 
 
 def test_orchestrator_prompt_over_budget_uses_deterministic_compaction(tmp_path):
+    """执行 `test_orchestrator_prompt_over_budget_uses_deterministic_compaction` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["unused"])
     for index in range(5):
         agent.record({"role": "user", "content": f"request {index} " + ("x" * 300)})
@@ -153,6 +161,7 @@ def test_orchestrator_prompt_over_budget_uses_deterministic_compaction(tmp_path)
 
 
 def test_orchestrator_prompt_over_budget_wins_over_tier3_llm(tmp_path):
+    """执行 `test_orchestrator_prompt_over_budget_wins_over_tier3_llm` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["unused"])
     agent.model_client.context_window = 1000
     for index in range(5):

@@ -1,4 +1,4 @@
-"""Context cost experiment helpers."""
+"""Pico 运行时实现模块。"""
 
 from __future__ import annotations
 
@@ -37,6 +37,7 @@ class CostUsage:
 
     @property
     def uncached_input_tokens(self) -> int:
+        """执行 `uncached_input_tokens` 的内部逻辑。"""
         return max(0, int(self.input_tokens) - int(self.cached_tokens))
 
 
@@ -65,6 +66,7 @@ class ExperimentRow:
     compact_net_benefit_tokens: int | None = None
 
     def to_dict(self) -> dict:
+        """执行 `to_dict` 的内部逻辑。"""
         payload = asdict(self)
         payload["usage"] = asdict(self.usage)
         return payload
@@ -95,6 +97,7 @@ EXPERIMENT_VARIANTS = {
 
 
 def compute_cost_usd(usage: CostUsage, pricing: ProviderPricing) -> float:
+    """执行 `compute_cost_usd` 的内部逻辑。"""
     return (
         usage.uncached_input_tokens * pricing.input_per_1m
         + int(usage.cached_tokens) * pricing.cached_input_per_1m
@@ -114,6 +117,7 @@ def extract_usage_from_artifacts(
     verification_status=None,
     allow_verification_override=False,
 ) -> ExperimentRow:
+    """执行 `extract_usage_from_artifacts` 的内部逻辑。"""
     report_path = Path(report_path)
     trace_path = Path(trace_path)
     report = json.loads(report_path.read_text(encoding="utf-8"))
@@ -173,6 +177,7 @@ def extract_usage_from_artifacts(
 def summarize_paired_rows(
     rows, *, treatment="full_orchestrator", control="no_context_reduction"
 ):
+    """执行 `summarize_paired_rows` 的内部逻辑。"""
     rows = list(rows)
     pairs = _paired_rows(rows, treatment=treatment, control=control)
     actual_pairs = [
@@ -208,6 +213,7 @@ def summarize_paired_rows(
 
 
 def run_deterministic_prompt_experiment(output_dir, repetitions=1, pricing=None):
+    """执行 `run_deterministic_prompt_experiment` 的内部逻辑。"""
     pricing = pricing or DEFAULT_PROXY_PRICING
     output_dir = Path(output_dir)
     rows = []
@@ -244,6 +250,7 @@ def run_deterministic_prompt_experiment(output_dir, repetitions=1, pricing=None)
 
 
 def run_scripted_e2e_experiment(output_dir, repetitions=1, pricing=None):
+    """执行 `run_scripted_e2e_experiment` 的内部逻辑。"""
     pricing = pricing or DEFAULT_PROXY_PRICING
     output_dir = Path(output_dir)
     rows = []
@@ -298,6 +305,7 @@ def run_paired_experiment(
     pricing=None,
     provider_client_factory=None,
 ):
+    """执行 `run_paired_experiment` 的内部逻辑。"""
     mode = str(mode)
     if mode not in {"scripted", "live"}:
         raise ValueError(f"unsupported experiment mode: {mode}")
@@ -338,6 +346,7 @@ def run_paired_experiment(
 
 
 def build_result_payload(rows, *, pricing_profile, pricing=None, treatment="full_orchestrator", control="no_context_reduction"):
+    """执行 `build_result_payload` 的内部逻辑。"""
     rows = list(rows)
     return {
         "artifact_type": "context-cost-experiment",
@@ -349,6 +358,7 @@ def build_result_payload(rows, *, pricing_profile, pricing=None, treatment="full
 
 
 def collect_rows_from_run_manifest(manifest, *, pricing):
+    """执行 `collect_rows_from_run_manifest` 的内部逻辑。"""
     rows = []
     for item in manifest.get("runs", []) or []:
         rows.append(
@@ -366,6 +376,7 @@ def collect_rows_from_run_manifest(manifest, *, pricing):
 
 
 def render_markdown_report(payload):
+    """执行 `render_markdown_report` 的内部逻辑。"""
     summary = dict(payload.get("summary", {}) or {})
     pricing = dict(payload.get("pricing", {}) or {})
     actual = dict(summary.get("actual_only", {}) or {})
@@ -433,6 +444,7 @@ def render_markdown_report(payload):
 
 
 def generate_report(payload, include_llm_handoff_comparison=False):
+    """执行 `generate_report` 的内部逻辑。"""
     report = render_markdown_report(payload)
     if include_llm_handoff_comparison:
         report += "\n\n" + _render_llm_handoff_comparison(payload)
@@ -440,6 +452,7 @@ def generate_report(payload, include_llm_handoff_comparison=False):
 
 
 def write_experiment_artifacts(payload, output_dir):
+    """执行 `write_experiment_artifacts` 的内部逻辑。"""
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     json_path = output_dir / "results.json"
@@ -457,6 +470,7 @@ def write_experiment_artifacts(payload, output_dir):
 
 
 def main(argv=None):
+    """执行 `main` 的内部逻辑。"""
     args = _build_arg_parser().parse_args(argv)
     pricing = ProviderPricing(
         args.input_per_1m,
@@ -486,6 +500,7 @@ def main(argv=None):
 
 
 def _usage_from_trace(trace_path):
+    """执行 `_usage_from_trace` 的内部逻辑。"""
     estimated_input_tokens = 0
     input_tokens = 0
     cached_tokens = 0
@@ -514,6 +529,7 @@ def _usage_from_trace(trace_path):
 
 
 def _compact_metrics_from_trace(trace_path):
+    """执行 `_compact_metrics_from_trace` 的内部逻辑。"""
     metrics = {
         "summary_called": False,
         "summary_delta_event_count": 0,
@@ -543,6 +559,7 @@ def _compact_metrics_from_trace(trace_path):
 
 
 def _usage_with_compact_call(usage, compact_call_usage):
+    """执行 `_usage_with_compact_call` 的内部逻辑。"""
     compact_input = int(compact_call_usage.get("input_tokens", 0) or 0)
     compact_cached = int(compact_call_usage.get("cached_tokens", 0) or 0)
     compact_output = int(compact_call_usage.get("output_tokens", 0) or 0)
@@ -556,6 +573,7 @@ def _usage_with_compact_call(usage, compact_call_usage):
 
 
 def _is_provider_usage_metadata(metadata):
+    """执行 `_is_provider_usage_metadata` 的内部逻辑。"""
     return (
         metadata.get("provider_protocol") is not None
         and metadata.get("provider_model") is not None
@@ -566,6 +584,7 @@ def _is_provider_usage_metadata(metadata):
 
 
 def _verification_status(report):
+    """执行 `_verification_status` 的内部逻辑。"""
     signal = dict(
         (report.get("evidence_summaries", {}) or {}).get("verification_signal", {}) or {}
     )
@@ -574,6 +593,7 @@ def _verification_status(report):
 
 
 def _paired_rows(rows, *, treatment, control):
+    """执行 `_paired_rows` 的内部逻辑。"""
     by_key = {}
     for row in rows:
         by_key.setdefault((row.task_id, row.repeat, row.layer), {})[row.variant] = row
@@ -585,6 +605,7 @@ def _paired_rows(rows, *, treatment, control):
 
 
 def _quality_regressed(treatment, control):
+    """执行 `_quality_regressed` 的内部逻辑。"""
     if control.status == "completed" and treatment.status != "completed":
         return True
     if control.verification_status == "passed" and treatment.verification_status != "passed":
@@ -597,6 +618,7 @@ def _quality_regressed(treatment, control):
 
 
 def _summarize_pair_bucket(pairs, *, treatment, control):
+    """执行 `_summarize_pair_bucket` 的内部逻辑。"""
     uncached_deltas = [
         _delta_pct(pair[treatment].usage.uncached_input_tokens, pair[control].usage.uncached_input_tokens)
         for pair in pairs
@@ -638,6 +660,7 @@ def _summarize_pair_bucket(pairs, *, treatment, control):
 
 
 def _pair_usage_source(pair, treatment, control):
+    """执行 `_pair_usage_source` 的内部逻辑。"""
     sources = {pair[treatment].usage.usage_source, pair[control].usage.usage_source}
     if sources == {"actual"}:
         return "actual"
@@ -647,26 +670,31 @@ def _pair_usage_source(pair, treatment, control):
 
 
 def _delta_pct(treatment, control):
+    """执行 `_delta_pct` 的内部逻辑。"""
     if not control:
         return 0.0
     return round((float(treatment) - float(control)) / float(control), 4)
 
 
 def _median_rounded(values):
+    """执行 `_median_rounded` 的内部逻辑。"""
     return round(statistics.median(values), 4) if values else 0.0
 
 
 def _mean_rounded(values):
+    """执行 `_mean_rounded` 的内部逻辑。"""
     values = list(values)
     return round(statistics.mean(values), 4) if values else 0.0
 
 
 def _rate(values):
+    """执行 `_rate` 的内部逻辑。"""
     values = list(values)
     return round(sum(1 for value in values if value) / len(values), 4) if values else 0.0
 
 
 def _cost_per_successful_task(rows):
+    """执行 `_cost_per_successful_task` 的内部逻辑。"""
     rows = list(rows)
     successful = [
         row for row in rows if row.status == "completed" and row.verification_status == "passed"
@@ -677,6 +705,7 @@ def _cost_per_successful_task(rows):
 
 
 def _claimable_cost_win(pairs, *, treatment, control, cost_deltas):
+    """执行 `_claimable_cost_win` 的内部逻辑。"""
     if not pairs or not cost_deltas or _median_rounded(cost_deltas) >= 0:
         return False
     if any(
@@ -695,6 +724,7 @@ def _claimable_cost_win(pairs, *, treatment, control, cost_deltas):
 
 
 def _p95_rounded(values):
+    """执行 `_p95_rounded` 的内部逻辑。"""
     if not values:
         return 0.0
     ordered = sorted(values)
@@ -703,6 +733,7 @@ def _p95_rounded(values):
 
 
 def _build_synthetic_agent(workspace_root, *, context_reduction=True):
+    """执行 `_build_synthetic_agent` 的内部逻辑。"""
     workspace_root = Path(workspace_root)
     (workspace_root / "README.md").write_text("demo\n", encoding="utf-8")
     agent = Pico(
@@ -721,10 +752,12 @@ def _build_synthetic_agent(workspace_root, *, context_reduction=True):
 
 class _ContextCostScriptedClient(ScriptedModelClient):
     def __init__(self):
+        """初始化对象状态。"""
         super().__init__([])
         self.phase = 0
 
     def complete(self, prompt, max_new_tokens, **kwargs):
+        """执行 `complete` 的内部逻辑。"""
         del max_new_tokens, kwargs
         self.prompts.append(prompt)
         self.last_completion_metadata = {
@@ -740,6 +773,7 @@ class _ContextCostScriptedClient(ScriptedModelClient):
 
 
 def _build_scripted_agent(workspace_root, *, context_reduction=True):
+    """执行 `_build_scripted_agent` 的内部逻辑。"""
     workspace_root = Path(workspace_root)
     (workspace_root / "README.md").write_text("demo\n", encoding="utf-8")
     (workspace_root / "large.txt").write_text(
@@ -762,11 +796,13 @@ def _build_scripted_agent(workspace_root, *, context_reduction=True):
 
 class _LongSessionScriptedClient(ScriptedModelClient):
     def __init__(self, outputs):
+        """初始化对象状态。"""
         super().__init__(outputs)
         self.context_window = 2200
         self.model = "scripted-long-session"
 
     def complete(self, prompt, max_new_tokens, **kwargs):
+        """执行 `complete` 的内部逻辑。"""
         if "You are a context compactor for a coding agent" in str(prompt):
             self.prompts.append(prompt)
             self.last_completion_metadata = {
@@ -815,6 +851,7 @@ def _run_long_session_task(
     output_dir,
     pricing,
 ):
+    """执行 `_run_long_session_task` 的内部逻辑。"""
     fixture_source = Path(task["fixture_repo"]).resolve()
     workspace = Path(output_dir) / "runs" / task["id"] / variant / str(repeat) / fixture_source.name
     if workspace.exists():
@@ -888,6 +925,7 @@ def _model_client_for_long_session_task(
     provider,
     provider_client_factory,
 ):
+    """执行 `_model_client_for_long_session_task` 的内部逻辑。"""
     if mode == "scripted":
         return _LongSessionScriptedClient(task.get("scripted_outputs", []))
     if provider_client_factory is not None:
@@ -901,6 +939,7 @@ def _model_client_for_long_session_task(
 
 
 def _build_live_provider_client(provider):
+    """执行 `_build_live_provider_client` 的内部逻辑。"""
     config = resolve_provider_config(provider, start=Path.cwd())
     if not config.api_key:
         raise RuntimeError(
@@ -928,6 +967,7 @@ def _build_live_provider_client(provider):
 
 
 def _seed_long_session_history(agent):
+    """执行 `_seed_long_session_history` 的内部逻辑。"""
     for index in range(6):
         agent.record(
             {
@@ -944,9 +984,11 @@ def _seed_long_session_history(agent):
 
 
 def _force_compact_summary_mode(agent, summary_mode):
+    """执行 `_force_compact_summary_mode` 的内部逻辑。"""
     original = agent.context_orchestrator._compact_request
 
     def compact_request(self, metadata, snapshot):
+        """执行 `compact_request` 的内部逻辑。"""
         trigger, mode, skip_reason = original(metadata, snapshot)
         del mode
         if trigger:
@@ -959,6 +1001,7 @@ def _force_compact_summary_mode(agent, summary_mode):
 
 
 def _comparison_variants(variants):
+    """执行 `_comparison_variants` 的内部逻辑。"""
     if "full_orchestrator_with_llm_handoff" in variants and "full_orchestrator" in variants:
         return "full_orchestrator_with_llm_handoff", "full_orchestrator"
     if len(variants) >= 2:
@@ -967,6 +1010,7 @@ def _comparison_variants(variants):
 
 
 def _render_llm_handoff_comparison(payload):
+    """执行 `_render_llm_handoff_comparison` 的内部逻辑。"""
     rows = [dict(row) for row in payload.get("rows", []) or []]
     by_pair = {}
     for row in rows:
@@ -1046,18 +1090,22 @@ def _render_llm_handoff_comparison(payload):
 
 
 def _repeat_label(task_id, repeat, *, show_repeat):
+    """执行 `_repeat_label` 的内部逻辑。"""
     return f"{task_id}#{repeat}" if show_repeat else str(task_id)
 
 
 def _median_tokens(values):
+    """执行 `_median_tokens` 的内部逻辑。"""
     return int(statistics.median(values)) if values else 0
 
 
 def _pct(count, total):
+    """执行 `_pct` 的内部逻辑。"""
     return f"{(count / total):.0%}" if total else "0%"
 
 
 def _write_prompt_only_trace(trace_path, prompt_metadata):
+    """执行 `_write_prompt_only_trace` 的内部逻辑。"""
     trace_path.write_text(
         json.dumps(
             {
@@ -1071,6 +1119,7 @@ def _write_prompt_only_trace(trace_path, prompt_metadata):
 
 
 def _write_prompt_only_report(report_path, prompt_metadata):
+    """执行 `_write_prompt_only_report` 的内部逻辑。"""
     report_path.write_text(
         json.dumps(
             {
@@ -1092,6 +1141,7 @@ def _write_prompt_only_report(report_path, prompt_metadata):
 
 
 def _write_rows_csv(rows, path):
+    """执行 `_write_rows_csv` 的内部逻辑。"""
     fieldnames = sorted(
         {key for row in rows for key in row.keys()}
         | {"usage_input_tokens", "usage_cached_tokens", "usage_output_tokens", "usage_source"}
@@ -1110,6 +1160,7 @@ def _write_rows_csv(rows, path):
 
 
 def _read_jsonl(path):
+    """执行 `_read_jsonl` 的内部逻辑。"""
     path = Path(path)
     if not path.is_file():
         return []
@@ -1121,10 +1172,12 @@ def _read_jsonl(path):
 
 
 def _tool_name(event):
+    """执行 `_tool_name` 的内部逻辑。"""
     return str(event.get("name") or event.get("tool_name") or event.get("tool") or "")
 
 
 def _build_arg_parser():
+    """执行 `_build_arg_parser` 的内部逻辑。"""
     parser = argparse.ArgumentParser(description="Run Pico context cost experiments.")
     parser.add_argument("--mode", choices=["deterministic", "scripted", "manifest"], required=True)
     parser.add_argument("--output-dir", required=True)

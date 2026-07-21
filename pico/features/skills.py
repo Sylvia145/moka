@@ -1,4 +1,4 @@
-"""Skill discovery, prompt expansion, and slash workflow execution."""
+"""Pico 运行时实现模块。"""
 
 from __future__ import annotations
 
@@ -35,6 +35,7 @@ class Skill:
     prompt_fn: Callable[[str], str] | None = None
 
     def render(self, arguments=""):
+        """执行 `render` 的内部逻辑。"""
         text = self.prompt_fn(str(arguments)) if self.prompt_fn else self.prompt
         replacements = {
             "$ARGUMENTS": str(arguments),
@@ -48,6 +49,7 @@ class Skill:
         return text.strip()
 
     def metadata(self):
+        """执行 `metadata` 的内部逻辑。"""
         return {
             "name": self.name,
             "description": self.description,
@@ -62,6 +64,7 @@ class Skill:
 
 
 def discover_skills(root, home=None):
+    """执行 `discover_skills` 的内部逻辑。"""
     from .skills_bundled import bundled_skills
 
     skills = {skill.name: skill for skill in bundled_skills()}
@@ -88,6 +91,7 @@ def discover_skills(root, home=None):
 
 
 def load_skills_from_dir(skills_dir, source):
+    """执行 `load_skills_from_dir` 的内部逻辑。"""
     skills_dir = Path(skills_dir).expanduser()
     if not skills_dir.exists():
         return []
@@ -101,6 +105,7 @@ def load_skills_from_dir(skills_dir, source):
 
 
 def load_skill_file(path, source):
+    """执行 `load_skill_file` 的内部逻辑。"""
     path = Path(path)
     metadata, body = parse_frontmatter(path.read_text(encoding="utf-8"))
     default_name = path.parent.name if path.name == "SKILL.md" else path.stem
@@ -125,6 +130,7 @@ def load_skill_file(path, source):
 
 
 def parse_frontmatter(text):
+    """执行 `parse_frontmatter` 的内部逻辑。"""
     match = FRONTMATTER_RE.match(str(text))
     if not match:
         return {}, str(text)
@@ -139,6 +145,7 @@ def parse_frontmatter(text):
 
 
 def render_prompt_section(skills):
+    """执行 `render_prompt_section` 的内部逻辑。"""
     visible = [skill for skill in list_skills(skills, user_invocable_only=False) if _should_show_in_prompt(skill)]
     if not visible:
         return "Available skills:\n- none"
@@ -151,6 +158,7 @@ def render_prompt_section(skills):
 
 
 def render_skills_list(skills):
+    """执行 `render_skills_list` 的内部逻辑。"""
     lines = []
     for skill in list_skills(skills):
         description = skill.description or skill.when_to_use or "No description"
@@ -160,6 +168,7 @@ def render_skills_list(skills):
 
 
 def list_skills(skills, user_invocable_only=True):
+    """执行 `list_skills` 的内部逻辑。"""
     items = [skills[name] for name in sorted(skills)]
     if user_invocable_only:
         items = [skill for skill in items if skill.user_invocable]
@@ -167,6 +176,7 @@ def list_skills(skills, user_invocable_only=True):
 
 
 def parse_slash_command(text):
+    """执行 `parse_slash_command` 的内部逻辑。"""
     text = str(text).strip()
     if not text.startswith("/") or text == "/":
         return "", ""
@@ -175,6 +185,7 @@ def parse_slash_command(text):
 
 
 def _parse_value(value):
+    """执行 `_parse_value` 的内部逻辑。"""
     value = value.strip().strip("\"'")
     if value.lower() in {"true", "yes"}:
         return True
@@ -186,12 +197,14 @@ def _parse_value(value):
 
 
 def _list_value(value):
+    """执行 `_list_value` 的内部逻辑。"""
     if isinstance(value, (list, tuple)):
         return [str(item).strip() for item in value if str(item).strip()]
     return [item.strip() for item in str(value or "").split(",") if item.strip()]
 
 
 def _string(value, default=""):
+    """执行 `_string` 的内部逻辑。"""
     if value is None:
         return default
     if isinstance(value, (list, tuple)):
@@ -200,10 +213,12 @@ def _string(value, default=""):
 
 
 def _bool_value(value):
+    """执行 `_bool_value` 的内部逻辑。"""
     if isinstance(value, bool):
         return value
     return str(value).strip().lower() not in {"0", "false", "no", "off"}
 
 
 def _should_show_in_prompt(skill):
+    """执行 `_should_show_in_prompt` 的内部逻辑。"""
     return skill.user_invocable or bool(skill.paths)

@@ -1,7 +1,7 @@
-"""Turn-level runtime engine.
+"""Pico 运行时实现模块。
 
-The runtime owns state and persistence. Engine owns the control loop that turns
-one user request into model calls, tool executions, and user-visible events.
+运行时负责状态与持久化；Engine 只负责把一次用户请求推进为模型调用、工具执行
+和用户可见事件的控制循环，避免形成第二套状态中心。
 """
 
 import time
@@ -39,9 +39,11 @@ CHECKPOINT_WORKSPACE_MISMATCH_STATUS = "workspace-mismatch"
 
 class Engine:
     def __init__(self, runtime):
+        """初始化对象状态。"""
         self.runtime = runtime
 
     def ask(self, user_message):
+        """执行 `ask` 的内部逻辑。"""
         final_answer = ""
         for event in self.run_turn(user_message):
             if event["type"] in {"final", "stop"}:
@@ -49,6 +51,7 @@ class Engine:
         return final_answer
 
     def drain_worker_notifications(self):
+        """执行 `drain_worker_notifications` 的内部逻辑。"""
         agent = self.runtime
         notifications = agent.worker_manager.drain_notifications()
         for notification in notifications:
@@ -63,6 +66,7 @@ class Engine:
         return notifications
 
     def _drain_worker_notification_events(self):
+        """执行 `_drain_worker_notification_events` 的内部逻辑。"""
         for notification in self.drain_worker_notifications():
             yield {
                 "type": "worker_notification",
@@ -71,6 +75,7 @@ class Engine:
             }
 
     def run_turn(self, user_message):
+        """执行 `run_turn` 的内部逻辑。"""
         agent = self.runtime
         run_started_at = time.monotonic()
         task_state = TaskState.create(

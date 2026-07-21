@@ -1,4 +1,4 @@
-"""Local Streamable HTTP release-policy MCP fixture for transport evaluation."""
+"""Pico 运行时实现模块。"""
 
 import json
 import threading
@@ -20,6 +20,7 @@ def release_policy_http_server(*, response_mode="json"):
 
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
+            """执行 `do_POST` 的内部逻辑。"""
             length = int(self.headers.get("Content-Length", 0))
             request = json.loads(self.rfile.read(length).decode("utf-8"))
             state["requests"].append(request)
@@ -65,6 +66,7 @@ def release_policy_http_server(*, response_mode="json"):
             self._send_json(request["id"], {})
 
         def _send_json(self, request_id, result, session=None):
+            """执行 `_send_json` 的内部逻辑。"""
             body = json.dumps({"jsonrpc": "2.0", "id": request_id, "result": result}).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -75,6 +77,7 @@ def release_policy_http_server(*, response_mode="json"):
             self.wfile.write(body)
 
         def _send_sse(self, request_id, result):
+            """执行 `_send_sse` 的内部逻辑。"""
             body = f"data: {json.dumps({'jsonrpc': '2.0', 'id': request_id, 'result': result})}\n\n".encode()
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
@@ -83,6 +86,7 @@ def release_policy_http_server(*, response_mode="json"):
             self.wfile.write(body)
 
         def log_message(self, _format, *_args):
+            """执行 `log_message` 的内部逻辑。"""
             return
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)

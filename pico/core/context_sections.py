@@ -1,4 +1,4 @@
-"""Data-only prompt section policy registry."""
+"""Pico 运行时实现模块。"""
 
 from __future__ import annotations
 
@@ -152,18 +152,22 @@ CURRENT_REQUEST_SECTION = "current_request"
 
 
 def section_order():
+    """执行 `section_order` 的内部逻辑。"""
     return SECTION_ORDER
 
 
 def section_budgets(total_budget_chars=None):
+    """执行 `section_budgets` 的内部逻辑。"""
     if total_budget_chars is None:
         return dict(DEFAULT_SECTION_BUDGETS)
     return compute_section_budgets(total_budget_chars)
 
 
 def section_floors():
+    """执行 `section_floors` 的内部逻辑。"""
     return dict(MIN_SECTION_BUDGETS)
 
 
 def reduction_order():
+    """执行 `reduction_order` 的内部逻辑。"""
     return REDUCTION_ORDER

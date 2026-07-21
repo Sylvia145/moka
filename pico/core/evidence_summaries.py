@@ -1,4 +1,4 @@
-"""Reduce trace events into TaskState evidence summaries.
+"""Pico 运行时实现模块。
 
 This module is the bridge from append-only trace facts to compact report-ready
 state. It does not re-read trace files; runtime consumers call it as events are
@@ -16,6 +16,7 @@ from .verification import reduce_verification_signal
 
 
 def update_evidence_summaries(summaries, event, changed_paths=None):
+    """执行 `update_evidence_summaries` 的内部逻辑。"""
     summaries = dict(summaries or {})
     if event.get("event") == "loop_transition":
         summaries["transition_summary"] = reduce_transition_summary(

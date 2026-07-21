@@ -1,4 +1,4 @@
-"""Per-run governance evidence for tool decisions.
+"""Pico 运行时实现模块。
 
 Tool execution records allow, warn, and deny decisions here so reports can
 explain what the runtime permitted or blocked. This module summarizes decisions
@@ -21,6 +21,7 @@ def record_governance_decision(
     effects=None,
     source="tool_executor",
 ):
+    """执行 `record_governance_decision` 的内部逻辑。"""
     task_state = getattr(agent, "current_task_state", None)
     if task_state is None:
         return None
@@ -44,6 +45,7 @@ def record_governance_decision(
 
 
 def reduce_governance_summary(summary, event):
+    """执行 `reduce_governance_summary` 的内部逻辑。"""
     summary = dict(summary or {})
     summary.setdefault("schema_version", GOVERNANCE_SUMMARY_SCHEMA)
     decision = str(event.get("decision", ""))

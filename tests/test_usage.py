@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 from pathlib import Path
 import json
 import pytest
@@ -7,6 +8,7 @@ from pico import Pico, SessionStore, WorkspaceContext
 
 
 def build_agent(tmp_path, outputs=None, **kwargs):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     return Pico(
@@ -19,6 +21,7 @@ def build_agent(tmp_path, outputs=None, **kwargs):
 
 
 def test_usage_command_reports_provider_model_and_last_usage(tmp_path):
+    """执行 `test_usage_command_reports_provider_model_and_last_usage` 的内部逻辑。"""
     from pico.cli import handle_repl_command
 
     agent = build_agent(tmp_path, ["<final>Done.</final>"])
@@ -44,6 +47,7 @@ def test_usage_command_reports_provider_model_and_last_usage(tmp_path):
 
 
 def test_usage_command_sanitizes_base_url_host(tmp_path):
+    """执行 `test_usage_command_sanitizes_base_url_host` 的内部逻辑。"""
     from pico.cli import handle_repl_command
 
     agent = build_agent(tmp_path, [])
@@ -58,6 +62,7 @@ def test_usage_command_sanitizes_base_url_host(tmp_path):
 
 
 def test_usage_command_handles_malformed_sanitized_base_url(tmp_path):
+    """执行 `test_usage_command_handles_malformed_sanitized_base_url` 的内部逻辑。"""
     from pico.cli import handle_repl_command
 
     agent = build_agent(tmp_path, [])
@@ -72,6 +77,7 @@ def test_usage_command_handles_malformed_sanitized_base_url(tmp_path):
 
 
 def test_usage_command_optionally_reports_context_pressure_fields(tmp_path):
+    """执行 `test_usage_command_optionally_reports_context_pressure_fields` 的内部逻辑。"""
     from pico.cli import handle_repl_command
 
     agent = build_agent(tmp_path, [])
@@ -95,6 +101,7 @@ def test_usage_command_optionally_reports_context_pressure_fields(tmp_path):
 
 
 def test_usage_command_optionally_reports_context_orchestrator_fields(tmp_path):
+    """执行 `test_usage_command_optionally_reports_context_orchestrator_fields` 的内部逻辑。"""
     from pico.cli import handle_repl_command
 
     agent = build_agent(tmp_path, [])
@@ -121,6 +128,7 @@ def test_usage_command_optionally_reports_context_orchestrator_fields(tmp_path):
 
 
 def test_context_command_reports_usage_and_orchestrator_payload(tmp_path):
+    """执行 `test_context_command_reports_usage_and_orchestrator_payload` 的内部逻辑。"""
     from pico.cli import handle_repl_command
 
     agent = build_agent(tmp_path, [])
@@ -134,6 +142,7 @@ def test_context_command_reports_usage_and_orchestrator_payload(tmp_path):
 
 
 def test_usage_command_omits_optional_context_pressure_fields_when_absent(tmp_path):
+    """执行 `test_usage_command_omits_optional_context_pressure_fields_when_absent` 的内部逻辑。"""
     from pico.cli import handle_repl_command
 
     agent = build_agent(tmp_path, [])
@@ -154,6 +163,7 @@ def test_usage_command_omits_optional_context_pressure_fields_when_absent(tmp_pa
 
 
 def test_model_command_updates_current_runtime_only(tmp_path):
+    """执行 `test_model_command_updates_current_runtime_only` 的内部逻辑。"""
     from pico.cli import handle_repl_command
 
     agent = build_agent(tmp_path, [])
@@ -168,6 +178,7 @@ def test_model_command_updates_current_runtime_only(tmp_path):
 
 
 def test_session_history_resume_and_clear_commands(tmp_path):
+    """执行 `test_session_history_resume_and_clear_commands` 的内部逻辑。"""
     from pico.cli import handle_repl_command
 
     first = build_agent(tmp_path, ["<final>First.</final>"])
@@ -205,6 +216,7 @@ def test_session_history_resume_and_clear_commands(tmp_path):
 
 
 def test_resume_rejects_path_traversal_session_id(tmp_path):
+    """执行 `test_resume_rejects_path_traversal_session_id` 的内部逻辑。"""
     from pico.cli import handle_repl_command
 
     agent = build_agent(tmp_path, [])
@@ -216,6 +228,7 @@ def test_resume_rejects_path_traversal_session_id(tmp_path):
 
 
 def test_session_store_rejects_path_traversal_ids(tmp_path):
+    """执行 `test_session_store_rejects_path_traversal_ids` 的内部逻辑。"""
     store = SessionStore(tmp_path / ".pico" / "sessions")
 
     with pytest.raises(ValueError, match="invalid session id"):

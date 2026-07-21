@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 
 from pico.testing import ScriptedModelClient
@@ -8,6 +9,7 @@ from pico.features.sandbox.config import SandboxConfig
 
 
 def build_agent(tmp_path, outputs=None, **kwargs):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
@@ -22,6 +24,7 @@ def build_agent(tmp_path, outputs=None, **kwargs):
 
 
 def read_session_events(agent):
+    """执行 `read_session_events` 的内部逻辑。"""
     return [
         json.loads(line)
         for line in agent.session_event_bus.path.read_text(
@@ -32,6 +35,7 @@ def read_session_events(agent):
 
 
 def test_permission_checker_is_the_single_default_tool_gate(tmp_path):
+    """执行 `test_permission_checker_is_the_single_default_tool_gate` 的内部逻辑。"""
     agent = build_agent(tmp_path, approval_policy="never")
 
     read_decision = agent.permission_checker.check(
@@ -60,6 +64,7 @@ def test_permission_checker_is_the_single_default_tool_gate(tmp_path):
 
 
 def test_run_shell_required_sandbox_fails_closed_after_permission(tmp_path):
+    """执行 `test_run_shell_required_sandbox_fails_closed_after_permission` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [],
@@ -75,6 +80,7 @@ def test_run_shell_required_sandbox_fails_closed_after_permission(tmp_path):
 
 
 def test_run_shell_best_effort_sandbox_degrades_and_keeps_permission_gate(tmp_path):
+    """执行 `test_run_shell_best_effort_sandbox_degrades_and_keeps_permission_gate` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [],
@@ -93,6 +99,7 @@ def test_run_shell_best_effort_sandbox_degrades_and_keeps_permission_gate(tmp_pa
 
 
 def test_plan_mode_switches_tool_profile_and_allows_only_active_plan_file(tmp_path):
+    """执行 `test_plan_mode_switches_tool_profile_and_allows_only_active_plan_file` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -146,6 +153,7 @@ def test_plan_mode_switches_tool_profile_and_allows_only_active_plan_file(tmp_pa
 
 
 def test_repeated_plan_mode_denial_is_blocked_before_hitting_step_limit(tmp_path):
+    """执行 `test_repeated_plan_mode_denial_is_blocked_before_hitting_step_limit` 的内部逻辑。"""
     bad_call = '<tool name="write_file" path="src.py"><content>print("no")\n</content></tool>'
     agent = build_agent(
         tmp_path,
@@ -183,6 +191,7 @@ def test_repeated_plan_mode_denial_is_blocked_before_hitting_step_limit(tmp_path
 
 
 def test_plan_mode_does_not_allow_retargeting_active_plan_with_enter_tool(tmp_path):
+    """执行 `test_plan_mode_does_not_allow_retargeting_active_plan_with_enter_tool` 的内部逻辑。"""
     agent = build_agent(tmp_path)
 
     agent.enter_plan_mode("original")
@@ -196,6 +205,7 @@ def test_plan_mode_does_not_allow_retargeting_active_plan_with_enter_tool(tmp_pa
 
 
 def test_plan_mode_rejects_arbitrary_workspace_plan_path(tmp_path):
+    """执行 `test_plan_mode_rejects_arbitrary_workspace_plan_path` 的内部逻辑。"""
     agent = build_agent(tmp_path)
 
     rejected = agent.run_tool(
@@ -207,6 +217,7 @@ def test_plan_mode_rejects_arbitrary_workspace_plan_path(tmp_path):
 
 
 def test_repl_plan_command_reports_bad_plan_path_without_crashing(tmp_path):
+    """执行 `test_repl_plan_command_reports_bad_plan_path_without_crashing` 的内部逻辑。"""
     agent = build_agent(tmp_path)
 
     handled, should_exit, output = handle_repl_command(

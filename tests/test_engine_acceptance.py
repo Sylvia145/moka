@@ -1,4 +1,4 @@
-"""End-to-end engine acceptance tests for user-visible turn behavior."""
+"""Pico 自动化测试模块。"""
 
 import json
 import shlex
@@ -10,6 +10,7 @@ from pico.providers import ProviderError
 
 
 def build_agent(tmp_path, outputs, **kwargs):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
@@ -23,6 +24,7 @@ def build_agent(tmp_path, outputs, **kwargs):
 
 
 def read_jsonl(path):
+    """执行 `read_jsonl` 的内部逻辑。"""
     return [
         json.loads(line)
         for line in path.read_text(encoding="utf-8").splitlines()
@@ -31,6 +33,7 @@ def read_jsonl(path):
 
 
 def test_engine_streams_a_real_session_with_tool_artifacts(tmp_path):
+    """执行 `test_engine_streams_a_real_session_with_tool_artifacts` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -73,6 +76,7 @@ def test_engine_streams_a_real_session_with_tool_artifacts(tmp_path):
 
 
 def test_engine_reports_context_budget_summary_from_prompt_metadata(tmp_path):
+    """执行 `test_engine_reports_context_budget_summary_from_prompt_metadata` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>Done.</final>"])
 
     list(agent.engine.run_turn("summarize context usage"))
@@ -106,6 +110,7 @@ def test_engine_reports_context_budget_summary_from_prompt_metadata(tmp_path):
 
 
 def test_engine_records_provider_error_as_failed_run(tmp_path):
+    """执行 `test_engine_records_provider_error_as_failed_run` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -150,6 +155,7 @@ def test_engine_records_provider_error_as_failed_run(tmp_path):
 
 
 def test_worker_notification_drained_during_turn_is_streamed(tmp_path):
+    """执行 `test_worker_notification_drained_during_turn_is_streamed` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -170,6 +176,7 @@ def test_worker_notification_drained_during_turn_is_streamed(tmp_path):
 
 
 def test_verification_signal_passes_after_workspace_verification(tmp_path):
+    """执行 `test_verification_signal_passes_after_workspace_verification` 的内部逻辑。"""
     if sys.platform == "win32":
         command = f'"{sys.executable}" -m compileall notes'
     else:

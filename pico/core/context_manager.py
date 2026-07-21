@@ -1,8 +1,7 @@
-"""Prompt assembly and context budget control.
+"""Pico 运行时实现模块。
 
-ContextManager decides how much prefix, memory, relevant notes, transcript
-history, and current user input reach the model for one turn. It reports
-budget evidence but does not mutate session history or compact the conversation.
+ContextManager 决定单轮中有多少前缀、记忆、相关笔记、历史和当前用户输入可以
+到达模型。它只报告预算证据，不修改会话历史，也不执行会话压缩。
 """
 
 from __future__ import annotations
@@ -41,10 +40,12 @@ class SectionRender:
 
     @property
     def raw_chars(self):
+        """执行 `raw_chars` 的内部逻辑。"""
         return len(self.raw)
 
     @property
     def rendered_chars(self):
+        """执行 `rendered_chars` 的内部逻辑。"""
         return len(self.rendered)
 
 
@@ -58,6 +59,7 @@ class ContextManager:
         section_floors=None,
         reduction_order=None,
     ):
+        """初始化对象状态。"""
         self.agent = agent
         if total_budget is not None:
             self.total_budget = int(total_budget)
@@ -188,6 +190,7 @@ class ContextManager:
         return prompt, metadata
 
     def _render_sections_without_reduction(self, section_texts, selected_notes=None):
+        """执行 `_render_sections_without_reduction` 的内部逻辑。"""
         selected_notes = selected_notes or []
         relevant_lines = ["Relevant memory:"]
         if selected_notes:
@@ -223,6 +226,7 @@ class ContextManager:
         }
 
     def _compute_section_floors(self):
+        """执行 `_compute_section_floors` 的内部逻辑。"""
         floors = dict(MIN_SECTION_BUDGETS)
         for section, budget in self.section_budgets.items():
             if section not in floors:
@@ -231,6 +235,7 @@ class ContextManager:
         return floors
 
     def _render_sections(self, section_texts, budgets, selected_notes=None, pressure=None):
+        """执行 `_render_sections` 的内部逻辑。"""
         rendered = {}
         for section in SECTION_ORDER:
             budget = budgets.get(section)
@@ -248,6 +253,7 @@ class ContextManager:
         return rendered
 
     def _prompt_pressure(self, prompt_chars):
+        """执行 `_prompt_pressure` 的内部逻辑。"""
         ratio = int(prompt_chars) / max(1, self.total_budget)
         if ratio >= 0.95:
             tier = "tier3_summary"
@@ -260,6 +266,7 @@ class ContextManager:
         return _PromptPressure(ratio=round(ratio, 4), tier=tier)
 
     def _pressure_adjusted_budgets(self, budgets, pressure):
+        """执行 `_pressure_adjusted_budgets` 的内部逻辑。"""
         adjusted = dict(budgets)
         tier = str(getattr(pressure, "tier", ""))
         if tier in {"tier1_snip", "tier2_prune"}:
@@ -269,6 +276,7 @@ class ContextManager:
         return adjusted
 
     def _render_relevant_memory(self, selected_notes, budget):
+        """执行 `_render_relevant_memory` 的内部逻辑。"""
         header = "Relevant memory:"
         note_texts = [str(note.get("text", "")) for note in selected_notes if str(note.get("text", "")).strip()]
         raw_lines = [header] + [f"- {text}" for text in note_texts]
@@ -316,6 +324,7 @@ class ContextManager:
         )
 
     def _per_note_budget(self, budget, note_count, header):
+        """执行 `_per_note_budget` 的内部逻辑。"""
         if note_count <= 0:
             return 0
         overhead = len(header) + 3 * note_count
@@ -323,6 +332,7 @@ class ContextManager:
         return max(1, usable // note_count)
 
     def _render_history_section(self, budget, pressure=None):
+        """执行 `_render_history_section` 的内部逻辑。"""
         history = list(getattr(self.agent, "session", {}).get("history", []))
         raw = self.history_builder.raw_text(history)
         if not history:
@@ -352,9 +362,11 @@ class ContextManager:
 
     def _assemble_prompt(self, rendered):
         # 顺序是刻意设计的：稳定规则放前面，最新请求放最后。
+        """执行 `_assemble_prompt` 的内部逻辑。"""
         return "\n\n".join(rendered[section].rendered for section in SECTION_ORDER).strip()
 
     def _metadata(self, prompt, rendered, budgets, reduction_log, selected_notes, user_message, section_texts, pressure=None):
+        """执行 `_metadata` 的内部逻辑。"""
         metadata = ContextReportBuilder(
             self.agent,
             total_budget=self.total_budget,

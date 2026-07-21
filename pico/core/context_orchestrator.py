@@ -1,4 +1,4 @@
-"""Context build facade for prompt pressure, compaction, and reporting."""
+"""Pico 运行时实现模块。"""
 
 from __future__ import annotations
 
@@ -31,9 +31,11 @@ class ContextOrchestrator:
     version = "local-v1"
 
     def __init__(self, agent):
+        """初始化对象状态。"""
         self.agent = agent
 
     def snapshot(self, request, prefix_refresh=None):
+        """执行 `snapshot` 的内部逻辑。"""
         client = self.agent.model_client
         return ContextSnapshot(
             request=str(request),
@@ -47,6 +49,7 @@ class ContextOrchestrator:
         )
 
     def build(self, snapshot):
+        """执行 `build` 的内部逻辑。"""
         prompt, metadata = self.agent.context_manager.build(snapshot.request)
         plan = None
         summary = None
@@ -96,6 +99,7 @@ class ContextOrchestrator:
         )
 
     def _compact_request(self, metadata, snapshot):
+        """执行 `_compact_request` 的内部逻辑。"""
         if metadata.get("prompt_over_budget"):
             return "auto_prompt_over_budget", "deterministic", ""
         usage = dict(metadata.get("context_usage", {}) or {})
@@ -111,6 +115,7 @@ class ContextOrchestrator:
 
     @staticmethod
     def _count_delta_events(history, last_boundary_event_id):
+        """执行 `_count_delta_events` 的内部逻辑。"""
         if not last_boundary_event_id:
             return len(history)
         for index, item in enumerate(history):
@@ -119,6 +124,7 @@ class ContextOrchestrator:
         return len(history)
 
     def _attach_metadata(self, metadata, snapshot, plan, summary, should_compact, skip_reason, compact_metrics=None):
+        """执行 `_attach_metadata` 的内部逻辑。"""
         agent = self.agent
         refresh = snapshot.prefix_refresh
         metadata.update(
@@ -156,6 +162,7 @@ class ContextOrchestrator:
         )
 
     def _orchestrator_metadata(self, metadata, plan, summary, should_compact, skip_reason, compact_metrics=None):
+        """执行 `_orchestrator_metadata` 的内部逻辑。"""
         usage = dict(metadata.get("context_usage", {}) or {})
         history = dict(metadata.get("history", {}) or {})
         summary = dict(summary or {})
@@ -182,6 +189,7 @@ class ContextOrchestrator:
         return payload
 
     def _emit_decision(self, metadata):
+        """执行 `_emit_decision` 的内部逻辑。"""
         payload = {
             "run_id": getattr(getattr(self.agent, "current_task_state", None), "run_id", ""),
             "context_orchestrator": metadata.get("context_orchestrator", {}),
@@ -193,6 +201,7 @@ class ContextOrchestrator:
             self.agent.emit_trace(task_state, "context_orchestrator_decision", payload)
 
     def _emit_usage(self, metadata):
+        """执行 `_emit_usage` 的内部逻辑。"""
         self.agent.session_event_bus.emit(
             "context_usage_recorded",
             {

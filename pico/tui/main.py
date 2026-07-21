@@ -1,3 +1,4 @@
+"""Pico 运行时实现模块。"""
 from __future__ import annotations
 
 import sys
@@ -8,6 +9,7 @@ from pico.tui.app import PicoTuiApp
 
 
 def main(argv=None):
+    """执行 `main` 的内部逻辑。"""
     parser = build_arg_parser()
     args = parser.parse_args(argv)
     if args.prompt:

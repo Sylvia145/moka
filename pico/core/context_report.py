@@ -1,4 +1,4 @@
-"""Read-only prompt context report construction."""
+"""Pico 运行时实现模块。"""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ class ContextReportBuilder:
     reduction_order: tuple[str, ...]
 
     def build(self, prompt, rendered, budgets, reduction_log, selected_notes, user_message, section_texts):
+        """执行 `build` 的内部逻辑。"""
         section_metadata = {}
         for section in SECTION_ORDER[:-1]:
             section_metadata[section] = {
@@ -55,6 +56,7 @@ class ContextReportBuilder:
         }
 
     def _relevant_memory_metadata(self, rendered, selected_notes):
+        """执行 `_relevant_memory_metadata` 的内部逻辑。"""
         relevant = rendered["relevant_memory"]
         details = relevant.details or {}
         return {
@@ -73,6 +75,7 @@ class ContextReportBuilder:
         }
 
     def _history_metadata(self, rendered):
+        """执行 `_history_metadata` 的内部逻辑。"""
         history = rendered["history"]
         details = history.details or {}
         return {
@@ -94,6 +97,7 @@ class ContextReportBuilder:
         }
 
     def _skills_metadata(self):
+        """执行 `_skills_metadata` 的内部逻辑。"""
         skills = getattr(self.agent, "skills", {})
         items = [skill.metadata() for skill in skillslib.list_skills(skills, user_invocable_only=False)]
         return {

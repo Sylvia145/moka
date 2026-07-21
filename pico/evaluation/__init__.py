@@ -1,1 +1,1 @@
-"""Evaluation and metrics utilities for Pico."""
+"""Pico 运行时实现模块。"""

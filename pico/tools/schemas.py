@@ -1,4 +1,4 @@
-"""Pydantic argument models for all registered tools.
+"""Pico 运行时实现模块。
 
 Each model is the single source of truth for a tool's argument structure,
 defaults, and pure value-level constraints (type, range, non-empty).
@@ -25,12 +25,14 @@ class ReadFileArgs(BaseModel):
     @field_validator("start")
     @classmethod
     def start_ge_one(cls, v: int) -> int:
+        """执行 `start_ge_one` 的内部逻辑。"""
         if v < 1:
             raise ValueError("start must be >= 1")
         return v
 
     @model_validator(mode="after")
     def end_ge_start(self) -> "ReadFileArgs":
+        """执行 `end_ge_start` 的内部逻辑。"""
         if self.end < self.start:
             raise ValueError("invalid line range")
         return self
@@ -43,6 +45,7 @@ class SearchArgs(BaseModel):
     @field_validator("pattern")
     @classmethod
     def pattern_not_empty(cls, v: str) -> str:
+        """执行 `pattern_not_empty` 的内部逻辑。"""
         if not v.strip():
             raise ValueError("pattern must not be empty")
         return v
@@ -57,6 +60,7 @@ class InspectImageArgs(BaseModel):
     @field_validator("path")
     @classmethod
     def path_not_empty(cls, v: str) -> str:
+        """执行 `path_not_empty` 的内部逻辑。"""
         if not v.strip():
             raise ValueError("path must not be empty")
         return v
@@ -64,6 +68,7 @@ class InspectImageArgs(BaseModel):
     @field_validator("question")
     @classmethod
     def question_not_empty(cls, v: str) -> str:
+        """执行 `question_not_empty` 的内部逻辑。"""
         if not v.strip():
             raise ValueError("question must not be empty")
         return v
@@ -76,6 +81,7 @@ class RunShellArgs(BaseModel):
     @field_validator("command")
     @classmethod
     def command_not_empty(cls, v: str) -> str:
+        """执行 `command_not_empty` 的内部逻辑。"""
         if not v.strip():
             raise ValueError("command must not be empty")
         return v
@@ -83,6 +89,7 @@ class RunShellArgs(BaseModel):
     @field_validator("timeout")
     @classmethod
     def timeout_in_range(cls, v: int) -> int:
+        """执行 `timeout_in_range` 的内部逻辑。"""
         if v < 1 or v > 120:
             raise ValueError("timeout must be in [1, 120]")
         return v
@@ -101,6 +108,7 @@ class PatchFileArgs(BaseModel):
     @field_validator("old_text")
     @classmethod
     def old_text_not_empty(cls, v: str) -> str:
+        """执行 `old_text_not_empty` 的内部逻辑。"""
         if not v:
             raise ValueError("old_text must not be empty")
         return v
@@ -115,6 +123,7 @@ class TodoAddArgs(BaseModel):
     @field_validator("content")
     @classmethod
     def content_not_empty(cls, v: str) -> str:
+        """执行 `content_not_empty` 的内部逻辑。"""
         if not v.strip():
             raise ValueError("content must not be empty")
         return v
@@ -131,6 +140,7 @@ class TodoUpdateArgs(BaseModel):
     @field_validator("todo_id")
     @classmethod
     def todo_id_not_empty(cls, v: str) -> str:
+        """执行 `todo_id_not_empty` 的内部逻辑。"""
         if not v.strip():
             raise ValueError("todo_id must not be empty")
         return v
@@ -150,6 +160,7 @@ class AgentArgs(BaseModel):
     @field_validator("description")
     @classmethod
     def description_not_empty(cls, v: str) -> str:
+        """执行 `description_not_empty` 的内部逻辑。"""
         if not v.strip():
             raise ValueError("description must not be empty")
         return v
@@ -157,6 +168,7 @@ class AgentArgs(BaseModel):
     @field_validator("prompt")
     @classmethod
     def prompt_not_empty(cls, v: str) -> str:
+        """执行 `prompt_not_empty` 的内部逻辑。"""
         if not v.strip():
             raise ValueError("prompt must not be empty")
         return v
@@ -164,6 +176,7 @@ class AgentArgs(BaseModel):
     @field_validator("subagent_type")
     @classmethod
     def valid_subagent_type(cls, v: str) -> str:
+        """执行 `valid_subagent_type` 的内部逻辑。"""
         if v not in {"worker", "Explore"}:
             raise ValueError("subagent_type must be worker or Explore")
         return v
@@ -171,6 +184,7 @@ class AgentArgs(BaseModel):
     @field_validator("write_scope", mode="before")
     @classmethod
     def valid_write_scope(cls, v: object) -> object:
+        """执行 `valid_write_scope` 的内部逻辑。"""
         if v is not None and not isinstance(v, (list, str)):
             raise ValueError("write_scope must be a list of workspace paths")
         return v
@@ -178,6 +192,7 @@ class AgentArgs(BaseModel):
     @field_validator("timeout_seconds")
     @classmethod
     def timeout_in_range(cls, v: int) -> int:
+        """执行 `timeout_in_range` 的内部逻辑。"""
         if v < 1 or v > 600:
             raise ValueError("timeout_seconds must be in [1, 600]")
         return v
@@ -190,6 +205,7 @@ class SendMessageArgs(BaseModel):
     @field_validator("to")
     @classmethod
     def to_not_empty(cls, v: str) -> str:
+        """执行 `to_not_empty` 的内部逻辑。"""
         if not v.strip():
             raise ValueError("to must not be empty")
         return v
@@ -197,6 +213,7 @@ class SendMessageArgs(BaseModel):
     @field_validator("message")
     @classmethod
     def message_not_empty(cls, v: str) -> str:
+        """执行 `message_not_empty` 的内部逻辑。"""
         if not v.strip():
             raise ValueError("message must not be empty")
         return v
@@ -208,6 +225,7 @@ class TaskStopArgs(BaseModel):
     @field_validator("task_id")
     @classmethod
     def task_id_not_empty(cls, v: str) -> str:
+        """执行 `task_id_not_empty` 的内部逻辑。"""
         if not v.strip():
             raise ValueError("task_id must not be empty")
         return v
@@ -220,6 +238,7 @@ class EnterPlanModeArgs(BaseModel):
     @field_validator("topic")
     @classmethod
     def topic_not_empty(cls, v: str) -> str:
+        """执行 `topic_not_empty` 的内部逻辑。"""
         if not v.strip():
             raise ValueError("topic must not be empty")
         return v
@@ -236,6 +255,7 @@ class AskUserArgs(BaseModel):
     @field_validator("question")
     @classmethod
     def question_not_empty(cls, v: str) -> str:
+        """执行 `question_not_empty` 的内部逻辑。"""
         if not v.strip():
             raise ValueError("question must not be empty")
         return v
@@ -243,6 +263,7 @@ class AskUserArgs(BaseModel):
     @field_validator("choices", mode="before")
     @classmethod
     def choices_must_be_list(cls, v: object) -> object:
+        """执行 `choices_must_be_list` 的内部逻辑。"""
         if v is not None and not isinstance(v, list):
             raise ValueError("choices must be a list")
         return v
@@ -255,8 +276,8 @@ def first_error_message(exc: "ValidationError") -> str:  # type: ignore[name-def
         return str(exc)
     err = errors[0]
     msg = str(err.get("msg", "")).removeprefix("Value error, ")
-    # For missing required fields, reproduce the old KeyError repr: "'fieldname'"
-    # so callers that checked for that format continue to work.
+    # 缺失必填字段时保留旧版 KeyError 的 "'字段名'" 形式，使依赖该错误格式的
+    # 调用方在迁移到 Pydantic 校验后仍能兼容。
     if err.get("type") == "missing":
         loc = err.get("loc", ())
         field = loc[-1] if loc else ""

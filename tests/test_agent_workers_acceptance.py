@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 import subprocess
 import threading
@@ -8,6 +9,7 @@ from pico.testing import ScriptedModelClient
 
 
 def build_agent(tmp_path, outputs, **kwargs):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo readme\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
@@ -21,6 +23,7 @@ def build_agent(tmp_path, outputs, **kwargs):
 
 
 def read_jsonl(path):
+    """执行 `read_jsonl` 的内部逻辑。"""
     return [
         json.loads(line)
         for line in path.read_text(encoding="utf-8").splitlines()
@@ -30,6 +33,7 @@ def read_jsonl(path):
 
 class BlockingModelClient:
     def __init__(self, outputs, started, release):
+        """执行 `__init__` 的内部逻辑。"""
         self.outputs = list(outputs)
         self.started = started
         self.release = release
@@ -39,6 +43,7 @@ class BlockingModelClient:
         self.abort_count = 0
 
     def complete(self, prompt, max_new_tokens, **kwargs):
+        """执行 `complete` 的内部逻辑。"""
         self.prompts.append(prompt)
         self.started.set()
         if not self.release.wait(timeout=5):
@@ -48,11 +53,13 @@ class BlockingModelClient:
         return self.outputs.pop(0)
 
     def abort(self):
+        """执行 `abort` 的内部逻辑。"""
         self.abort_count += 1
         self.release.set()
 
 
 def test_delegate_is_removed_from_runtime_tool_surface(tmp_path):
+    """执行 `test_delegate_is_removed_from_runtime_tool_surface` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
 
     assert "delegate" not in agent.tools
@@ -63,6 +70,7 @@ def test_delegate_is_removed_from_runtime_tool_surface(tmp_path):
 
 
 def test_async_worker_notification_is_drained_by_coordinator_only(tmp_path):
+    """执行 `test_async_worker_notification_is_drained_by_coordinator_only` 的内部逻辑。"""
     started = threading.Event()
     release = threading.Event()
     child_client = BlockingModelClient(["<final>Child done.</final>"], started, release)
@@ -112,6 +120,7 @@ def test_async_worker_notification_is_drained_by_coordinator_only(tmp_path):
 
 
 def test_background_workers_queue_at_configured_concurrency_limit(tmp_path):
+    """执行 `test_background_workers_queue_at_configured_concurrency_limit` 的内部逻辑。"""
     first_started = threading.Event()
     first_release = threading.Event()
     second_started = threading.Event()
@@ -154,6 +163,7 @@ def test_background_workers_queue_at_configured_concurrency_limit(tmp_path):
 
 
 def test_send_message_rejects_running_worker(tmp_path):
+    """执行 `test_send_message_rejects_running_worker` 的内部逻辑。"""
     started = threading.Event()
     release = threading.Event()
     agent = build_agent(
@@ -183,6 +193,7 @@ def test_send_message_rejects_running_worker(tmp_path):
 
 
 def test_task_stop_requests_child_runtime_abort(tmp_path):
+    """执行 `test_task_stop_requests_child_runtime_abort` 的内部逻辑。"""
     started = threading.Event()
     release = threading.Event()
     child_client = BlockingModelClient(["<final>Child done.</final>"], started, release)
@@ -215,6 +226,7 @@ def test_task_stop_requests_child_runtime_abort(tmp_path):
 
 
 def test_worker_timeout_requests_abort_and_keeps_timeout_terminal_state(tmp_path):
+    """执行 `test_worker_timeout_requests_abort_and_keeps_timeout_terminal_state` 的内部逻辑。"""
     started = threading.Event()
     release = threading.Event()
     child_client = BlockingModelClient(["<final>Late completion.</final>"], started, release)
@@ -245,6 +257,7 @@ def test_worker_timeout_requests_abort_and_keeps_timeout_terminal_state(tmp_path
 
 
 def test_write_worker_uses_isolated_git_worktree(tmp_path):
+    """执行 `test_write_worker_uses_isolated_git_worktree` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("main workspace\n", encoding="utf-8")
     subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
     subprocess.run(["git", "add", "README.md"], cwd=tmp_path, check=True, capture_output=True)
@@ -285,6 +298,7 @@ def test_write_worker_uses_isolated_git_worktree(tmp_path):
 
 
 def test_clear_session_stops_running_background_workers(tmp_path):
+    """执行 `test_clear_session_stops_running_background_workers` 的内部逻辑。"""
     started = threading.Event()
     release = threading.Event()
     child_client = BlockingModelClient(["<final>Child done.</final>"], started, release)
@@ -314,6 +328,7 @@ def test_clear_session_stops_running_background_workers(tmp_path):
 
 
 def test_watch_timeout_ignores_worker_cleared_by_session_reset(tmp_path):
+    """执行 `test_watch_timeout_ignores_worker_cleared_by_session_reset` 的内部逻辑。"""
     started = threading.Event()
     release = threading.Event()
     child_client = BlockingModelClient(["<final>Done.</final>"], started, release)
@@ -343,6 +358,7 @@ def test_watch_timeout_ignores_worker_cleared_by_session_reset(tmp_path):
 def test_explore_agent_runs_real_readonly_child_session_and_records_notification(
     tmp_path,
 ):
+    """执行 `test_explore_agent_runs_real_readonly_child_session_and_records_notification` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -386,6 +402,7 @@ def test_explore_agent_runs_real_readonly_child_session_and_records_notification
 def test_worker_agent_can_be_continued_with_same_child_context_and_write_scope(
     tmp_path,
 ):
+    """执行 `test_worker_agent_can_be_continued_with_same_child_context_and_write_scope` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -427,6 +444,7 @@ def test_worker_agent_can_be_continued_with_same_child_context_and_write_scope(
 
 
 def test_worker_write_scope_blocks_child_file_modification_outside_scope(tmp_path):
+    """执行 `test_worker_write_scope_blocks_child_file_modification_outside_scope` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -450,6 +468,7 @@ def test_worker_write_scope_blocks_child_file_modification_outside_scope(tmp_pat
 
 
 def test_worker_without_write_scope_cannot_modify_workspace(tmp_path):
+    """执行 `test_worker_without_write_scope_cannot_modify_workspace` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -467,6 +486,7 @@ def test_worker_without_write_scope_cannot_modify_workspace(tmp_path):
 
 
 def test_plan_mode_cannot_continue_write_capable_worker(tmp_path):
+    """执行 `test_plan_mode_cannot_continue_write_capable_worker` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -489,6 +509,7 @@ def test_plan_mode_cannot_continue_write_capable_worker(tmp_path):
 
 
 def test_plan_mode_allows_only_explore_agents(tmp_path):
+    """执行 `test_plan_mode_allows_only_explore_agents` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [

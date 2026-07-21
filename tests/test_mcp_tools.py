@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import sys
 from pathlib import Path
 
@@ -26,6 +27,7 @@ for line in sys.stdin:
 
 
 def test_mcp_stdio_tool_uses_existing_permission_and_trace(tmp_path):
+    """执行 `test_mcp_stdio_tool_uses_existing_permission_and_trace` 的内部逻辑。"""
     script = tmp_path / "mock_mcp.py"
     script.write_text(SERVER, encoding="utf-8")
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")

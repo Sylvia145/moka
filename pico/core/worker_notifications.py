@@ -1,9 +1,10 @@
-"""Worker notification rendering."""
+"""Pico 运行时实现模块。"""
 
 from xml.sax.saxutils import escape
 
 
 def render_worker_notification(item):
+    """执行 `render_worker_notification` 的内部逻辑。"""
     result = str(item.get("result", ""))
     parts = [
         "<task-notification>",

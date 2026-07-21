@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 import time
 import urllib.request
@@ -24,25 +25,31 @@ PNG_BYTES = (
 
 class FakeResponse:
     def __init__(self, payload, content_type="application/json"):
+        """执行 `__init__` 的内部逻辑。"""
         self.payload = payload
         self.headers = {"Content-Type": content_type}
 
     def __enter__(self):
+        """执行 `__enter__` 的内部逻辑。"""
         return self
 
     def __exit__(self, exc_type, exc, tb):
+        """执行 `__exit__` 的内部逻辑。"""
         return False
 
     def read(self):
+        """执行 `read` 的内部逻辑。"""
         return json.dumps(self.payload).encode("utf-8")
 
 
 class RecordingVisionClient(ScriptedModelClient):
     def __init__(self, outputs):
+        """执行 `__init__` 的内部逻辑。"""
         super().__init__(outputs)
 
 
 def build_agent(tmp_path, model_client=None, model_client_router=None):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
@@ -57,17 +64,20 @@ def build_agent(tmp_path, model_client=None, model_client_router=None):
 
 
 def write_png(tmp_path, name="chart.png"):
+    """执行 `write_png` 的内部逻辑。"""
     path = tmp_path / name
     path.write_bytes(PNG_BYTES)
     return path
 
 
 def test_openai_client_sends_image_blocks_in_responses_payload(monkeypatch):
+    """执行 `test_openai_client_sends_image_blocks_in_responses_payload` 的内部逻辑。"""
     from pico.core.content_blocks import ImageBlock, ModelInput
 
     captured = {}
 
     def fake_urlopen(request, timeout):
+        """执行 `fake_urlopen` 的内部逻辑。"""
         captured["url"] = request.full_url
         captured["body"] = json.loads(request.data.decode("utf-8"))
         captured["timeout"] = timeout
@@ -100,11 +110,13 @@ def test_openai_client_sends_image_blocks_in_responses_payload(monkeypatch):
 
 
 def test_anthropic_client_sends_image_blocks_in_messages_payload(monkeypatch):
+    """执行 `test_anthropic_client_sends_image_blocks_in_messages_payload` 的内部逻辑。"""
     from pico.core.content_blocks import ImageBlock, ModelInput
 
     captured = {}
 
     def fake_urlopen(request, timeout):
+        """执行 `fake_urlopen` 的内部逻辑。"""
         captured["body"] = json.loads(request.data.decode("utf-8"))
         captured["timeout"] = timeout
         return FakeResponse({"content": [{"type": "text", "text": "<final>ok</final>"}]})
@@ -137,6 +149,7 @@ def test_anthropic_client_sends_image_blocks_in_messages_payload(monkeypatch):
 
 
 def test_deepseek_profile_defaults_to_openai_vision_provider(tmp_path, monkeypatch):
+    """执行 `test_deepseek_profile_defaults_to_openai_vision_provider` 的内部逻辑。"""
     from pico.config import resolve_provider_config
 
     monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-deepseek")
@@ -151,6 +164,7 @@ def test_deepseek_profile_defaults_to_openai_vision_provider(tmp_path, monkeypat
 
 
 def test_vision_provider_uses_vision_specific_env_overrides(tmp_path, monkeypatch):
+    """执行 `test_vision_provider_uses_vision_specific_env_overrides` 的内部逻辑。"""
     from pico.config import resolve_vision_provider_config
 
     monkeypatch.setenv("PICO_OPENAI_API_KEY", "sk-text")
@@ -170,6 +184,7 @@ def test_vision_provider_uses_vision_specific_env_overrides(tmp_path, monkeypatc
 
 
 def test_build_agent_uses_separate_vision_provider_for_deepseek(tmp_path, monkeypatch):
+    """执行 `test_build_agent_uses_separate_vision_provider_for_deepseek` 的内部逻辑。"""
     args = pico_cli.build_arg_parser().parse_args(
         ["--cwd", str(tmp_path), "--provider", "deepseek"]
     )
@@ -193,6 +208,7 @@ def test_build_agent_uses_separate_vision_provider_for_deepseek(tmp_path, monkey
 
 
 def test_build_agent_uses_vision_specific_client_overrides(tmp_path, monkeypatch):
+    """执行 `test_build_agent_uses_vision_specific_client_overrides` 的内部逻辑。"""
     args = pico_cli.build_arg_parser().parse_args(
         ["--cwd", str(tmp_path), "--provider", "deepseek", "--vision-timeout", "45"]
     )
@@ -220,6 +236,7 @@ def test_build_agent_uses_vision_specific_client_overrides(tmp_path, monkeypatch
 
 
 def test_inspect_image_uses_separate_vision_model_when_configured(tmp_path):
+    """执行 `test_inspect_image_uses_separate_vision_model_when_configured` 的内部逻辑。"""
     from pico.core.content_blocks import ModelInput
     from pico.core.task_state import TaskState
 
@@ -244,6 +261,7 @@ def test_inspect_image_uses_separate_vision_model_when_configured(tmp_path):
 
 
 def test_inspect_image_keeps_medium_summary_inline(tmp_path):
+    """执行 `test_inspect_image_keeps_medium_summary_inline` 的内部逻辑。"""
     from pico.core.task_state import TaskState
 
     write_png(tmp_path)
@@ -262,6 +280,7 @@ def test_inspect_image_keeps_medium_summary_inline(tmp_path):
 
 
 def test_image_inspection_prompt_preserves_complete_ocr_extraction():
+    """执行 `test_image_inspection_prompt_preserves_complete_ocr_extraction` 的内部逻辑。"""
     from pico.core.vision import image_inspection_prompt
 
     prompt = image_inspection_prompt(
@@ -277,6 +296,7 @@ def test_image_inspection_prompt_preserves_complete_ocr_extraction():
 
 
 def test_vision_model_call_has_total_timeout(monkeypatch):
+    """执行 `test_vision_model_call_has_total_timeout` 的内部逻辑。"""
     from pico.core.content_blocks import ModelInput
     from pico.core.vision import complete_model_with_timeout
 
@@ -284,6 +304,7 @@ def test_vision_model_call_has_total_timeout(monkeypatch):
         timeout = 0.01
 
     def slow_complete(*_args, **_kwargs):
+        """执行 `slow_complete` 的内部逻辑。"""
         time.sleep(0.2)
 
     monkeypatch.setattr("pico.core.vision.complete_model", slow_complete)
@@ -293,6 +314,7 @@ def test_vision_model_call_has_total_timeout(monkeypatch):
 
 
 def test_load_workspace_image_rejects_path_escape_and_records_safe_metadata(tmp_path):
+    """执行 `test_load_workspace_image_rejects_path_escape_and_records_safe_metadata` 的内部逻辑。"""
     from pico.core.media import load_workspace_image
 
     write_png(tmp_path)
@@ -311,6 +333,7 @@ def test_load_workspace_image_rejects_path_escape_and_records_safe_metadata(tmp_
 
 
 def test_load_workspace_image_rejects_fake_image_extension(tmp_path):
+    """执行 `test_load_workspace_image_rejects_fake_image_extension` 的内部逻辑。"""
     from pico.core.media import load_workspace_image
 
     (tmp_path / "fake.png").write_text("not really a png\n", encoding="utf-8")
@@ -321,6 +344,7 @@ def test_load_workspace_image_rejects_fake_image_extension(tmp_path):
 
 
 def test_run_store_writes_binary_artifact(tmp_path):
+    """执行 `test_run_store_writes_binary_artifact` 的内部逻辑。"""
     from pico.core.task_state import TaskState
 
     agent = build_agent(tmp_path)
@@ -333,6 +357,7 @@ def test_run_store_writes_binary_artifact(tmp_path):
 
 
 def test_inspect_image_tool_calls_model_with_model_input_and_records_media_refs(tmp_path):
+    """执行 `test_inspect_image_tool_calls_model_with_model_input_and_records_media_refs` 的内部逻辑。"""
     from pico.core.content_blocks import ModelInput
     from pico.core.task_state import TaskState
 
@@ -358,6 +383,7 @@ def test_inspect_image_tool_calls_model_with_model_input_and_records_media_refs(
 
 
 def test_inspect_image_tool_trace_and_history_do_not_store_base64(tmp_path):
+    """执行 `test_inspect_image_tool_trace_and_history_do_not_store_base64` 的内部逻辑。"""
     write_png(tmp_path)
     client = RecordingVisionClient(
         [
@@ -383,6 +409,7 @@ def test_inspect_image_tool_trace_and_history_do_not_store_base64(tmp_path):
 
 
 def test_same_image_inspection_is_budgeted_per_turn(tmp_path):
+    """执行 `test_same_image_inspection_is_budgeted_per_turn` 的内部逻辑。"""
     write_png(tmp_path)
     client = RecordingVisionClient(
         [

@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 import os
 import subprocess
@@ -10,6 +11,7 @@ from pico.features import skills as skillslib
 
 
 def build_agent(tmp_path, outputs):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     return Pico(
@@ -21,6 +23,7 @@ def build_agent(tmp_path, outputs):
 
 
 def test_builtin_skills_are_available_in_context(tmp_path):
+    """执行 `test_builtin_skills_are_available_in_context` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
 
     names = [skill.name for skill in skillslib.list_skills(agent.skills)]
@@ -33,6 +36,7 @@ def test_builtin_skills_are_available_in_context(tmp_path):
 
 
 def test_prompt_includes_auto_memory_policy_and_index(tmp_path):
+    """执行 `test_prompt_includes_auto_memory_policy_and_index` 的内部逻辑。"""
     memory_root = tmp_path / ".pico" / "memory"
     memory_root.mkdir(parents=True)
     (memory_root / "MEMORY.md").write_text(
@@ -51,6 +55,7 @@ def test_prompt_includes_auto_memory_policy_and_index(tmp_path):
 
 
 def test_prompt_documents_project_skill_frontmatter_contract(tmp_path):
+    """执行 `test_prompt_documents_project_skill_frontmatter_contract` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
 
     prompt = agent.prompt("Create .pico/skills/audit/SKILL.md")
@@ -62,6 +67,7 @@ def test_prompt_documents_project_skill_frontmatter_contract(tmp_path):
 
 
 def test_project_skill_slash_invocation_runs_inline_session(tmp_path):
+    """执行 `test_project_skill_slash_invocation_runs_inline_session` 的内部逻辑。"""
     skill_dir = tmp_path / ".pico" / "skills" / "deploy"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
@@ -91,6 +97,7 @@ Use target $ARGUMENTS from ${PICO_SKILL_DIR}.
 
 
 def test_memory_slash_commands_use_kairos_assets(tmp_path):
+    """执行 `test_memory_slash_commands_use_kairos_assets` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
 
     handled, should_exit, output = handle_repl_command(agent, "/remember I prefer concise reports")
@@ -122,6 +129,7 @@ def test_memory_slash_commands_use_kairos_assets(tmp_path):
 
 
 def test_dream_slash_command_consolidates_daily_log_into_memory_files(tmp_path):
+    """执行 `test_dream_slash_command_consolidates_daily_log_into_memory_files` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -145,6 +153,7 @@ def test_dream_slash_command_consolidates_daily_log_into_memory_files(tmp_path):
 
 
 def test_dream_cannot_write_outside_memory_directory(tmp_path):
+    """执行 `test_dream_cannot_write_outside_memory_directory` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -162,6 +171,7 @@ def test_dream_cannot_write_outside_memory_directory(tmp_path):
 
 
 def test_skill_frontmatter_metadata_and_argument_substitution(tmp_path):
+    """执行 `test_skill_frontmatter_metadata_and_argument_substitution` 的内部逻辑。"""
     skill_dir = tmp_path / ".pico" / "skills" / "audit"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
@@ -196,6 +206,7 @@ Audit ${target} with $ARGUMENTS in ${CLAUDE_SKILL_DIR}.
 
 
 def test_fork_skill_runs_in_isolated_session_and_records_completion(tmp_path):
+    """执行 `test_fork_skill_runs_in_isolated_session_and_records_completion` 的内部逻辑。"""
     skill_dir = tmp_path / ".pico" / "skills" / "inspect"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
@@ -225,6 +236,7 @@ Inspect $ARGUMENTS.
 
 
 def test_skill_allowed_tools_restricts_inline_execution(tmp_path):
+    """执行 `test_skill_allowed_tools_restricts_inline_execution` 的内部逻辑。"""
     skill_dir = tmp_path / ".pico" / "skills" / "readonly"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
@@ -257,6 +269,7 @@ Use only read tools.
 
 
 def test_disable_model_invocation_skill_returns_expanded_prompt(tmp_path):
+    """执行 `test_disable_model_invocation_skill_returns_expanded_prompt` 的内部逻辑。"""
     skill_dir = tmp_path / ".pico" / "skills" / "template"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
@@ -281,6 +294,7 @@ Template says $ARGUMENTS.
 
 
 def test_builtin_skills_use_dynamic_argument_sections(tmp_path):
+    """执行 `test_builtin_skills_use_dynamic_argument_sections` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
 
     review_prompt = agent.skills["review"].render("focus auth")
@@ -293,6 +307,7 @@ def test_builtin_skills_use_dynamic_argument_sections(tmp_path):
 
 
 def test_prompt_metadata_exposes_skill_catalog(tmp_path):
+    """执行 `test_prompt_metadata_exposes_skill_catalog` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
 
     metadata = agent.prompt_metadata("inspect", "")
@@ -305,6 +320,7 @@ def test_prompt_metadata_exposes_skill_catalog(tmp_path):
 
 
 def test_cli_lists_skills_without_calling_model(tmp_path):
+    """执行 `test_cli_lists_skills_without_calling_model` 的内部逻辑。"""
     env = os.environ.copy()
     env["PYTHONPATH"] = os.getcwd()
     result = subprocess.run(

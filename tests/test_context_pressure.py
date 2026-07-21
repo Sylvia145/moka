@@ -1,7 +1,9 @@
+"""Pico 自动化测试模块。"""
 from pico.core.context_pressure import ContextPressure, ContextPressureController
 
 
 def identity(**overrides):
+    """执行 `identity` 的内部逻辑。"""
     value = {
         "provider": "openai",
         "provider_base_url": "https://api.example.test/v1",
@@ -15,6 +17,7 @@ def identity(**overrides):
 
 
 def test_matching_identity_uses_real_input_tokens_for_pressure():
+    """执行 `test_matching_identity_uses_real_input_tokens_for_pressure` 的内部逻辑。"""
     pressure = ContextPressureController().evaluate(
         estimated_input_tokens=400,
         context_window=1000,
@@ -34,6 +37,7 @@ def test_matching_identity_uses_real_input_tokens_for_pressure():
 
 
 def test_stale_provider_model_or_context_window_falls_back_to_estimate():
+    """执行 `test_stale_provider_model_or_context_window_falls_back_to_estimate` 的内部逻辑。"""
     controller = ContextPressureController()
 
     for stale in (
@@ -57,6 +61,7 @@ def test_stale_provider_model_or_context_window_falls_back_to_estimate():
 
 
 def test_prompt_hash_mismatch_falls_back_to_estimate():
+    """执行 `test_prompt_hash_mismatch_falls_back_to_estimate` 的内部逻辑。"""
     pressure = ContextPressureController().evaluate(
         estimated_input_tokens=400,
         context_window=1000,
@@ -72,6 +77,7 @@ def test_prompt_hash_mismatch_falls_back_to_estimate():
 
 
 def test_missing_metadata_falls_back_to_estimate():
+    """执行 `test_missing_metadata_falls_back_to_estimate` 的内部逻辑。"""
     pressure = ContextPressureController().evaluate(
         estimated_input_tokens=400,
         context_window=1000,
@@ -87,6 +93,7 @@ def test_missing_metadata_falls_back_to_estimate():
 
 
 def test_pressure_tier_boundaries():
+    """执行 `test_pressure_tier_boundaries` 的内部逻辑。"""
     assert ContextPressure(599, 1000, 1000).pressure_tier == "tier0_observe"
     assert ContextPressure(600, 1000, 1000).pressure_tier == "tier1_snip"
     assert ContextPressure(800, 1000, 1000).pressure_tier == "tier2_prune"
@@ -94,6 +101,7 @@ def test_pressure_tier_boundaries():
 
 
 def test_cache_tokens_are_passed_through_when_present():
+    """执行 `test_cache_tokens_are_passed_through_when_present` 的内部逻辑。"""
     pressure = ContextPressureController().evaluate(
         estimated_input_tokens=400,
         context_window=1000,
@@ -110,6 +118,7 @@ def test_cache_tokens_are_passed_through_when_present():
 
 
 def test_cache_tokens_are_not_current_when_identity_mismatches():
+    """执行 `test_cache_tokens_are_not_current_when_identity_mismatches` 的内部逻辑。"""
     pressure = ContextPressureController().evaluate(
         estimated_input_tokens=400,
         context_window=1000,
@@ -127,6 +136,7 @@ def test_cache_tokens_are_not_current_when_identity_mismatches():
 
 
 def test_sanitized_provider_base_url_matches_without_secret_leak(tmp_path):
+    """执行 `test_sanitized_provider_base_url_matches_without_secret_leak` 的内部逻辑。"""
     from pico import Pico, SessionStore, WorkspaceContext
     from pico.core.context_manager import ContextManager
     from pico.testing import ScriptedModelClient

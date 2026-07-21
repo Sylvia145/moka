@@ -1,4 +1,4 @@
-"""Runtime consumers that derive state from trace events.
+"""Pico 运行时实现模块。
 
 Consumers update TaskState views such as artifact graphs, verifier suggestions,
 reminders, and evidence summaries as events arrive. They should remain
@@ -12,6 +12,7 @@ from .workspace import clip
 
 class ArtifactGraphConsumer:
     def handle(self, runtime, task_state, event):
+        """执行 `handle` 的内部逻辑。"""
         if event.get("event") not in {"tool_executed", "run_finished", "checkpoint_created"}:
             return
         if not task_state.changed_paths and not event.get("artifact_paths"):
@@ -22,6 +23,7 @@ class ArtifactGraphConsumer:
 
 class VerifierSuggestionConsumer:
     def handle(self, runtime, task_state, event):
+        """执行 `handle` 的内部逻辑。"""
         if event.get("event") not in {"tool_executed", "run_finished", "checkpoint_created"}:
             return
         graph = task_state.artifact_graph or build_artifact_graph(runtime.root, task_state.changed_paths)
@@ -30,6 +32,7 @@ class VerifierSuggestionConsumer:
 
 class ReminderConsumer:
     def handle(self, runtime, task_state, event):
+        """执行 `handle` 的内部逻辑。"""
         if event.get("event") != "tool_executed":
             return
         status = str(event.get("status", ""))
@@ -53,12 +56,14 @@ class EvidenceSummaryConsumer:
     critical = True
 
     def handle(self, runtime, task_state, event):
+        """执行 `handle` 的内部逻辑。"""
         task_state.evidence_summaries = update_evidence_summaries(
             task_state.evidence_summaries, event, changed_paths=task_state.changed_paths
         )
 
 
 def default_runtime_consumers():
+    """执行 `default_runtime_consumers` 的内部逻辑。"""
     return [
         ArtifactGraphConsumer(),
         VerifierSuggestionConsumer(),

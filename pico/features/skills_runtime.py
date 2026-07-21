@@ -1,4 +1,4 @@
-"""Execution helpers for Pico skills."""
+"""Pico 运行时实现模块。"""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from ..core.tool_profiles import ToolSetProfile
 
 
 def invoke_skill(agent, name, arguments=""):
+    """执行 `invoke_skill` 的内部逻辑。"""
     skill = agent.skills.get(str(name).lstrip("/"))
     if not skill:
         raise KeyError(name)
@@ -23,6 +24,7 @@ def invoke_skill(agent, name, arguments=""):
 
 
 def _run_fork(agent, skill, prompt):
+    """执行 `_run_fork` 的内部逻辑。"""
     child = type(agent)(
         model_client=agent.model_client,
         workspace=agent.workspace,
@@ -44,6 +46,7 @@ def _run_fork(agent, skill, prompt):
 
 
 def _skill_prompt(skill, arguments):
+    """执行 `_skill_prompt` 的内部逻辑。"""
     return (
         f"Skill: {skill.name}\nSource: {skill.source}\nContext: {skill.context}\n"
         f"Arguments: {arguments}\n\n{skill.render(arguments)}"
@@ -51,6 +54,7 @@ def _skill_prompt(skill, arguments):
 
 
 def _event_payload(skill, arguments, prompt, status="", answer=""):
+    """执行 `_event_payload` 的内部逻辑。"""
     payload = {
         "skill": skill.name,
         "source": skill.source,
@@ -69,6 +73,7 @@ def _event_payload(skill, arguments, prompt, status="", answer=""):
 
 @contextmanager
 def _skill_tool_profile(agent, skill):
+    """执行 `_skill_tool_profile` 的内部逻辑。"""
     if not skill.allowed_tools:
         yield
         return
@@ -86,6 +91,7 @@ def _skill_tool_profile(agent, skill):
 
 @contextmanager
 def _model_override(agent, model):
+    """执行 `_model_override` 的内部逻辑。"""
     if not model:
         yield
         return

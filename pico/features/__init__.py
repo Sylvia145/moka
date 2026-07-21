@@ -1,1 +1,1 @@
-"""Optional runtime features for Pico."""
+"""Pico 运行时实现模块。"""

@@ -1,4 +1,4 @@
-"""Artifact-backed rendering for long tool results.
+"""Pico 运行时实现模块。
 
 Large tool outputs are written to run artifacts while the prompt receives a
 bounded observation with an artifact reference. This protects prompt budget
@@ -16,6 +16,7 @@ INLINE_TOOL_OUTPUT_LIMITS = {
 
 
 def prepare_tool_result_observation(agent, name, full_result):
+    """执行 `prepare_tool_result_observation` 的内部逻辑。"""
     full_result = str(full_result)
     inline_limit = INLINE_TOOL_OUTPUT_LIMITS.get(name, INLINE_TOOL_OUTPUT_LIMIT)
     metadata = {

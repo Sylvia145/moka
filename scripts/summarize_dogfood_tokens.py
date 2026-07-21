@@ -1,4 +1,4 @@
-"""Summarize real provider token usage across the dogfood run.
+"""Pico 项目运行与验证脚本。
 
 Reads every trace.jsonl under artifacts/dogfood-deepseek and sums the
 `completion_metadata` (provider-billed, not estimated) on each `model_parsed`
@@ -18,7 +18,7 @@ cache_hits = 0
 per_scenario = {}
 
 for f in sorted(glob.glob(GLOB)):
-    scenario = Path(f).parts[-5]  # workspaces/<scenario>/.pico/runs/<run>/trace.jsonl
+    scenario = Path(f).parts[-5]  # 工作区/<场景>/.pico/runs/<运行>/trace.jsonl
     s = {"input": 0, "output": 0, "cached": 0, "calls": 0, "cache_hits": 0}
     with open(f, encoding="utf-8") as fh:
         for line in fh:

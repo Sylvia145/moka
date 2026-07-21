@@ -1,4 +1,4 @@
-"""Project-local configuration helpers."""
+"""Pico 运行时实现模块。"""
 
 import os
 import re
@@ -11,7 +11,7 @@ from ..features.sandbox import resolve_sandbox_config as resolve_sandbox_values
 
 if sys.version_info >= (3, 11):
     import tomllib
-else:  # pragma: no cover - covered on Python 3.10 by dependency resolution
+else:  # pragma: no cover - Python 3.10 由依赖解析路径覆盖
     import tomli as tomllib  # type: ignore[no-redef]
 
 
@@ -78,6 +78,7 @@ DEFAULT_MAX_TOKENS_FALLBACK = 4096
 
 
 def default_max_tokens_for_provider(provider: str | None) -> int:
+    """执行 `default_max_tokens_for_provider` 的内部逻辑。"""
     if not provider:
         return DEFAULT_MAX_TOKENS_FALLBACK
     key = PROVIDER_ALIASES.get(provider, provider)
@@ -168,6 +169,7 @@ LEGACY_ENV_NAMES = {
 
 
 def _strip_quotes(value):
+    """执行 `_strip_quotes` 的内部逻辑。"""
     value = value.strip()
     if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
         return value[1:-1]
@@ -175,6 +177,7 @@ def _strip_quotes(value):
 
 
 def _parse_env_line(line):
+    """执行 `_parse_env_line` 的内部逻辑。"""
     line = line.strip()
     if not line or line.startswith("#"):
         return None
@@ -190,6 +193,7 @@ def _parse_env_line(line):
 
 
 def find_project_env(start):
+    """执行 `find_project_env` 的内部逻辑。"""
     current = Path(start).resolve()
     if current.is_file():
         current = current.parent
@@ -201,6 +205,7 @@ def find_project_env(start):
 
 
 def find_project_config(start):
+    """执行 `find_project_config` 的内部逻辑。"""
     current = Path(start).resolve()
     if current.is_file():
         current = current.parent
@@ -212,6 +217,7 @@ def find_project_config(start):
 
 
 def load_project_env(start, override=True):
+    """执行 `load_project_env` 的内部逻辑。"""
     env_path = find_project_env(start)
     if env_path is None:
         return {}
@@ -228,6 +234,7 @@ def load_project_env(start, override=True):
 
 
 def provider_env(name, legacy_names=(), default=""):
+    """执行 `provider_env` 的内部逻辑。"""
     for env_name in (name, *legacy_names):
         value = os.environ.get(env_name)
         if value:
@@ -245,6 +252,7 @@ def resolve_provider_config(
     api_key: str | None = None,
     vision_provider: str | None = None,
 ) -> ProviderConfig:
+    """执行 `resolve_provider_config` 的内部逻辑。"""
     file_values = _load_config_values(start=start, explicit_path=config_path)
     legacy_env = _load_legacy_env_values(start)
 
@@ -382,6 +390,7 @@ def resolve_project_sandbox_config(
     mode: str | None = None,
     backend: str | None = None,
 ):
+    """执行 `resolve_project_sandbox_config` 的内部逻辑。"""
     file_values = _load_config_values(start=start, explicit_path=config_path)
     values = {"sandbox": dict(file_values.get("sandbox", {}) or {})}
     if mode:
@@ -392,11 +401,13 @@ def resolve_project_sandbox_config(
 
 
 def normalize_provider_name(provider: str | None) -> str:
+    """执行 `normalize_provider_name` 的内部逻辑。"""
     normalized = (provider or DEFAULT_PROVIDER).strip().lower()
     return PROVIDER_ALIASES.get(normalized, normalized)
 
 
 def _load_config_values(start: str | Path, explicit_path: str | None) -> dict[str, Any]:
+    """执行 `_load_config_values` 的内部逻辑。"""
     values: dict[str, Any] = {"top": {}, "providers": {}, "sandbox": {}}
     if explicit_path:
         _merge_config_values(
@@ -411,6 +422,7 @@ def _load_config_values(start: str | Path, explicit_path: str | None) -> dict[st
 
 
 def _read_config_file(path: Path) -> dict[str, Any]:
+    """执行 `_read_config_file` 的内部逻辑。"""
     try:
         with path.open("rb") as handle:
             data = tomllib.load(handle)
@@ -441,6 +453,7 @@ def _read_config_file(path: Path) -> dict[str, Any]:
 
 
 def _merge_config_values(target: dict[str, Any], incoming: dict[str, Any]) -> None:
+    """执行 `_merge_config_values` 的内部逻辑。"""
     target["top"].update(incoming.get("top", {}))
     target["sandbox"].update(incoming.get("sandbox", {}))
     for name, section in incoming.get("providers", {}).items():
@@ -450,12 +463,14 @@ def _merge_config_values(target: dict[str, Any], incoming: dict[str, Any]) -> No
 def _profile_values(
     providers: dict[str, dict[str, Any]], provider_name: str
 ) -> dict[str, Any]:
+    """执行 `_profile_values` 的内部逻辑。"""
     values = dict(PROVIDER_DEFAULTS.get(provider_name, {}))
     values.update(providers.get(provider_name, {}))
     return values
 
 
 def _load_legacy_env_values(start: str | Path) -> dict[str, str]:
+    """执行 `_load_legacy_env_values` 的内部逻辑。"""
     env_path = find_project_env(start)
     if env_path is None:
         return {}
@@ -468,6 +483,7 @@ def _load_legacy_env_values(start: str | Path) -> dict[str, str]:
 
 
 def _env_values(provider_name: str, protocol: str) -> dict[str, str]:
+    """执行 `_env_values` 的内部逻辑。"""
     values: dict[str, str] = {}
     sources = [PROVIDER_ENV_NAMES.get(provider_name, {})]
     if provider_name == protocol:
@@ -485,6 +501,7 @@ def _env_values(provider_name: str, protocol: str) -> dict[str, str]:
 def _legacy_values(
     provider_name: str, protocol: str, env_values: dict[str, str]
 ) -> dict[str, str]:
+    """执行 `_legacy_values` 的内部逻辑。"""
     values: dict[str, str] = {}
     sources = [LEGACY_ENV_NAMES.get(provider_name, {})]
     if provider_name == protocol:
@@ -502,6 +519,7 @@ def _legacy_values(
 
 
 def _first_env(names: tuple[str, ...]) -> str:
+    """执行 `_first_env` 的内部逻辑。"""
     for name in names:
         value = os.environ.get(name)
         if value:
@@ -510,6 +528,7 @@ def _first_env(names: tuple[str, ...]) -> str:
 
 
 def _first_mapping_value(values: dict[str, str], names: tuple[str, ...]) -> str:
+    """执行 `_first_mapping_value` 的内部逻辑。"""
     for name in names:
         value = values.get(name)
         if value:
@@ -518,6 +537,7 @@ def _first_mapping_value(values: dict[str, str], names: tuple[str, ...]) -> str:
 
 
 def _first_value(*values):
+    """执行 `_first_value` 的内部逻辑。"""
     for value in values:
         if value:
             return value
@@ -525,6 +545,7 @@ def _first_value(*values):
 
 
 def _first_present(*values):
+    """执行 `_first_present` 的内部逻辑。"""
     for value in values:
         if value is not None and value != "":
             return value
@@ -532,12 +553,14 @@ def _first_present(*values):
 
 
 def _bool_value(value):
+    """执行 `_bool_value` 的内部逻辑。"""
     if isinstance(value, bool):
         return value
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _validate_protocol(protocol: Any, provider_name: str) -> str:
+    """执行 `_validate_protocol` 的内部逻辑。"""
     normalized = str(protocol or "").strip().lower()
     if normalized not in PROTOCOLS:
         raise ValueError(

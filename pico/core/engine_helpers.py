@@ -1,4 +1,4 @@
-"""Control-loop tool and retry helpers shared by Engine.
+"""Pico 运行时实现模块。
 
 These helpers execute tool payloads and handle retry summaries while Engine
 keeps the turn loop shape visible. Terminal-state policy lives in
@@ -13,6 +13,7 @@ from .workspace import clip, now
 
 
 def execute_tool_payload(engine, task_state, user_message, payload):
+    """执行 `execute_tool_payload` 的内部逻辑。"""
     agent = engine.runtime
     name = payload.get("name", "")
     args = payload.get("args", {})
@@ -97,6 +98,7 @@ def execute_tool_payload(engine, task_state, user_message, payload):
 
 
 def should_retry_model_error(exc, provider_retries):
+    """执行 `should_retry_model_error` 的内部逻辑。"""
     if not isinstance(exc, ProviderError):
         return False
     code = str(getattr(exc, "code", "") or "")

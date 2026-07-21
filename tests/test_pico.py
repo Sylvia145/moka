@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import os
 import io
 import json
@@ -23,11 +24,13 @@ from pico.providers import ProviderError
 
 
 def build_workspace(tmp_path):
+    """执行 `build_workspace` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     return WorkspaceContext.build(tmp_path)
 
 
 def build_agent(tmp_path, outputs, **kwargs):
+    """执行 `build_agent` 的内部逻辑。"""
     workspace = build_workspace(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
     approval_policy = kwargs.pop("approval_policy", "auto")
@@ -41,6 +44,7 @@ def build_agent(tmp_path, outputs, **kwargs):
 
 
 def test_agent_runs_tool_then_final(tmp_path):
+    """执行 `test_agent_runs_tool_then_final` 的内部逻辑。"""
     (tmp_path / "hello.txt").write_text("alpha\nbeta\n", encoding="utf-8")
     agent = build_agent(
         tmp_path,
@@ -58,6 +62,7 @@ def test_agent_runs_tool_then_final(tmp_path):
 
 
 def test_agent_updates_task_summary_on_each_request(tmp_path):
+    """执行 `test_agent_updates_task_summary_on_each_request` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -74,6 +79,7 @@ def test_agent_updates_task_summary_on_each_request(tmp_path):
 
 
 def test_agent_only_stores_reusable_epistemic_notes(tmp_path):
+    """执行 `test_agent_only_stores_reusable_epistemic_notes` 的内部逻辑。"""
     (tmp_path / "facts.txt").write_text("deploy key is red\n", encoding="utf-8")
     agent = build_agent(
         tmp_path,
@@ -105,6 +111,7 @@ def test_agent_only_stores_reusable_epistemic_notes(tmp_path):
 
 
 def test_file_summary_cache_is_invalidated_on_out_of_band_edit_and_path_spelling(tmp_path):
+    """执行 `test_file_summary_cache_is_invalidated_on_out_of_band_edit_and_path_spelling` 的内部逻辑。"""
     file_path = tmp_path / "sample.txt"
     file_path.write_text("alpha\n", encoding="utf-8")
     agent = build_agent(tmp_path, [])
@@ -130,6 +137,7 @@ def test_file_summary_cache_is_invalidated_on_out_of_band_edit_and_path_spelling
 
 
 def test_agent_retries_after_empty_model_output(tmp_path):
+    """执行 `test_agent_retries_after_empty_model_output` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -146,6 +154,7 @@ def test_agent_retries_after_empty_model_output(tmp_path):
 
 
 def test_agent_retries_after_malformed_tool_payload(tmp_path):
+    """执行 `test_agent_retries_after_malformed_tool_payload` 的内部逻辑。"""
     (tmp_path / "hello.txt").write_text("alpha\n", encoding="utf-8")
     agent = build_agent(
         tmp_path,
@@ -165,6 +174,7 @@ def test_agent_retries_after_malformed_tool_payload(tmp_path):
 
 
 def test_agent_accepts_xml_write_file_tool(tmp_path):
+    """执行 `test_agent_accepts_xml_write_file_tool` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -180,6 +190,7 @@ def test_agent_accepts_xml_write_file_tool(tmp_path):
 
 
 def test_retries_do_not_consume_the_whole_budget(tmp_path):
+    """执行 `test_retries_do_not_consume_the_whole_budget` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -196,6 +207,7 @@ def test_retries_do_not_consume_the_whole_budget(tmp_path):
 
 
 def test_agent_saves_and_resumes_session(tmp_path):
+    """执行 `test_agent_saves_and_resumes_session` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>First pass.</final>"])
     assert agent.ask("Start a session") == "First pass."
 
@@ -212,6 +224,7 @@ def test_agent_saves_and_resumes_session(tmp_path):
 
 
 def test_patch_file_replaces_exact_match(tmp_path):
+    """执行 `test_patch_file_replaces_exact_match` 的内部逻辑。"""
     file_path = tmp_path / "sample.txt"
     file_path.write_text("hello world\n", encoding="utf-8")
     agent = build_agent(tmp_path, [])
@@ -231,6 +244,7 @@ def test_patch_file_replaces_exact_match(tmp_path):
 
 
 def test_invalid_risky_tool_does_not_prompt_for_approval(tmp_path):
+    """执行 `test_invalid_risky_tool_does_not_prompt_for_approval` 的内部逻辑。"""
     agent = build_agent(tmp_path, [], approval_policy="ask")
 
     with patch("builtins.input") as mock_input:
@@ -242,6 +256,7 @@ def test_invalid_risky_tool_does_not_prompt_for_approval(tmp_path):
 
 
 def test_list_files_hides_internal_agent_state(tmp_path):
+    """执行 `test_list_files_hides_internal_agent_state` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
     (tmp_path / ".pico").mkdir(exist_ok=True)
     (tmp_path / ".git").mkdir(exist_ok=True)
@@ -255,6 +270,7 @@ def test_list_files_hides_internal_agent_state(tmp_path):
 
 
 def test_list_files_shows_one_level_child_preview(tmp_path):
+    """执行 `test_list_files_shows_one_level_child_preview` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
     nested = tmp_path / "fixtures" / "db"
     nested.mkdir(parents=True)
@@ -267,6 +283,7 @@ def test_list_files_shows_one_level_child_preview(tmp_path):
 
 
 def test_repeated_identical_tool_call_is_rejected(tmp_path):
+    """执行 `test_repeated_identical_tool_call_is_rejected` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
     agent.record({"role": "tool", "name": "list_files", "args": {}, "content": "(empty)", "created_at": "1"})
     agent.record({"role": "tool", "name": "list_files", "args": {}, "content": "(empty)", "created_at": "2"})
@@ -277,6 +294,7 @@ def test_repeated_identical_tool_call_is_rejected(tmp_path):
 
 
 def test_welcome_screen_keeps_box_shape_for_long_paths(tmp_path):
+    """执行 `test_welcome_screen_keeps_box_shape_for_long_paths` 的内部逻辑。"""
     deep = tmp_path / "very" / "long" / "path" / "for" / "the" / "mini" / "agent" / "welcome" / "screen"
     deep.mkdir(parents=True)
     agent = build_agent(deep, [])
@@ -299,6 +317,7 @@ def test_welcome_screen_keeps_box_shape_for_long_paths(tmp_path):
 
 
 def test_runtime_system_prompt_uses_moka_identity(tmp_path):
+    """执行 `test_runtime_system_prompt_uses_moka_identity` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
 
     prompt = agent.prompt("Who are you?")
@@ -308,21 +327,26 @@ def test_runtime_system_prompt_uses_moka_identity(tmp_path):
 
 
 def test_openai_compatible_client_posts_expected_responses_payload():
+    """执行 `test_openai_compatible_client_posts_expected_responses_payload` 的内部逻辑。"""
     captured = {}
 
     class FakeResponse:
         headers = {"Content-Type": "application/json"}
 
         def __enter__(self):
+            """执行 `__enter__` 的内部逻辑。"""
             return self
 
         def __exit__(self, exc_type, exc, tb):
+            """执行 `__exit__` 的内部逻辑。"""
             return False
 
         def read(self):
+            """执行 `read` 的内部逻辑。"""
             return json.dumps({"output_text": "<final>ok</final>"}).encode("utf-8")
 
     def fake_urlopen(request, timeout):
+        """执行 `fake_urlopen` 的内部逻辑。"""
         captured["url"] = request.full_url
         captured["timeout"] = timeout
         captured["headers"] = dict(request.headers)
@@ -367,18 +391,22 @@ def test_openai_compatible_client_posts_expected_responses_payload():
 
 
 def test_openai_compatible_client_sends_prompt_cache_fields_and_records_usage():
+    """执行 `test_openai_compatible_client_sends_prompt_cache_fields_and_records_usage` 的内部逻辑。"""
     captured = {}
 
     class FakeResponse:
         headers = {"Content-Type": "application/json"}
 
         def __enter__(self):
+            """执行 `__enter__` 的内部逻辑。"""
             return self
 
         def __exit__(self, exc_type, exc, tb):
+            """执行 `__exit__` 的内部逻辑。"""
             return False
 
         def read(self):
+            """执行 `read` 的内部逻辑。"""
             return json.dumps(
                 {
                     "output_text": "<final>ok</final>",
@@ -392,6 +420,7 @@ def test_openai_compatible_client_sends_prompt_cache_fields_and_records_usage():
             ).encode("utf-8")
 
     def fake_urlopen(request, timeout):
+        """执行 `fake_urlopen` 的内部逻辑。"""
         captured["url"] = request.full_url
         captured["timeout"] = timeout
         captured["headers"] = dict(request.headers)
@@ -425,21 +454,26 @@ def test_openai_compatible_client_sends_prompt_cache_fields_and_records_usage():
 
 
 def test_openai_compatible_client_retries_rate_limit_and_records_retry_metadata():
+    """执行 `test_openai_compatible_client_retries_rate_limit_and_records_retry_metadata` 的内部逻辑。"""
     calls = {"count": 0}
 
     class FakeResponse:
         headers = {"Content-Type": "application/json"}
 
         def __enter__(self):
+            """执行 `__enter__` 的内部逻辑。"""
             return self
 
         def __exit__(self, exc_type, exc, tb):
+            """执行 `__exit__` 的内部逻辑。"""
             return False
 
         def read(self):
+            """执行 `read` 的内部逻辑。"""
             return json.dumps({"output_text": "<final>ok</final>"}).encode("utf-8")
 
     def fake_urlopen(request, timeout):
+        """执行 `fake_urlopen` 的内部逻辑。"""
         del request, timeout
         calls["count"] += 1
         if calls["count"] == 1:
@@ -470,16 +504,20 @@ def test_openai_compatible_client_retries_rate_limit_and_records_retry_metadata(
 
 
 def test_openai_compatible_client_classifies_invalid_json_provider_failure():
+    """执行 `test_openai_compatible_client_classifies_invalid_json_provider_failure` 的内部逻辑。"""
     class FakeResponse:
         headers = {"Content-Type": "application/json"}
 
         def __enter__(self):
+            """执行 `__enter__` 的内部逻辑。"""
             return self
 
         def __exit__(self, exc_type, exc, tb):
+            """执行 `__exit__` 的内部逻辑。"""
             return False
 
         def read(self):
+            """执行 `read` 的内部逻辑。"""
             return b"not-json"
 
     client = OpenAICompatibleModelClient(
@@ -499,6 +537,7 @@ def test_openai_compatible_client_classifies_invalid_json_provider_failure():
 
 
 def test_provider_error_metadata_sanitizes_url_credentials():
+    """执行 `test_provider_error_metadata_sanitizes_url_credentials` 的内部逻辑。"""
     error = ProviderError(
         "failed",
         provider="openai",
@@ -515,16 +554,20 @@ def test_provider_error_metadata_sanitizes_url_credentials():
 
 
 def test_provider_success_metadata_sanitizes_url_credentials():
+    """执行 `test_provider_success_metadata_sanitizes_url_credentials` 的内部逻辑。"""
     class FakeResponse:
         headers = {"Content-Type": "application/json"}
 
         def __enter__(self):
+            """执行 `__enter__` 的内部逻辑。"""
             return self
 
         def __exit__(self, exc_type, exc, tb):
+            """执行 `__exit__` 的内部逻辑。"""
             return False
 
         def read(self):
+            """执行 `read` 的内部逻辑。"""
             return json.dumps({"output_text": "<final>ok</final>"}).encode("utf-8")
 
     client = OpenAICompatibleModelClient(
@@ -542,21 +585,26 @@ def test_provider_success_metadata_sanitizes_url_credentials():
 
 
 def test_provider_url_sanitizer_handles_invalid_ports_and_ipv6():
+    """执行 `test_provider_url_sanitizer_handles_invalid_ports_and_ipv6` 的内部逻辑。"""
     assert ProviderError("failed", base_url="https://example.test:bad/v1?api_key=sk-real-secret").base_url == "https://example.test/v1"
     assert ProviderError("failed", base_url="http://user:secret@[::1]:8080/v1").base_url == "http://[::1]:8080/v1"
 
 
 def test_openai_compatible_client_extracts_text_from_event_stream():
+    """执行 `test_openai_compatible_client_extracts_text_from_event_stream` 的内部逻辑。"""
     class FakeResponse:
         headers = {"Content-Type": "text/event-stream"}
 
         def __enter__(self):
+            """执行 `__enter__` 的内部逻辑。"""
             return self
 
         def __exit__(self, exc_type, exc, tb):
+            """执行 `__exit__` 的内部逻辑。"""
             return False
 
         def read(self):
+            """执行 `read` 的内部逻辑。"""
             return (
                 'data: {"type":"response.created","response":{"id":"resp_1","output":[]}}\n'
                 'data: {"type":"response.completed","response":{"output":[{"content":[{"text":"<final>stream ok</final>"}]}]}}\n'
@@ -578,16 +626,20 @@ def test_openai_compatible_client_extracts_text_from_event_stream():
 
 
 def test_openai_compatible_client_extracts_text_from_event_stream_deltas():
+    """执行 `test_openai_compatible_client_extracts_text_from_event_stream_deltas` 的内部逻辑。"""
     class FakeResponse:
         headers = {"Content-Type": "text/event-stream"}
 
         def __enter__(self):
+            """执行 `__enter__` 的内部逻辑。"""
             return self
 
         def __exit__(self, exc_type, exc, tb):
+            """执行 `__exit__` 的内部逻辑。"""
             return False
 
         def read(self):
+            """执行 `read` 的内部逻辑。"""
             return (
                 'event: response.output_text.delta\n'
                 'data: {"type":"response.output_text.delta","delta":"<final>"}\n'
@@ -613,18 +665,22 @@ def test_openai_compatible_client_extracts_text_from_event_stream_deltas():
 
 
 def test_anthropic_compatible_client_posts_expected_messages_payload():
+    """执行 `test_anthropic_compatible_client_posts_expected_messages_payload` 的内部逻辑。"""
     captured = {}
 
     class FakeResponse:
         headers = {"Content-Type": "application/json"}
 
         def __enter__(self):
+            """执行 `__enter__` 的内部逻辑。"""
             return self
 
         def __exit__(self, exc_type, exc, tb):
+            """执行 `__exit__` 的内部逻辑。"""
             return False
 
         def read(self):
+            """执行 `read` 的内部逻辑。"""
             return json.dumps(
                 {
                     "content": [
@@ -637,6 +693,7 @@ def test_anthropic_compatible_client_posts_expected_messages_payload():
             ).encode("utf-8")
 
     def fake_urlopen(request, timeout):
+        """执行 `fake_urlopen` 的内部逻辑。"""
         captured["url"] = request.full_url
         captured["timeout"] = timeout
         captured["headers"] = dict(request.headers)
@@ -680,16 +737,20 @@ def test_anthropic_compatible_client_posts_expected_messages_payload():
 
 
 def test_anthropic_compatible_client_extracts_first_text_block():
+    """执行 `test_anthropic_compatible_client_extracts_first_text_block` 的内部逻辑。"""
     class FakeResponse:
         headers = {"Content-Type": "application/json"}
 
         def __enter__(self):
+            """执行 `__enter__` 的内部逻辑。"""
             return self
 
         def __exit__(self, exc_type, exc, tb):
+            """执行 `__exit__` 的内部逻辑。"""
             return False
 
         def read(self):
+            """执行 `read` 的内部逻辑。"""
             return json.dumps(
                 {
                     "content": [
@@ -714,16 +775,20 @@ def test_anthropic_compatible_client_extracts_first_text_block():
 
 
 def test_anthropic_compatible_client_records_usage_metadata():
+    """执行 `test_anthropic_compatible_client_records_usage_metadata` 的内部逻辑。"""
     class FakeResponse:
         headers = {"Content-Type": "application/json"}
 
         def __enter__(self):
+            """执行 `__enter__` 的内部逻辑。"""
             return self
 
         def __exit__(self, exc_type, exc, tb):
+            """执行 `__exit__` 的内部逻辑。"""
             return False
 
         def read(self):
+            """执行 `read` 的内部逻辑。"""
             return json.dumps(
                 {
                     "content": [{"type": "text", "text": "<final>ok</final>"}],
@@ -756,6 +821,7 @@ def test_anthropic_compatible_client_records_usage_metadata():
 
 
 def test_build_agent_uses_openai_provider_and_model_override(tmp_path):
+    """执行 `test_build_agent_uses_openai_provider_and_model_override` 的内部逻辑。"""
     args = type(
         "Args",
         (),
@@ -796,24 +862,28 @@ def test_build_agent_uses_openai_provider_and_model_override(tmp_path):
 
 
 def test_build_arg_parser_leaves_provider_to_config_by_default(tmp_path):
+    """执行 `test_build_arg_parser_leaves_provider_to_config_by_default` 的内部逻辑。"""
     args = pico_pkg.build_arg_parser().parse_args(["--cwd", str(tmp_path)])
 
     assert args.provider is None
 
 
 def test_build_arg_parser_accepts_anthropic_provider(tmp_path):
+    """执行 `test_build_arg_parser_accepts_anthropic_provider` 的内部逻辑。"""
     args = pico_pkg.build_arg_parser().parse_args(["--cwd", str(tmp_path), "--provider", "anthropic"])
 
     assert args.provider == "anthropic"
 
 
 def test_build_arg_parser_accepts_deepseek_provider(tmp_path):
+    """执行 `test_build_arg_parser_accepts_deepseek_provider` 的内部逻辑。"""
     args = pico_pkg.build_arg_parser().parse_args(["--cwd", str(tmp_path), "--provider", "deepseek"])
 
     assert args.provider == "deepseek"
 
 
 def test_build_agent_uses_anthropic_provider_and_openai_key_fallback(tmp_path):
+    """执行 `test_build_agent_uses_anthropic_provider_and_openai_key_fallback` 的内部逻辑。"""
     args = type(
         "Args",
         (),
@@ -856,6 +926,7 @@ def test_build_agent_uses_anthropic_provider_and_openai_key_fallback(tmp_path):
 
 
 def test_build_agent_uses_anthropic_default_model_when_env_is_missing(tmp_path):
+    """执行 `test_build_agent_uses_anthropic_default_model_when_env_is_missing` 的内部逻辑。"""
     args = pico_pkg.build_arg_parser().parse_args(["--cwd", str(tmp_path), "--provider", "anthropic"])
 
     with patch.dict(
@@ -871,6 +942,7 @@ def test_build_agent_uses_anthropic_default_model_when_env_is_missing(tmp_path):
 
 
 def test_build_agent_uses_deepseek_provider_and_env_configuration(tmp_path):
+    """执行 `test_build_agent_uses_deepseek_provider_and_env_configuration` 的内部逻辑。"""
     (tmp_path / ".env").write_text(
         "\n".join(
             [
@@ -922,6 +994,7 @@ def test_build_agent_uses_deepseek_provider_and_env_configuration(tmp_path):
 
 
 def test_build_agent_uses_provider_profile_protocol_from_project_toml(tmp_path):
+    """执行 `test_build_agent_uses_provider_profile_protocol_from_project_toml` 的内部逻辑。"""
     (tmp_path / ".pico.toml").write_text(
         "\n".join(
             [
@@ -955,6 +1028,7 @@ def test_build_agent_uses_provider_profile_protocol_from_project_toml(tmp_path):
 
 
 def test_build_agent_uses_deepseek_default_model_when_env_is_missing(tmp_path):
+    """执行 `test_build_agent_uses_deepseek_default_model_when_env_is_missing` 的内部逻辑。"""
     args = pico_pkg.build_arg_parser().parse_args(["--cwd", str(tmp_path), "--provider", "deepseek"])
 
     with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "sk-deepseek"}, clear=True):
@@ -966,6 +1040,7 @@ def test_build_agent_uses_deepseek_default_model_when_env_is_missing(tmp_path):
 
 
 def test_build_agent_uses_openai_provider_by_default(tmp_path):
+    """执行 `test_build_agent_uses_openai_provider_by_default` 的内部逻辑。"""
     args = pico_pkg.build_arg_parser().parse_args(["--cwd", str(tmp_path)])
 
     with patch.dict(
@@ -988,6 +1063,7 @@ def test_build_agent_uses_openai_provider_by_default(tmp_path):
 
 
 def test_successful_run_persists_run_artifacts_and_stop_reason(tmp_path):
+    """执行 `test_successful_run_persists_run_artifacts_and_stop_reason` 的内部逻辑。"""
     (tmp_path / "hello.txt").write_text("alpha\nbeta\n", encoding="utf-8")
     agent = build_agent(
         tmp_path,
@@ -1026,6 +1102,7 @@ def test_successful_run_persists_run_artifacts_and_stop_reason(tmp_path):
 
 
 def test_trace_and_report_redact_secret_env_values(tmp_path):
+    """执行 `test_trace_and_report_redact_secret_env_values` 的内部逻辑。"""
     secret = "sk-test-secret-123"
     # clear=True 会清空 Windows 定位 cmd.exe 所需的系统变量，导致
     # subprocess.run(shell=True) 无法启动 shell；保留它们。命令改用跨平台的
@@ -1071,6 +1148,7 @@ def test_trace_and_report_redact_secret_env_values(tmp_path):
 
 
 def test_prompt_budget_metadata_records_budget_decisions(tmp_path):
+    """执行 `test_prompt_budget_metadata_records_budget_decisions` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>Done.</final>"])
     agent.memory.append_note("alpha episodic note " + ("A" * 120), tags=("recall",), created_at="2026-04-07T10:00:00+00:00")
     agent.memory.append_note("beta episodic recall note " + ("B" * 120), created_at="2026-04-07T10:01:00+00:00")
@@ -1115,6 +1193,7 @@ def test_prompt_budget_metadata_records_budget_decisions(tmp_path):
 
 
 def test_prompt_metadata_refreshes_prefix_when_workspace_changes(tmp_path):
+    """执行 `test_prompt_metadata_refreshes_prefix_when_workspace_changes` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
 
     first = agent.prompt_metadata("first", "")
@@ -1135,6 +1214,7 @@ def test_prompt_metadata_refreshes_prefix_when_workspace_changes(tmp_path):
 
 
 def test_agent_creates_checkpoint_when_context_reduction_happens_and_artifacts_only_reference_it(tmp_path):
+    """执行 `test_agent_creates_checkpoint_when_context_reduction_happens_and_artifacts_only_reference_it` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>Done after checkpoint.</final>"])
     for index in range(10):
         agent.record(
@@ -1183,6 +1263,7 @@ def test_agent_creates_checkpoint_when_context_reduction_happens_and_artifacts_o
 
 
 def test_resume_prompt_uses_checkpoint_state_not_just_history(tmp_path):
+    """执行 `test_resume_prompt_uses_checkpoint_state_not_just_history` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>checkpoint ready.</final>"])
     agent.session["checkpoints"] = {
         "current_id": "ckpt_manual",
@@ -1224,6 +1305,7 @@ def test_resume_prompt_uses_checkpoint_state_not_just_history(tmp_path):
 
 
 def test_resume_invalidates_stale_file_summaries_and_marks_partial_stale(tmp_path):
+    """执行 `test_resume_invalidates_stale_file_summaries_and_marks_partial_stale` 的内部逻辑。"""
     file_path = tmp_path / "runtime.py"
     file_path.write_text("alpha\n", encoding="utf-8")
     agent = build_agent(tmp_path, ["<final>checkpoint ready.</final>"])
@@ -1268,6 +1350,7 @@ def test_resume_invalidates_stale_file_summaries_and_marks_partial_stale(tmp_pat
 
 
 def test_run_shell_nonzero_with_workspace_change_is_recorded_as_partial_success(tmp_path):
+    """执行 `test_run_shell_nonzero_with_workspace_change_is_recorded_as_partial_success` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
 
     result = agent.run_tool(
@@ -1285,6 +1368,7 @@ def test_run_shell_nonzero_with_workspace_change_is_recorded_as_partial_success(
 
 
 def test_resume_marks_workspace_mismatch_when_checkpoint_runtime_identity_is_stale(tmp_path):
+    """执行 `test_resume_marks_workspace_mismatch_when_checkpoint_runtime_identity_is_stale` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>checkpoint ready.</final>"])
     agent.session["checkpoints"] = {
         "current_id": "ckpt_workspace",
@@ -1321,6 +1405,7 @@ def test_resume_marks_workspace_mismatch_when_checkpoint_runtime_identity_is_sta
 
 
 def test_write_file_trace_records_minimum_tool_contract_fields(tmp_path):
+    """执行 `test_write_file_trace_records_minimum_tool_contract_fields` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -1347,6 +1432,7 @@ def test_write_file_trace_records_minimum_tool_contract_fields(tmp_path):
 
 
 def test_resume_marks_schema_mismatch_when_checkpoint_version_is_incompatible(tmp_path):
+    """执行 `test_resume_marks_schema_mismatch_when_checkpoint_version_is_incompatible` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>checkpoint ready.</final>"])
     agent.session["checkpoints"] = {
         "current_id": "ckpt_schema",
@@ -1383,6 +1469,7 @@ def test_resume_marks_schema_mismatch_when_checkpoint_version_is_incompatible(tm
 
 
 def test_resume_marks_no_checkpoint_when_session_has_no_checkpoint_state(tmp_path):
+    """执行 `test_resume_marks_no_checkpoint_when_session_has_no_checkpoint_state` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>checkpoint ready.</final>"])
     agent.session.pop("checkpoints", None)
     agent.session_store.save(agent.session)
@@ -1401,6 +1488,7 @@ def test_resume_marks_no_checkpoint_when_session_has_no_checkpoint_state(tmp_pat
 
 
 def test_freshness_mismatch_creates_checkpoint_before_model_completion(tmp_path):
+    """执行 `test_freshness_mismatch_creates_checkpoint_before_model_completion` 的内部逻辑。"""
     file_path = tmp_path / "runtime.py"
     file_path.write_text("alpha\n", encoding="utf-8")
     agent = build_agent(tmp_path, ["<final>Resumed.</final>"])
@@ -1442,6 +1530,7 @@ def test_freshness_mismatch_creates_checkpoint_before_model_completion(tmp_path)
 
 
 def test_runtime_identity_persists_key_execution_metadata(tmp_path):
+    """执行 `test_runtime_identity_persists_key_execution_metadata` 的内部逻辑。"""
     workspace = build_workspace(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
     agent = Pico(
@@ -1468,6 +1557,7 @@ def test_runtime_identity_persists_key_execution_metadata(tmp_path):
 
 
 def test_resume_records_runtime_identity_mismatch_fields_in_metadata_and_trace(tmp_path):
+    """执行 `test_resume_records_runtime_identity_mismatch_fields_in_metadata_and_trace` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>checkpoint ready.</final>"])
     agent.session["checkpoints"] = {
         "current_id": "ckpt_identity",
@@ -1543,6 +1633,7 @@ def test_resume_records_runtime_identity_mismatch_fields_in_metadata_and_trace(t
 
 
 def test_partial_success_creates_process_note_for_exploration_history(tmp_path):
+    """执行 `test_partial_success_creates_process_note_for_exploration_history` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
 
     agent.run_tool(
@@ -1566,6 +1657,7 @@ def test_partial_success_creates_process_note_for_exploration_history(tmp_path):
 
 
 def test_explicit_memory_promotion_persists_durable_memory_topics(tmp_path):
+    """执行 `test_explicit_memory_promotion_persists_durable_memory_topics` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -1601,6 +1693,7 @@ def test_explicit_memory_promotion_persists_durable_memory_topics(tmp_path):
 
 
 def test_final_memory_tags_are_appended_to_daily_log(tmp_path):
+    """执行 `test_final_memory_tags_are_appended_to_daily_log` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         ["<final>Done. <memory>Preference: keep reports concise.</memory></final>"],
@@ -1623,6 +1716,7 @@ def test_final_memory_tags_are_appended_to_daily_log(tmp_path):
 
 
 def test_memory_maintenance_report_explains_auto_dream_skip_reason(tmp_path):
+    """执行 `test_memory_maintenance_report_explains_auto_dream_skip_reason` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>Done.</final>"])
 
     assert agent.ask("Finish without enough sessions") == "Done."
@@ -1642,9 +1736,11 @@ def test_memory_maintenance_report_explains_auto_dream_skip_reason(tmp_path):
 
 
 def test_memory_maintenance_failure_does_not_mask_final_answer(tmp_path, monkeypatch):
+    """执行 `test_memory_maintenance_failure_does_not_mask_final_answer` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>Done.</final>"])
 
     def fail_memory_maintenance(_final_answer):
+        """执行 `fail_memory_maintenance` 的内部逻辑。"""
         raise RuntimeError("memory disk is unavailable")
 
     monkeypatch.setattr(agent, "maintain_memory_after_turn", fail_memory_maintenance)
@@ -1659,6 +1755,7 @@ def test_memory_maintenance_failure_does_not_mask_final_answer(tmp_path, monkeyp
 
 
 def test_memory_dir_is_workspace_relative_and_repo_local(tmp_path):
+    """执行 `test_memory_dir_is_workspace_relative_and_repo_local` 的内部逻辑。"""
     workspace = build_workspace(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
 
@@ -1681,6 +1778,7 @@ def test_memory_dir_is_workspace_relative_and_repo_local(tmp_path):
 
 
 def test_auto_dream_runs_in_background_after_session_gate(tmp_path):
+    """执行 `test_auto_dream_runs_in_background_after_session_gate` 的内部逻辑。"""
     for index in range(2):
         (tmp_path / ".pico" / "sessions" / f"older-{index}.json").parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / ".pico" / "sessions" / f"older-{index}.json").write_text("{}", encoding="utf-8")
@@ -1718,6 +1816,7 @@ def test_auto_dream_runs_in_background_after_session_gate(tmp_path):
 
 
 def test_background_auto_dream_failure_restores_lock_and_reports_error(tmp_path, monkeypatch):
+    """执行 `test_background_auto_dream_failure_restores_lock_and_reports_error` 的内部逻辑。"""
     memory_root = tmp_path / ".pico" / "memory"
     memory_root.mkdir(parents=True)
     lock_path = memory_root / ".consolidate-lock"
@@ -1729,6 +1828,7 @@ def test_background_auto_dream_failure_restores_lock_and_reports_error(tmp_path,
         session_path.write_text("{}", encoding="utf-8")
 
     def fail_dream(*_args, **_kwargs):
+        """执行 `fail_dream` 的内部逻辑。"""
         raise RuntimeError("dream provider unavailable")
 
     monkeypatch.setattr("pico.features.memory.run_dream", fail_dream)
@@ -1754,6 +1854,7 @@ def test_background_auto_dream_failure_restores_lock_and_reports_error(tmp_path,
 
 
 def test_explicit_memory_promotion_accepts_bullet_prefixed_labels(tmp_path):
+    """执行 `test_explicit_memory_promotion_accepts_bullet_prefixed_labels` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -1780,6 +1881,7 @@ def test_explicit_memory_promotion_accepts_bullet_prefixed_labels(tmp_path):
 
 
 def test_explicit_memory_promotion_supports_chinese_intent_and_labels(tmp_path):
+    """执行 `test_explicit_memory_promotion_supports_chinese_intent_and_labels` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -1800,6 +1902,7 @@ def test_explicit_memory_promotion_supports_chinese_intent_and_labels(tmp_path):
 
 
 def test_explicit_memory_promotion_rejects_secret_shaped_and_transient_lines(tmp_path):
+    """执行 `test_explicit_memory_promotion_rejects_secret_shaped_and_transient_lines` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -1829,6 +1932,7 @@ def test_explicit_memory_promotion_rejects_secret_shaped_and_transient_lines(tmp
 
 
 def test_explicit_memory_promotion_supersedes_matching_durable_fact(tmp_path):
+    """执行 `test_explicit_memory_promotion_supersedes_matching_durable_fact` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -1852,6 +1956,7 @@ def test_explicit_memory_promotion_supersedes_matching_durable_fact(tmp_path):
 
 
 def test_explicit_memory_promotion_dedupes_duplicate_durable_note(tmp_path):
+    """执行 `test_explicit_memory_promotion_dedupes_duplicate_durable_note` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -1870,8 +1975,10 @@ def test_explicit_memory_promotion_dedupes_duplicate_durable_note(tmp_path):
 
 
 def test_agent_records_model_cache_metadata_in_last_prompt_metadata(tmp_path):
+    """执行 `test_agent_records_model_cache_metadata_in_last_prompt_metadata` 的内部逻辑。"""
     class CacheAwareScriptedModelClient(ScriptedModelClient):
         def complete(self, prompt, max_new_tokens, **kwargs):
+            """执行 `complete` 的内部逻辑。"""
             self.last_completion_metadata = {
                 "prompt_cache_supported": True,
                 "cached_tokens": 512,
@@ -1899,6 +2006,7 @@ def test_agent_records_model_cache_metadata_in_last_prompt_metadata(tmp_path):
 
 
 def test_recent_transcript_entries_stay_richer_than_older_ones(tmp_path):
+    """执行 `test_recent_transcript_entries_stay_richer_than_older_ones` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>Done.</final>"])
     old_text = "OLD-" + ("A" * 320)
     recent_text = "RECENT-" + ("B" * 320)
@@ -1921,6 +2029,7 @@ def test_recent_transcript_entries_stay_richer_than_older_ones(tmp_path):
 
 
 def test_public_api_exports_resolve_through_package_path():
+    """执行 `test_public_api_exports_resolve_through_package_path` 的内部逻辑。"""
     assert callable(build_welcome)
     assert not hasattr(pico_pkg, "ScriptedModelClient")
     assert not hasattr(providers_pkg, "ScriptedModelClient")
@@ -1932,6 +2041,7 @@ def test_public_api_exports_resolve_through_package_path():
 
 
 def test_reviewer_skeleton_docs_exist():
+    """执行 `test_reviewer_skeleton_docs_exist` 的内部逻辑。"""
     release_readme = Path("release/v3/README.md")
     review_pack = Path("release/v3/REVIEW.md")
     testing = Path("release/v3/TESTING.md")
@@ -1958,12 +2068,14 @@ def test_reviewer_skeleton_docs_exist():
 
 
 def test_package_import_surface_includes_cli_entrypoints():
+    """执行 `test_package_import_surface_includes_cli_entrypoints` 的内部逻辑。"""
     assert callable(pico_pkg.main)
     assert callable(pico_pkg.build_agent)
     assert callable(pico_pkg.build_arg_parser)
 
 
 def test_pyproject_exposes_moka_and_legacy_console_scripts():
+    """执行 `test_pyproject_exposes_moka_and_legacy_console_scripts` 的内部逻辑。"""
     pyproject = (Path(__file__).parents[1] / "pyproject.toml").read_text(
         encoding="utf-8"
     )
@@ -1975,6 +2087,7 @@ def test_pyproject_exposes_moka_and_legacy_console_scripts():
 
 
 def test_module_execution_help_works():
+    """执行 `test_module_execution_help_works` 的内部逻辑。"""
     result = subprocess.run(
         [sys.executable, "-m", "pico", "--help"],
         capture_output=True,

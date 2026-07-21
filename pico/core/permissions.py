@@ -1,4 +1,8 @@
-"""Runtime permission decisions for tool execution."""
+"""Pico 运行时实现模块。
+
+权限检查只回答“当前动作是否被允许”；更细粒度的操作约束由工具策略层处理，
+两者分离可使拒绝原因稳定、可解释并便于审计。
+"""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,24 +16,31 @@ class PermissionDecision:
 
     @classmethod
     def allow(cls, reason):
+        """执行 `allow` 的内部逻辑。"""
         return cls("allow", reason)
 
     @classmethod
     def deny(cls, reason, security_event_type=""):
+        """执行 `deny` 的内部逻辑。"""
         return cls("deny", reason, security_event_type)
 
     @property
     def allowed(self):
+        """执行 `allowed` 的内部逻辑。"""
         return self.decision == "allow"
 
 
 class PermissionChecker:
     def __init__(self, runtime):
+        """初始化对象状态。"""
         self.runtime = runtime
 
     def check(self, tool, args):
+        """执行 `check` 的内部逻辑。"""
         args = args or {}
         profile = self.runtime.active_tool_profile
+        # profile 是运行模式的第一道硬边界。必须先检查它，避免后续的“自动批准”
+        # 意外绕过计划模式或委派审查模式的工具集合限制。
         if not profile.allows(tool.name):
             if profile.name == "plan":
                 return PermissionDecision.deny("plan_mode_tool_not_allowed", "plan_mode_write_guard")
@@ -55,10 +66,13 @@ class PermissionChecker:
         return PermissionDecision.deny("approval_denied", "approval_denied")
 
     def _check_plan(self, tool, args):
+        """执行 `_check_plan` 的内部逻辑。"""
         if tool.read_only:
             return PermissionDecision.allow("plan_read_only")
         if tool.name not in {"write_file", "patch_file"}:
             return PermissionDecision.deny("plan_mode_tool_not_allowed", "plan_mode_write_guard")
+        # 计划模式允许写入唯一的计划工件，而不是任意工作区文件；比较解析后的
+        # Path 可同时避免相对路径别名和不同分隔符造成的绕过。
         requested = self.runtime.path(args.get("path", ""))
         active = self.runtime.path(self.runtime.plan_mode.plan_path)
         if Path(requested) != Path(active):
@@ -66,6 +80,9 @@ class PermissionChecker:
         return PermissionDecision.allow("plan_artifact_write")
 
     def _check_write_scope(self, tool, args):
+        # 子代理的可写范围按“请求路径是否位于授权目录之下”判断，不做字符串
+        # 前缀匹配，以免 `src2` 被误认为属于 `src`。
+        """执行 `_check_write_scope` 的内部逻辑。"""
         requested = self.runtime.path(args.get("path", ""))
         for raw_scope in self.runtime.write_scope:
             scope = self.runtime.path(raw_scope)

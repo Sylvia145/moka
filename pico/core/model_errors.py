@@ -1,4 +1,4 @@
-"""Model-error cleanup, trace, checkpoint, and user messaging path."""
+"""Pico 运行时实现模块。"""
 
 from ..providers.errors import ProviderError
 from .turn_transitions import emit_terminal_transition
@@ -6,6 +6,7 @@ from .workspace import clip, now
 
 
 def finish_model_error(engine, task_state, user_message, prompt_metadata, exc, duration_ms, run_duration_ms):
+    """执行 `finish_model_error` 的内部逻辑。"""
     agent = engine.runtime
     error_metadata = _error_metadata(exc)
     prompt_metadata.update(error_metadata)
@@ -84,6 +85,7 @@ def finish_model_error(engine, task_state, user_message, prompt_metadata, exc, d
 
 
 def _error_metadata(exc):
+    """执行 `_error_metadata` 的内部逻辑。"""
     if isinstance(exc, ProviderError):
         return exc.to_metadata()
     return {

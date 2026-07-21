@@ -1,4 +1,4 @@
-"""MCP configuration, transport factory, and Tool Registry adapter."""
+"""Pico 运行时实现模块。"""
 
 from dataclasses import dataclass
 from typing import Protocol
@@ -27,14 +27,21 @@ class McpServerConfig:
 
 
 class McpClient(Protocol):
-    def list_tools(self) -> list[dict]: ...
+    def list_tools(self) -> list[dict]:
+        """列出 MCP 服务提供的工具定义。"""
+        ...
 
-    def call_tool(self, name: str, arguments: dict) -> dict: ...
+    def call_tool(self, name: str, arguments: dict) -> dict:
+        """调用指定 MCP 工具并返回结构化结果。"""
+        ...
 
-    def close(self) -> None: ...
+    def close(self) -> None:
+        """关闭 MCP 客户端及其底层连接。"""
+        ...
 
 
 def create_mcp_client(config: McpServerConfig) -> McpClient:
+    """执行 `create_mcp_client` 的内部逻辑。"""
     transport = str(config.transport or "stdio").lower()
     if transport == "stdio":
         from .mcp_stdio import McpStdioClient
@@ -48,6 +55,7 @@ def create_mcp_client(config: McpServerConfig) -> McpClient:
 
 
 def build_mcp_tools(agent):
+    """执行 `build_mcp_tools` 的内部逻辑。"""
     tools = {}
     clients = getattr(agent, "mcp_clients", {})
     for server_name, client in clients.items():
@@ -68,6 +76,7 @@ def build_mcp_tools(agent):
 
 
 def _call(client: McpClient, tool_name: str, args: dict) -> ToolResult:
+    """执行 `_call` 的内部逻辑。"""
     result = client.call_tool(tool_name, args)
     content = result.get("content", [])
     text = "\n".join(str(item.get("text", "")) for item in content if isinstance(item, dict))

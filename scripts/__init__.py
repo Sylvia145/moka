@@ -1,1 +1,1 @@
-"""Project validation scripts."""
+"""Pico 项目运行与验证脚本。"""

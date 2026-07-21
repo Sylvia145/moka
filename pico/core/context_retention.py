@@ -1,4 +1,4 @@
-"""Retention policy for prompt history tool results."""
+"""Pico 运行时实现模块。"""
 
 from __future__ import annotations
 
@@ -34,6 +34,7 @@ class ContextRetentionPolicy:
     bulk_tools = frozenset(BULK_TOOL_NAMES)
 
     def should_render_tool_inline(self, item, context):
+        """执行 `should_render_tool_inline` 的内部逻辑。"""
         if item.get("turn_id") in context.recent_turns:
             return True
         if item.get("name") in self.protected_tools:
@@ -50,6 +51,7 @@ class ContextRetentionPolicy:
         return bool(self._tool_paths(item) & set(context.changed_paths))
 
     def can_replace_tool(self, item, context):
+        """执行 `can_replace_tool` 的内部逻辑。"""
         if item.get("role") != "tool":
             return False
         if self.should_render_tool_inline(item, context):
@@ -57,6 +59,7 @@ class ContextRetentionPolicy:
         return item.get("name") in self.bulk_tools
 
     def _tool_paths(self, item):
+        """执行 `_tool_paths` 的内部逻辑。"""
         paths = {str(path) for path in item.get("affected_paths", []) if str(path).strip()}
         path_arg = str(item.get("args", {}).get("path", "")).strip()
         if path_arg:
@@ -65,5 +68,6 @@ class ContextRetentionPolicy:
 
     @staticmethod
     def _is_failed_tool(item):
+        """执行 `_is_failed_tool` 的内部逻辑。"""
         status = str(item.get("tool_status", ""))
         return bool(status and status != "ok") or bool(item.get("tool_error_code"))

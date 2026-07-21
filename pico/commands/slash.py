@@ -1,4 +1,4 @@
-"""Slash command registry and parsers."""
+"""Pico 运行时实现模块。"""
 
 from __future__ import annotations
 
@@ -46,6 +46,7 @@ SLASH_COMMANDS: tuple[SlashCommand, ...] = (
 
 
 def command_help_text() -> str:
+    """执行 `command_help_text` 的内部逻辑。"""
     lines = ["Commands:"]
     for command in SLASH_COMMANDS:
         lines.append(f"{command.usage:<32} {command.description}")
@@ -53,6 +54,7 @@ def command_help_text() -> str:
 
 
 def resolve_command(name: str) -> SlashCommand | None:
+    """执行 `resolve_command` 的内部逻辑。"""
     normalized = str(name or "").strip().lstrip("/").lower()
     if not normalized:
         return None
@@ -63,6 +65,7 @@ def resolve_command(name: str) -> SlashCommand | None:
 
 
 def suggest_commands(text: str, limit: int = 8) -> list[SlashCommand]:
+    """执行 `suggest_commands` 的内部逻辑。"""
     raw = str(text or "")
     if not raw.startswith("/"):
         return []
@@ -79,6 +82,7 @@ def suggest_commands(text: str, limit: int = 8) -> list[SlashCommand]:
 
 
 def parse_subagent_args(args: str) -> tuple[dict | None, str]:
+    """执行 `parse_subagent_args` 的内部逻辑。"""
     usage = "Usage: /subagent explore <task> or /subagent worker --scope <path[,path]> <task>"
     try:
         tokens = shlex.split(str(args or ""))
@@ -121,4 +125,5 @@ def parse_subagent_args(args: str) -> tuple[dict | None, str]:
 
 
 def _split_scope(value: str) -> list[str]:
+    """执行 `_split_scope` 的内部逻辑。"""
     return [item.strip() for item in str(value or "").split(",") if item.strip()]

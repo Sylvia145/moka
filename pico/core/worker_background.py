@@ -1,4 +1,4 @@
-"""Background scheduling and workspace isolation for worker tasks."""
+"""Pico 运行时实现模块。"""
 
 import subprocess
 import threading
@@ -10,6 +10,7 @@ ACTIVE_STATUSES = {"starting", "running", "stopping"}
 
 
 def create_worktree(manager, worker_id, subagent_type, scope):
+    """执行 `create_worktree` 的内部逻辑。"""
     if subagent_type != "worker" or not scope or not (manager.runtime.root / ".git").exists():
         return None, ""
     target = manager.runtime.root / ".worktrees" / worker_id
@@ -28,10 +29,12 @@ def create_worktree(manager, worker_id, subagent_type, scope):
 
 
 def can_run_background(manager):
+    """执行 `can_run_background` 的内部逻辑。"""
     return getattr(manager.runtime, "model_client_factory", None) is not None
 
 
 def start_if_capacity(manager, task, prompt, action):
+    """执行 `start_if_capacity` 的内部逻辑。"""
     with manager._lock:
         if _active_count(manager) >= manager.max_concurrent_workers:
             return False
@@ -43,6 +46,7 @@ def start_if_capacity(manager, task, prompt, action):
 
 
 def queue_task(manager, task, prompt, action):
+    """执行 `queue_task` 的内部逻辑。"""
     item = manager._get_item(task.id)
     with manager._lock:
         item["status"] = "queued"
@@ -55,6 +59,7 @@ def queue_task(manager, task, prompt, action):
 
 
 def start_next_queued(manager):
+    """执行 `start_next_queued` 的内部逻辑。"""
     with manager._lock:
         if _active_count(manager) >= manager.max_concurrent_workers:
             return
@@ -74,6 +79,7 @@ def start_next_queued(manager):
 
 
 def request_stop(task):
+    """执行 `request_stop` 的内部逻辑。"""
     task.stop_requested = True
     abort = getattr(task.runtime, "abort_current_turn", None)
     if callable(abort):
@@ -81,6 +87,7 @@ def request_stop(task):
 
 
 def shutdown_workers(manager, timeout):
+    """执行 `shutdown_workers` 的内部逻辑。"""
     tasks = list(manager._tasks.values())
     for task in tasks:
         item = manager._get_item(task.id)
@@ -110,10 +117,12 @@ def shutdown_workers(manager, timeout):
 
 
 def _active_count(manager):
+    """执行 `_active_count` 的内部逻辑。"""
     return sum(1 for item in manager.state.get("items", []) if item.get("status") in ACTIVE_STATUSES)
 
 
 def _start_background(manager, task, prompt, action):
+    """执行 `_start_background` 的内部逻辑。"""
     from .worker_execution import run_worker
 
     task.thread = threading.Thread(
@@ -124,6 +133,7 @@ def _start_background(manager, task, prompt, action):
 
 
 def _watch_timeout(manager, task):
+    """执行 `_watch_timeout` 的内部逻辑。"""
     if not threading.Event().wait(task.timeout_seconds):
         item = manager._find_item(task.id)
         if item is None:
