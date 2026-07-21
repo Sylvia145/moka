@@ -12,6 +12,10 @@ def run_worker(manager, task, prompt, action):
     """执行 `run_worker` 的内部逻辑。"""
     item = manager._get_item(task.id)
     with manager._lock:
+        # cancel/timeout 可能在工作线程真正拿到 CPU 前先提交终态；不得把终态
+        # 回写成 running。
+        if item.get("status") != "starting":
+            return
         item["status"] = "running"
         item["updated_at"] = now()
         item["notification_drained"] = False
@@ -32,10 +36,13 @@ def run_worker(manager, task, prompt, action):
     change_handoff = build_change_handoff(
         task.runtime.root, item.get("base_commit", ""), artifacts
     )
-    with manager._lock:
-        item.update(
-            {
-                "status": status,
+    committed = manager.transition_terminal(
+        task.id, status, reason="worker_execution_returned", actor="worker_thread"
+    )
+    if committed is not None:
+        with manager._lock:
+            committed.update(
+                {
                 "result": clip(result, 2000),
                 "tool_steps": int(getattr(task_state, "tool_steps", 0) or 0),
                 "attempts": int(getattr(task_state, "attempts", 0) or 0),
@@ -51,12 +58,12 @@ def run_worker(manager, task, prompt, action):
                 },
                 "duration_ms": int((time.monotonic() - started) * 1000),
                 "updated_at": now(),
-            }
+                }
+            )
+        manager._notifications.put((task.id, render_worker_notification(committed)))
+        manager.runtime.session_event_bus.emit(
+            "worker_finished",
+            {"worker_id": task.id, "status": status, "duration_ms": committed["duration_ms"]},
         )
-    manager._notifications.put((task.id, render_worker_notification(item)))
-    manager.runtime.session_event_bus.emit(
-        "worker_finished",
-        {"worker_id": task.id, "status": status, "duration_ms": item["duration_ms"]},
-    )
     manager._save()
     start_next_queued(manager)

@@ -98,11 +98,20 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         before_final_hooks=None,
         mcp_servers=None,
         max_concurrent_workers=2,
+        max_pending_tasks=16,
+        max_pending_workers=None,
     ):
         """初始化对象状态。"""
         self.model_client = model_client
         self.model_client_factory = model_client_factory
         self.max_concurrent_workers = max(1, int(max_concurrent_workers))
+        # pending 队列同样必须有界；否则并发上限只会把压力从运行线程转移到
+        # 无限制累积的内存任务中。
+        # `max_pending_workers` 是早期试验接口的兼容别名；对外配置名称保持与
+        # 调度合同一致的 `max_pending_tasks`。
+        pending_limit = max_pending_tasks if max_pending_workers is None else max_pending_workers
+        self.max_pending_tasks = max(0, int(pending_limit))
+        self.max_pending_workers = self.max_pending_tasks
         self.model_client_router = model_client_router or ModelClientRouter(model_client)
         self.abort_requested = False
         self.ask_user_callback = ask_user_callback
