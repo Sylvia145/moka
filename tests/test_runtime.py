@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 
 from pico import Pico, SessionStore, WorkspaceContext
@@ -5,6 +6,7 @@ from pico.testing import ScriptedModelClient
 
 
 def build_agent(tmp_path, outputs):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
@@ -17,6 +19,7 @@ def build_agent(tmp_path, outputs):
 
 
 def read_jsonl(path):
+    """执行 `read_jsonl` 的内部逻辑。"""
     return [
         json.loads(line)
         for line in path.read_text(encoding="utf-8").splitlines()
@@ -25,6 +28,7 @@ def read_jsonl(path):
 
 
 def test_retrieval_trace_event_records_selected_and_rejected_without_prompt_leak(tmp_path):
+    """执行 `test_retrieval_trace_event_records_selected_and_rejected_without_prompt_leak` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>Done.</final>"])
     for index in range(4):
         agent.memory.append_note(
@@ -48,6 +52,7 @@ def test_retrieval_trace_event_records_selected_and_rejected_without_prompt_leak
 
 
 def test_memory_file_read_trace_event_records_memory_paths(tmp_path):
+    """执行 `test_memory_file_read_trace_event_records_memory_paths` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>Done.</final>"])
     topic_dir = tmp_path / ".pico" / "memory" / "topics"
     topic_dir.mkdir(parents=True, exist_ok=True)

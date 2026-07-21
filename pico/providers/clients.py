@@ -1,4 +1,4 @@
-"""模型后端适配层。
+"""Pico 运行时实现模块。
 
 runtime 只关心一件事：给我一个 prompt，我拿回一段文本。
 不同 provider 在 HTTP 接口、响应结构、是否支持 prompt cache 上都有差异，
@@ -20,6 +20,7 @@ RETRYABLE_HTTP_STATUS = {408, 409, 425, 429, 500, 502, 503, 504}
 
 
 def _normalize_versioned_base_url(base_url):
+    """执行 `_normalize_versioned_base_url` 的内部逻辑。"""
     base = str(base_url).rstrip("/")
     if not base.endswith("/v1"):
         base += "/v1"
@@ -27,6 +28,7 @@ def _normalize_versioned_base_url(base_url):
 
 
 def _extract_openai_text(data):
+    """执行 `_extract_openai_text` 的内部逻辑。"""
     if data.get("output_text"):
         return data["output_text"]
 
@@ -54,6 +56,7 @@ def _extract_openai_text(data):
 
 
 def _extract_openai_text_from_sse(body_text):
+    """执行 `_extract_openai_text_from_sse` 的内部逻辑。"""
     last_response = None
     deltas = []
     for line in body_text.splitlines():
@@ -104,6 +107,7 @@ def _extract_openai_text_from_sse(body_text):
 
 
 def _extract_openai_response_from_sse(body_text):
+    """执行 `_extract_openai_response_from_sse` 的内部逻辑。"""
     last_response = None
     deltas = []
     for line in body_text.splitlines():
@@ -145,6 +149,7 @@ def _extract_openai_response_from_sse(body_text):
 
 
 def _openai_input_content(prompt):
+    """执行 `_openai_input_content` 的内部逻辑。"""
     model_input = ensure_model_input(prompt)
     content = [{"type": "input_text", "text": model_input.text}]
     for image in model_input.images:
@@ -158,6 +163,7 @@ def _openai_input_content(prompt):
 
 
 def _anthropic_input_content(prompt):
+    """执行 `_anthropic_input_content` 的内部逻辑。"""
     model_input = ensure_model_input(prompt)
     content = []
     for image in model_input.images:
@@ -178,6 +184,7 @@ def _anthropic_input_content(prompt):
 def _extract_usage_cache_details(data):
     # 把不同 OpenAI-compatible 返回里的 usage 字段整理成统一结构，
     # 让 runtime/trace/report 不需要关心 provider 细节。
+    """执行 `_extract_usage_cache_details` 的内部逻辑。"""
     usage = data.get("usage") or {}
     input_tokens = usage.get("input_tokens", usage.get("prompt_tokens"))
     output_tokens = usage.get("output_tokens", usage.get("completion_tokens"))
@@ -197,6 +204,7 @@ def _extract_usage_cache_details(data):
 
 
 def _request_with_retries(provider, model, base_url, request, timeout, retry_budget=2):
+    """执行 `_request_with_retries` 的内部逻辑。"""
     retry_count = 0
     attempts = int(retry_budget) + 1
     for attempt in range(attempts):
@@ -247,6 +255,7 @@ def _request_with_retries(provider, model, base_url, request, timeout, retry_bud
 
 
 def _provider_metadata(provider, model, base_url, attempts, retry_count):
+    """执行 `_provider_metadata` 的内部逻辑。"""
     return {
         "provider_protocol": provider,
         "provider_model": model,
@@ -257,6 +266,7 @@ def _provider_metadata(provider, model, base_url, attempts, retry_count):
 
 
 def _http_error_code(status):
+    """执行 `_http_error_code` 的内部逻辑。"""
     status = int(status)
     if status == 401 or status == 403:
         return "auth_error"
@@ -270,6 +280,7 @@ def _http_error_code(status):
 
 
 def _transport_error_code(exc):
+    """执行 `_transport_error_code` 的内部逻辑。"""
     reason = getattr(exc, "reason", None)
     text = f"{exc} {reason}".lower()
     if isinstance(exc, (TimeoutError, socket.timeout)) or isinstance(reason, (TimeoutError, socket.timeout)) or "timed out" in text:
@@ -278,6 +289,7 @@ def _transport_error_code(exc):
 
 
 def _retry_delay(attempt, headers):
+    """执行 `_retry_delay` 的内部逻辑。"""
     retry_after = _retry_after_seconds(headers)
     if retry_after is not None:
         return min(retry_after, 2.0)
@@ -285,6 +297,7 @@ def _retry_delay(attempt, headers):
 
 
 def _retry_after_seconds(headers):
+    """执行 `_retry_after_seconds` 的内部逻辑。"""
     if not headers:
         return None
     try:
@@ -300,6 +313,7 @@ def _retry_after_seconds(headers):
 
 
 def _provider_failure(provider, model, base_url, code, message, request_metadata=None, cause=None):
+    """执行 `_provider_failure` 的内部逻辑。"""
     request_metadata = request_metadata or {}
     error = ProviderError(
         message,
@@ -317,6 +331,7 @@ def _provider_failure(provider, model, base_url, code, message, request_metadata
 
 class OpenAICompatibleModelClient:
     def __init__(self, model, base_url, api_key, temperature, timeout):
+        """初始化对象状态。"""
         self.model = model
         self.base_url = _normalize_versioned_base_url(base_url)
         self.api_key = api_key
@@ -469,6 +484,7 @@ class OpenAICompatibleModelClient:
 
 
 def _extract_anthropic_text(data):
+    """执行 `_extract_anthropic_text` 的内部逻辑。"""
     for item in data.get("content", []):
         if isinstance(item, dict) and item.get("type") == "text":
             text = item.get("text")
@@ -479,6 +495,7 @@ def _extract_anthropic_text(data):
 
 class AnthropicCompatibleModelClient:
     def __init__(self, model, base_url, api_key, temperature, timeout):
+        """初始化对象状态。"""
         self.model = model
         self.base_url = _normalize_versioned_base_url(base_url)
         self.api_key = api_key
@@ -490,6 +507,7 @@ class AnthropicCompatibleModelClient:
     def complete(self, prompt, max_new_tokens, prompt_cache_key=None, prompt_cache_retention=None):
         # 为了保持统一接口，runtime 仍然会传缓存参数进来；
         # 这里只是显式丢弃，因为当前 Anthropic-compatible 路径没有接缓存复用。
+        """执行 `complete` 的内部逻辑。"""
         del prompt_cache_key, prompt_cache_retention
         self.last_completion_metadata = {}
         content, image_input_count = _anthropic_input_content(prompt)
@@ -592,6 +610,7 @@ class ChatCompletionsModelClient:
     """
 
     def __init__(self, model, base_url, api_key, temperature, timeout):
+        """初始化对象状态。"""
         self.model = model
         self.base_url = _normalize_versioned_base_url(base_url)
         self.api_key = api_key
@@ -603,6 +622,7 @@ class ChatCompletionsModelClient:
         self.last_completion_metadata = {}
 
     def complete(self, prompt, max_new_tokens, prompt_cache_key=None, prompt_cache_retention=None):
+        """执行 `complete` 的内部逻辑。"""
         del prompt_cache_key, prompt_cache_retention
         self.last_completion_metadata = {}
         model_input = ensure_model_input(prompt)

@@ -1,4 +1,4 @@
-"""Provider 配置优先级测试。
+"""Pico 自动化测试模块。
 
 核心断言：`.pico.toml` 的显式配置优先于通用环境变量（ANTHROPIC_MODEL、
 ANTHROPIC_BASE_URL、ANTHROPIC_AUTH_TOKEN 等）。这些通用名可能被宿主进程
@@ -8,6 +8,7 @@ from pico.config import resolve_provider_config
 
 
 def test_explicit_toml_beats_generic_model_and_base_url(tmp_path, monkeypatch):
+    """执行 `test_explicit_toml_beats_generic_model_and_base_url` 的内部逻辑。"""
     (tmp_path / ".pico.toml").write_text(
         '[providers.anthropic]\n'
         'protocol = "anthropic"\n'
@@ -26,6 +27,7 @@ def test_explicit_toml_beats_generic_model_and_base_url(tmp_path, monkeypatch):
 
 
 def test_explicit_toml_beats_generic_api_key(tmp_path, monkeypatch):
+    """执行 `test_explicit_toml_beats_generic_api_key` 的内部逻辑。"""
     (tmp_path / ".pico.toml").write_text(
         '[providers.anthropic]\n'
         'protocol = "anthropic"\n'
@@ -40,6 +42,7 @@ def test_explicit_toml_beats_generic_api_key(tmp_path, monkeypatch):
 
 
 def test_generic_env_still_used_without_toml(tmp_path, monkeypatch):
+    """执行 `test_generic_env_still_used_without_toml` 的内部逻辑。"""
     monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-generic")
 
     config = resolve_provider_config("deepseek", start=tmp_path)
@@ -48,6 +51,7 @@ def test_generic_env_still_used_without_toml(tmp_path, monkeypatch):
 
 
 def test_generic_model_env_still_used_without_toml(tmp_path, monkeypatch):
+    """执行 `test_generic_model_env_still_used_without_toml` 的内部逻辑。"""
     monkeypatch.setenv("OPENAI_MODEL", "custom-model")
 
     config = resolve_provider_config("openai", start=tmp_path)

@@ -1,9 +1,10 @@
-"""Context budget evidence reducer."""
+"""Pico 运行时实现模块。"""
 
 CONTEXT_BUDGET_SCHEMA = "pico.context_budget_summary.v1"
 
 
 def context_budget_summary(metadata):
+    """执行 `context_budget_summary` 的内部逻辑。"""
     usage = dict(metadata.get("context_usage", {}) or {})
     orchestrator = dict(metadata.get("context_orchestrator", {}) or {})
     history = dict(metadata.get("history", {}) or {})
@@ -51,6 +52,7 @@ def context_budget_summary(metadata):
 
 
 def update_from_orchestrator(summary, event):
+    """执行 `update_from_orchestrator` 的内部逻辑。"""
     summary = dict(summary or {})
     orchestrator = dict(event.get("context_orchestrator", {}) or {})
     usage = dict(event.get("context_usage", {}) or {})
@@ -79,11 +81,13 @@ def update_from_orchestrator(summary, event):
 
 
 def _compact_call_usage(orchestrator):
+    """执行 `_compact_call_usage` 的内部逻辑。"""
     usage = orchestrator.get("compact_call_usage")
     return dict(usage) if isinstance(usage, dict) else None
 
 
 def _compact_net_benefit(orchestrator, compact_call_usage):
+    """执行 `_compact_net_benefit` 的内部逻辑。"""
     if not compact_call_usage:
         return None
     pre_tokens = int(orchestrator.get("pre_compact_estimated_tokens", 0) or 0)
@@ -93,6 +97,7 @@ def _compact_net_benefit(orchestrator, compact_call_usage):
 
 
 def _saved_chars(metadata, history, orchestrator):
+    """执行 `_saved_chars` 的内部逻辑。"""
     section_saved = sum(
         _section_reduction(item)["saved_chars"]
         for item in metadata.get("budget_reductions", []) or []
@@ -105,6 +110,7 @@ def _saved_chars(metadata, history, orchestrator):
 
 
 def _section_reduction(item):
+    """执行 `_section_reduction` 的内部逻辑。"""
     before = int(item.get("before_chars", 0) or 0)
     after = int(item.get("after_chars", 0) or 0)
     return {
@@ -115,6 +121,7 @@ def _section_reduction(item):
 
 
 def _microcompact_reductions(metadata):
+    """执行 `_microcompact_reductions` 的内部逻辑。"""
     history = dict(metadata.get("history", {}) or {})
     saved = int(history.get("microcompact_saved_chars", 0) or 0)
     refs = list(history.get("microcompact_artifact_refs", []) or [])

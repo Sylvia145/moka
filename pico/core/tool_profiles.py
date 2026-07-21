@@ -1,4 +1,4 @@
-"""Named tool capability surfaces for runtime modes."""
+"""Pico 运行时实现模块。"""
 
 from dataclasses import dataclass
 
@@ -9,10 +9,12 @@ class ToolSetProfile:
     allowed_tools: frozenset[str]
 
     def allows(self, tool_name):
+        """执行 `allows` 的内部逻辑。"""
         return tool_name in self.allowed_tools
 
 
 def build_tool_profiles(tools):
+    """执行 `build_tool_profiles` 的内部逻辑。"""
     all_tools = frozenset(tools)
     coordinator_tools = frozenset({"agent", "send_message", "task_stop"})
     mode_tools = frozenset({"enter_plan_mode", "exit_plan_mode"})

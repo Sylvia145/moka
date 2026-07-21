@@ -1,4 +1,4 @@
-"""Before-final hook protocol.
+"""Pico 运行时实现模块。
 
 Hooks are explicit extension points for project or benchmark policy. Core Pico
 does not infer benchmark contracts from prompts; callers can register hooks
@@ -40,6 +40,7 @@ BeforeFinalHook = Callable[[BeforeFinalContext], BeforeFinalHookDecision | dict 
 
 
 def run_before_final_hooks(agent, task_state, proposed_final):
+    """执行 `run_before_final_hooks` 的内部逻辑。"""
     hooks = list(getattr(agent, "before_final_hooks", ()) or ())
     if not hooks:
         return {"action": "allow", "decisions": [], "hook_count": 0}
@@ -75,6 +76,7 @@ def run_before_final_hooks(agent, task_state, proposed_final):
 
 
 def reduce_before_final_hook_summary(summary, event):
+    """执行 `reduce_before_final_hook_summary` 的内部逻辑。"""
     summary = dict(summary or {})
     summary.setdefault("schema_version", HOOK_SUMMARY_SCHEMA)
     action = str(event.get("action", "allow"))
@@ -87,9 +89,10 @@ def reduce_before_final_hook_summary(summary, event):
     return summary
 
 def _call_hook(hook, context):
+    """执行 `_call_hook` 的内部逻辑。"""
     try:
         return hook(context)
-    except Exception as exc:  # hooks are policy, not core runtime stability
+    except Exception as exc:  # 钩子属于策略扩展，不影响核心运行时稳定性。
         return BeforeFinalHookDecision(
             action="warn",
             reason="hook_error",
@@ -99,6 +102,7 @@ def _call_hook(hook, context):
 
 
 def _decision_to_dict(decision, hook):
+    """执行 `_decision_to_dict` 的内部逻辑。"""
     if decision is None:
         decision = BeforeFinalHookDecision(hook=_hook_name(hook))
     if isinstance(decision, BeforeFinalHookDecision):
@@ -127,6 +131,7 @@ def _decision_to_dict(decision, hook):
 
 
 def _select_decision(decisions):
+    """执行 `_select_decision` 的内部逻辑。"""
     if not decisions:
         return {"action": "allow"}
     for action in ("block", "runtime_notice", "warn"):
@@ -137,4 +142,5 @@ def _select_decision(decisions):
 
 
 def _hook_name(hook):
+    """执行 `_hook_name` 的内部逻辑。"""
     return getattr(hook, "__name__", hook.__class__.__name__)

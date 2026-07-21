@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 from pathlib import Path
 from collections import Counter
@@ -14,9 +15,11 @@ from pico.evaluation.evaluator import (
 
 
 def test_now_in_default_timezone_falls_back_without_system_zoneinfo(monkeypatch):
+    """执行 `test_now_in_default_timezone_falls_back_without_system_zoneinfo` 的内部逻辑。"""
     import pico.evaluation.evaluator as evaluator_module
 
     def missing_zoneinfo(_name):
+        """执行 `missing_zoneinfo` 的内部逻辑。"""
         raise evaluator_module.ZoneInfoNotFoundError("missing")
 
     monkeypatch.setattr(evaluator_module, "ZoneInfo", missing_zoneinfo)
@@ -27,6 +30,7 @@ def test_now_in_default_timezone_falls_back_without_system_zoneinfo(monkeypatch)
 
 
 def test_platform_verifier_command_uses_current_python_on_windows(monkeypatch):
+    """执行 `test_platform_verifier_command_uses_current_python_on_windows` 的内部逻辑。"""
     import pico.evaluation.evaluator as evaluator_module
 
     monkeypatch.setattr(evaluator_module.os, "name", "nt")
@@ -36,6 +40,7 @@ def test_platform_verifier_command_uses_current_python_on_windows(monkeypatch):
 
 
 def test_load_benchmark_validates_fixed_schema():
+    """执行 `test_load_benchmark_validates_fixed_schema` 的内部逻辑。"""
     benchmark = load_benchmark(Path("benchmarks/coding_tasks.json"))
 
     assert benchmark["schema_version"] == 1
@@ -54,6 +59,7 @@ def test_load_benchmark_validates_fixed_schema():
 
 
 def test_load_benchmark_rejects_missing_required_task_fields(tmp_path):
+    """执行 `test_load_benchmark_rejects_missing_required_task_fields` 的内部逻辑。"""
     benchmark_path = tmp_path / "bad-benchmark.json"
     benchmark_path.write_text(
         json.dumps(
@@ -75,6 +81,7 @@ def test_load_benchmark_rejects_missing_required_task_fields(tmp_path):
 
 
 def test_run_fixed_benchmark_uses_fresh_fixture_copy_and_fresh_run_directory(tmp_path):
+    """执行 `test_run_fixed_benchmark_uses_fresh_fixture_copy_and_fresh_run_directory` 的内部逻辑。"""
     artifact_path = tmp_path / "benchmark-v1.json"
     evaluator = BenchmarkEvaluator(
         benchmark_path=Path("benchmarks/coding_tasks.json"),
@@ -102,6 +109,7 @@ def test_run_fixed_benchmark_uses_fresh_fixture_copy_and_fresh_run_directory(tmp
 
 
 def test_run_fixed_benchmark_reports_metadata_and_success_definition(tmp_path):
+    """执行 `test_run_fixed_benchmark_reports_metadata_and_success_definition` 的内部逻辑。"""
     artifact_path = tmp_path / "benchmark-v1.json"
     artifact = run_fixed_benchmark(
         benchmark_path=Path("benchmarks/coding_tasks.json"),
@@ -156,6 +164,7 @@ def test_run_fixed_benchmark_reports_metadata_and_success_definition(tmp_path):
 
 
 def test_run_fixed_benchmark_covers_recovery_and_durable_contract_rows(tmp_path):
+    """执行 `test_run_fixed_benchmark_covers_recovery_and_durable_contract_rows` 的内部逻辑。"""
     artifact = run_fixed_benchmark(
         benchmark_path=Path("benchmarks/coding_tasks.json"),
         artifact_path=tmp_path / "benchmark-v1.json",
@@ -179,6 +188,7 @@ def test_run_fixed_benchmark_covers_recovery_and_durable_contract_rows(tmp_path)
 
 
 def test_run_harness_regression_v2_writes_named_artifact(tmp_path):
+    """执行 `test_run_harness_regression_v2_writes_named_artifact` 的内部逻辑。"""
     artifact_path = tmp_path / "artifacts" / "harness-regression-v2.json"
 
     artifact = run_harness_regression_v2(
@@ -195,6 +205,7 @@ def test_run_harness_regression_v2_writes_named_artifact(tmp_path):
 
 
 def test_run_task_anchors_paths_to_fixture_copy_even_inside_repo_workspace():
+    """执行 `test_run_task_anchors_paths_to_fixture_copy_even_inside_repo_workspace` 的内部逻辑。"""
     evaluator = BenchmarkEvaluator(
         benchmark_path=Path("benchmarks/coding_tasks.json"),
         artifact_path=Path("docs/review-pack/benchmark-v1.json"),
@@ -212,6 +223,7 @@ def test_run_task_anchors_paths_to_fixture_copy_even_inside_repo_workspace():
 
 
 def test_summarize_rows_counts_failure_categories():
+    """执行 `test_summarize_rows_counts_failure_categories` 的内部逻辑。"""
     summary = summarize_rows(
         [
             {
@@ -257,6 +269,7 @@ def test_summarize_rows_counts_failure_categories():
 
 
 def test_trajectory_score_detects_missing_and_forbidden_tools(tmp_path):
+    """执行 `test_trajectory_score_detects_missing_and_forbidden_tools` 的内部逻辑。"""
     import pico.evaluation.evaluator as evaluator_module
 
     trace_path = tmp_path / "trace.jsonl"

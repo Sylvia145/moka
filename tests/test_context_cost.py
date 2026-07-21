@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 from unittest.mock import patch
 
@@ -5,16 +6,20 @@ from pico.providers.clients import AnthropicCompatibleModelClient
 
 
 def test_anthropic_client_records_usage_metadata():
+    """执行 `test_anthropic_client_records_usage_metadata` 的内部逻辑。"""
     class FakeResponse:
         headers = {"Content-Type": "application/json"}
 
         def __enter__(self):
+            """执行 `__enter__` 的内部逻辑。"""
             return self
 
         def __exit__(self, exc_type, exc, tb):
+            """执行 `__exit__` 的内部逻辑。"""
             return False
 
         def read(self):
+            """执行 `read` 的内部逻辑。"""
             return json.dumps(
                 {
                     "content": [{"type": "text", "text": "<final>ok</final>"}],
@@ -44,6 +49,7 @@ def test_anthropic_client_records_usage_metadata():
 
 
 def test_deterministic_prompt_experiment_pairs_full_and_no_reduction(tmp_path):
+    """执行 `test_deterministic_prompt_experiment_pairs_full_and_no_reduction` 的内部逻辑。"""
     from pico.evaluation.context_cost import run_deterministic_prompt_experiment
 
     payload = run_deterministic_prompt_experiment(
@@ -62,9 +68,11 @@ def test_deterministic_prompt_experiment_pairs_full_and_no_reduction(tmp_path):
 
 
 def test_summarize_paired_rows_rejects_quality_regression():
+    """执行 `test_summarize_paired_rows_rejects_quality_regression` 的内部逻辑。"""
     from pico.evaluation.context_cost import CostUsage, ExperimentRow, summarize_paired_rows
 
     def row(task_id, variant, verification_status, tokens):
+        """执行 `row` 的内部逻辑。"""
         return ExperimentRow(
             task_id=task_id,
             layer="deterministic",
@@ -107,9 +115,11 @@ def test_summarize_paired_rows_rejects_quality_regression():
 
 
 def test_summarize_paired_rows_splits_actual_and_proxy():
+    """执行 `test_summarize_paired_rows_splits_actual_and_proxy` 的内部逻辑。"""
     from pico.evaluation.context_cost import CostUsage, ExperimentRow, summarize_paired_rows
 
     def row(task_id, variant, tokens, source):
+        """执行 `row` 的内部逻辑。"""
         return ExperimentRow(
             task_id=task_id,
             layer="layer",
@@ -155,9 +165,11 @@ def test_summarize_paired_rows_splits_actual_and_proxy():
 
 
 def test_claimable_cost_win_rejects_unknown_verification_and_negative_compact_net():
+    """执行 `test_claimable_cost_win_rejects_unknown_verification_and_negative_compact_net` 的内部逻辑。"""
     from pico.evaluation.context_cost import CostUsage, ExperimentRow, summarize_paired_rows
 
     def row(variant, verification_status, compact_net=None):
+        """执行 `row` 的内部逻辑。"""
         return ExperimentRow(
             task_id="task",
             layer="deterministic",
@@ -216,6 +228,7 @@ def test_claimable_cost_win_rejects_unknown_verification_and_negative_compact_ne
 
 
 def test_markdown_report_includes_net_benefit_section(tmp_path):
+    """执行 `test_markdown_report_includes_net_benefit_section` 的内部逻辑。"""
     from pico.evaluation.context_cost import render_markdown_report, run_deterministic_prompt_experiment
 
     payload = run_deterministic_prompt_experiment(
@@ -232,6 +245,7 @@ def test_markdown_report_includes_net_benefit_section(tmp_path):
 
 
 def test_scripted_e2e_experiment_records_tool_use(tmp_path):
+    """执行 `test_scripted_e2e_experiment_records_tool_use` 的内部逻辑。"""
     from pico.evaluation.context_cost import run_scripted_e2e_experiment
 
     payload = run_scripted_e2e_experiment(tmp_path / "context-cost", repetitions=1)
@@ -242,6 +256,7 @@ def test_scripted_e2e_experiment_records_tool_use(tmp_path):
 
 
 def test_write_experiment_artifacts_has_no_secret_markers(tmp_path):
+    """执行 `test_write_experiment_artifacts_has_no_secret_markers` 的内部逻辑。"""
     from pico.evaluation.context_cost import run_deterministic_prompt_experiment, write_experiment_artifacts
 
     payload = run_deterministic_prompt_experiment(tmp_path / "context-cost", repetitions=1)

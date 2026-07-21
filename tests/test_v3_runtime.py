@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 
 from pico.testing import ScriptedModelClient
@@ -5,6 +6,7 @@ from pico import Engine, Pico, SessionEventBus, SessionStore, WorkspaceContext
 
 
 def build_agent(tmp_path, outputs, **kwargs):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
@@ -18,6 +20,7 @@ def build_agent(tmp_path, outputs, **kwargs):
 
 
 def read_session_events(agent):
+    """执行 `read_session_events` 的内部逻辑。"""
     path = agent.session_event_bus.path
     assert path.exists()
     return [
@@ -28,10 +31,12 @@ def read_session_events(agent):
 
 
 def event_names(agent):
+    """执行 `event_names` 的内部逻辑。"""
     return [event["event"] for event in read_session_events(agent)]
 
 
 def test_engine_drives_real_session_and_persists_event_timeline(tmp_path):
+    """执行 `test_engine_drives_real_session_and_persists_event_timeline` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>Done.</final>"])
 
     assert isinstance(agent.engine, Engine)
@@ -59,6 +64,7 @@ def test_engine_drives_real_session_and_persists_event_timeline(tmp_path):
 
 
 def test_engine_wraps_real_tools_with_session_events(tmp_path):
+    """执行 `test_engine_wraps_real_tools_with_session_events` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -82,6 +88,7 @@ def test_engine_wraps_real_tools_with_session_events(tmp_path):
 
 
 def test_plan_mode_allows_only_the_active_plan_artifact_until_plan_is_written(tmp_path):
+    """执行 `test_plan_mode_allows_only_the_active_plan_artifact_until_plan_is_written` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -115,6 +122,7 @@ def test_plan_mode_allows_only_the_active_plan_artifact_until_plan_is_written(tm
 
 
 def test_plan_mode_rejects_final_before_the_plan_artifact_exists(tmp_path):
+    """执行 `test_plan_mode_rejects_final_before_the_plan_artifact_exists` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -135,6 +143,7 @@ def test_plan_mode_rejects_final_before_the_plan_artifact_exists(tmp_path):
 
 
 def test_plan_mode_tools_enter_and_exit_runtime_mode(tmp_path):
+    """执行 `test_plan_mode_tools_enter_and_exit_runtime_mode` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
 
     entered = agent.run_tool("enter_plan_mode", {"topic": "Refactor Auth"})
@@ -173,6 +182,7 @@ def test_plan_path_accepts_absolute_path_inside_workspace(tmp_path):
 
 
 def test_provider_surface_allows_profiles_without_reintroducing_ollama_client():
+    """执行 `test_provider_surface_allows_profiles_without_reintroducing_ollama_client` 的内部逻辑。"""
     import pico
 
     parser = pico.build_arg_parser()

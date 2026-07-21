@@ -1,4 +1,4 @@
-"""Per-run artifact persistence.
+"""Pico 运行时实现模块。
 
 Session JSON stores resumable conversation state. RunStore stores audit
 artifacts for one run, such as task_state, trace, report, and large tool-output
@@ -15,6 +15,7 @@ WINDOWS_REPLACE_RETRY_DELAY_SECONDS = 0.05
 
 
 def _run_id(value):
+    """执行 `_run_id` 的内部逻辑。"""
     if hasattr(value, "run_id"):
         return value.run_id
     return str(value)
@@ -22,39 +23,48 @@ def _run_id(value):
 
 class RunStore:
     def __init__(self, root):
+        """初始化对象状态。"""
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
 
     def run_dir(self, run_id):
+        """执行 `run_dir` 的内部逻辑。"""
         return self.root / _run_id(run_id)
 
     def task_state_path(self, run_id):
+        """执行 `task_state_path` 的内部逻辑。"""
         return self.run_dir(run_id) / "task_state.json"
 
     def trace_path(self, run_id):
+        """执行 `trace_path` 的内部逻辑。"""
         return self.run_dir(run_id) / "trace.jsonl"
 
     def report_path(self, run_id):
+        """执行 `report_path` 的内部逻辑。"""
         return self.run_dir(run_id) / "report.json"
 
     def artifacts_dir(self, run_id):
+        """执行 `artifacts_dir` 的内部逻辑。"""
         return self.run_dir(run_id) / "artifacts"
 
     def start_run(self, task_state):
         # 每次 ask() 都会生成一个 run 目录。
         # 这样一次用户请求对应一组独立工件，后续排查更容易。
+        """执行 `start_run` 的内部逻辑。"""
         run_dir = self.run_dir(task_state)
         run_dir.mkdir(parents=True, exist_ok=True)
         self.write_task_state(task_state)
         return run_dir
 
     def write_task_state(self, task_state):
+        """执行 `write_task_state` 的内部逻辑。"""
         path = self.task_state_path(task_state)
         path.parent.mkdir(parents=True, exist_ok=True)
         self._write_json_atomic(path, task_state.to_dict())
         return path
 
     def append_trace(self, task_state, event):
+        """执行 `append_trace` 的内部逻辑。"""
         path = self.trace_path(task_state)
         path.parent.mkdir(parents=True, exist_ok=True)
         # trace 采用 jsonl 追加写入，原因是 agent 运行过程是流式事件序列，
@@ -65,6 +75,7 @@ class RunStore:
         return path
 
     def write_text_artifact(self, task_state, stem, content):
+        """执行 `write_text_artifact` 的内部逻辑。"""
         directory = self.artifacts_dir(task_state)
         directory.mkdir(parents=True, exist_ok=True)
         index = len(list(directory.glob(f"{stem}-*.txt"))) + 1
@@ -73,6 +84,7 @@ class RunStore:
         return path
 
     def write_binary_artifact(self, task_state, stem, content, suffix):
+        """执行 `write_binary_artifact` 的内部逻辑。"""
         directory = self.artifacts_dir(task_state)
         directory.mkdir(parents=True, exist_ok=True)
         suffix = str(suffix or "").strip()
@@ -84,24 +96,29 @@ class RunStore:
         return path
 
     def artifact_ref(self, task_state, path):
+        """执行 `artifact_ref` 的内部逻辑。"""
         base = self.root.parent.parent if self.root.parent.name == ".pico" else self.root.parent
         return path.relative_to(base).as_posix()
 
     def write_report(self, task_state, report):
+        """执行 `write_report` 的内部逻辑。"""
         path = self.report_path(task_state)
         path.parent.mkdir(parents=True, exist_ok=True)
         self._write_json_atomic(path, report)
         return path
 
     def load_task_state(self, task_id):
+        """执行 `load_task_state` 的内部逻辑。"""
         return json.loads(self.task_state_path(task_id).read_text(encoding="utf-8"))
 
     def load_report(self, task_id):
+        """执行 `load_report` 的内部逻辑。"""
         return json.loads(self.report_path(task_id).read_text(encoding="utf-8"))
 
     def _write_json_atomic(self, path, payload):
         # 原子写：先写临时文件，再 replace。
         # 这样即使中途异常，也不容易留下半截 JSON。
+        """执行 `_write_json_atomic` 的内部逻辑。"""
         with tempfile.NamedTemporaryFile(
             "w",
             encoding="utf-8",

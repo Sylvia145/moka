@@ -1,3 +1,4 @@
+"""Pico 运行时实现模块。"""
 from .cli import build_agent, build_arg_parser, build_welcome, interaction_mode, main
 from .core.engine import Engine
 from .providers import (

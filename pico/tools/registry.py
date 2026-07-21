@@ -1,4 +1,4 @@
-"""工具定义与执行辅助逻辑。
+"""Pico 运行时实现模块。
 
 可以把这个文件看成 agent 的能力白名单：模型能申请哪些动作、这些动作
 如何做参数校验，以及最终如何执行，都是在这里定义的。
@@ -118,6 +118,7 @@ BASE_TOOL_SPECS = {
 def build_tool_registry(agent):
     # 工具不是动态发现的，而是显式注册的。
     # 这样模型看到的是一个有边界、可审计的动作集合。
+    """执行 `build_tool_registry` 的内部逻辑。"""
     tools = {
         name: RegisteredTool(
             name=name,
@@ -132,10 +133,12 @@ def build_tool_registry(agent):
 
 
 def tool_example(name):
+    """执行 `tool_example` 的内部逻辑。"""
     return _tool_example(name)
 
 
 def validate_tool(agent, name, args):
+    """执行 `validate_tool` 的内部逻辑。"""
     args = args or {}
 
     schema_cls = _TOOL_SCHEMAS.get(name)
@@ -154,7 +157,8 @@ def validate_tool(agent, name, args):
         if missing:
             raise ValueError(f"missing required MCP arguments: {', '.join(missing)}")
 
-    # Workspace-aware checks that require the agent (path safety, file state).
+    # 以下校验依赖运行时工作区（例如路径安全与文件状态），不能只靠 Pydantic
+    # 参数模型完成，因此在工具实际执行前由 registry 统一补上。
     if name == "list_files":
         path = agent.path(args.get("path", "."))
         if not path.is_dir():
@@ -192,6 +196,7 @@ def validate_tool(agent, name, args):
 
 
 def tool_list_files(agent, args):
+    """执行 `tool_list_files` 的内部逻辑。"""
     path = agent.path(args.get("path", "."))
     if not path.is_dir():
         raise ValueError("path is not a directory")
@@ -207,10 +212,12 @@ def tool_list_files(agent, args):
     return "\n".join(lines) or "(empty)"
 
 def _visible_entries(path):
+    """执行 `_visible_entries` 的内部逻辑。"""
     return [item for item in sorted(path.iterdir(), key=lambda item: (item.is_file(), item.name.lower())) if item.name not in IGNORED_PATH_NAMES]
 
 
 def tool_read_file(agent, args):
+    """执行 `tool_read_file` 的内部逻辑。"""
     path = agent.path(args["path"])
     if not path.is_file():
         raise ValueError("path is not a file")
@@ -227,6 +234,7 @@ def tool_read_file(agent, args):
 
 
 def tool_search(agent, args):
+    """执行 `tool_search` 的内部逻辑。"""
     pattern = str(args.get("pattern", "")).strip()
     if not pattern:
         raise ValueError("pattern must not be empty")
@@ -270,6 +278,7 @@ def tool_search(agent, args):
 
 
 def tool_run_shell(agent, args):
+    """执行 `tool_run_shell` 的内部逻辑。"""
     command = str(args.get("command", "")).strip()
     if not command:
         raise ValueError("command must not be empty")
@@ -311,6 +320,7 @@ def tool_run_shell(agent, args):
 
 
 def tool_write_file(agent, args):
+    """执行 `tool_write_file` 的内部逻辑。"""
     path = agent.path(args["path"])
     content = str(args["content"])
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -319,6 +329,7 @@ def tool_write_file(agent, args):
 
 
 def tool_patch_file(agent, args):
+    """执行 `tool_patch_file` 的内部逻辑。"""
     path = agent.path(args["path"])
     if not path.is_file():
         raise ValueError("path is not a file")

@@ -1,4 +1,4 @@
-"""User-facing product identity shared by the CLI and Textual UI."""
+"""Pico 运行时实现模块。"""
 
 PRODUCT_NAME = "Moka"
 PRODUCT_NAME_LOWER = "moka"

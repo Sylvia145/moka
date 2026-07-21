@@ -1,4 +1,4 @@
-"""Worker thread execution routine."""
+"""Pico 运行时实现模块。"""
 
 import time
 
@@ -9,6 +9,7 @@ from .workspace import clip, now
 
 
 def run_worker(manager, task, prompt, action):
+    """执行 `run_worker` 的内部逻辑。"""
     item = manager._get_item(task.id)
     with manager._lock:
         item["status"] = "running"
@@ -23,7 +24,7 @@ def run_worker(manager, task, prompt, action):
     try:
         result = task.runtime.ask(str(prompt or ""))
         status = "timed_out" if item.get("status") == "timed_out" else ("stopped" if task.stop_requested else "completed")
-    except Exception as exc:  # noqa: BLE001 - model/provider failures become a worker result contract.
+    except Exception as exc:  # noqa: BLE001 - 模型或后端失败需转为子代理结果契约。
         result = f"error: worker failed: {exc}"
         status = "failed"
     task_state = getattr(task.runtime, "current_task_state", None)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a deterministic end-to-end demo of the Agent runtime."""
+"""Pico 项目运行与验证脚本。"""
 
 import argparse
 import json
@@ -38,6 +38,7 @@ for line in sys.stdin:
 
 
 def _read_jsonl(path: Path) -> list[dict]:
+    """执行 `_read_jsonl` 的内部逻辑。"""
     return [
         json.loads(line)
         for line in path.read_text(encoding="utf-8").splitlines()
@@ -46,6 +47,7 @@ def _read_jsonl(path: Path) -> list[dict]:
 
 
 def run_demo() -> dict:
+    """执行 `run_demo` 的内部逻辑。"""
     with tempfile.TemporaryDirectory(prefix="moka-runtime-demo-") as temp_dir:
         root = Path(temp_dir)
         (root / "README.md").write_text("# Demo repository\n", encoding="utf-8")
@@ -106,6 +108,7 @@ def run_demo() -> dict:
 
 
 def main(argv=None) -> int:
+    """执行 `main` 的内部逻辑。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, help="Optional JSON report path")
     args = parser.parse_args(argv)

@@ -1,4 +1,8 @@
-"""Session-scoped worker lifecycle for subagents."""
+"""Pico 运行时实现模块。
+
+管理器将内存中的执行任务与持久化会话状态同步，并在有写权限的子代理运行时
+启用父代理的委派审查保护，防止两个执行者同时修改同一范围。
+"""
 
 import json
 import queue
@@ -33,6 +37,7 @@ class WorkerTask:
 
 class WorkerManager:
     def __init__(self, runtime):
+        """初始化对象状态。"""
         self.runtime = runtime
         self.runtime.session.setdefault("workers", {"next_id": 1, "items": []})
         self._tasks = {}
@@ -42,14 +47,18 @@ class WorkerManager:
 
     @property
     def state(self):
+        """执行 `state` 的内部逻辑。"""
         return self.runtime.session.setdefault("workers", {"next_id": 1, "items": []})
 
     def spawn(self, description, prompt, subagent_type="worker", write_scope=None, timeout_seconds=60):
+        """执行 `spawn` 的内部逻辑。"""
         subagent_type = _clean_type(subagent_type)
         if self.runtime.runtime_mode == "plan" and subagent_type != "Explore":
             raise ValueError("plan mode only allows Explore agents")
         task = self._new_task(description, subagent_type, write_scope, timeout_seconds)
         self._tasks[task.id] = task
+        # 仅写入型 worker 需要锁住父代理；Explore 子代理没有写权限，保留父代理
+        # 的正常工具能力可以避免无谓地阻塞调查与汇总。
         guard_parent = subagent_type == "worker" and bool(task.write_scope)
         if can_run_background(self):
             if start_if_capacity(self, task, prompt, action="spawn"):
@@ -66,6 +75,7 @@ class WorkerManager:
         return self._public_payload(task)
 
     def continue_task(self, task_id, message):
+        """执行 `continue_task` 的内部逻辑。"""
         task = self._get_active_task(task_id)
         item = self._get_item(task_id)
         if item.get("status") in {"running", "stopping"}:
@@ -81,6 +91,7 @@ class WorkerManager:
         return self._public_payload(task)
 
     def stop_task(self, task_id):
+        """执行 `stop_task` 的内部逻辑。"""
         item = self._get_item(task_id)
         if item["status"] in {"starting", "running"}:
             task = self._tasks.get(str(task_id))
@@ -110,19 +121,24 @@ class WorkerManager:
         }
 
     def shutdown(self, timeout=2.0):
+        """执行 `shutdown` 的内部逻辑。"""
         return shutdown_workers(self, timeout)
 
     def to_dict(self):
+        """执行 `to_dict` 的内部逻辑。"""
         return {
             "next_id": int(self.state.get("next_id", 1)),
             "items": [dict(item) for item in self.state.get("items", [])],
         }
 
     def _new_task(self, description, subagent_type, write_scope, timeout_seconds):
+        """执行 `_new_task` 的内部逻辑。"""
         with self._lock:
             worker_id = f"agent_{int(self.state.get('next_id', 1))}"
             self.state["next_id"] = int(self.state.get("next_id", 1)) + 1
         scope = tuple(_clean_scope(write_scope))
+        # 工作树及其基准提交一并持久化，后续交接时才能判断子代理改动相对于
+        # 哪个父工作区版本产生，并支持可审查的合并流程。
         worktree_path, base_commit = create_worktree(self, worker_id, subagent_type, scope)
         child = build_child_runtime(self.runtime, subagent_type, scope, workspace_root=worktree_path or self.runtime.root)
         item = {
@@ -148,6 +164,7 @@ class WorkerManager:
         return WorkerTask(worker_id, item["description"], subagent_type, scope, child, timeout_seconds=int(timeout_seconds))
 
     def drain_notifications(self):
+        """执行 `drain_notifications` 的内部逻辑。"""
         drained = []
         while True:
             try:
@@ -166,24 +183,28 @@ class WorkerManager:
         return drained
 
     def _get_active_task(self, task_id):
+        """执行 `_get_active_task` 的内部逻辑。"""
         task = self._tasks.get(str(task_id))
         if task is None:
             raise ValueError(f"unknown or inactive worker: {task_id}")
         return task
 
     def _find_item(self, task_id):
+        """执行 `_find_item` 的内部逻辑。"""
         for item in self.state.setdefault("items", []):
             if item.get("id") == str(task_id):
                 return item
         return None
 
     def _get_item(self, task_id):
+        """执行 `_get_item` 的内部逻辑。"""
         item = self._find_item(task_id)
         if item is None:
             raise ValueError(f"unknown worker: {task_id}")
         return item
 
     def _public_payload(self, task, status=None):
+        """执行 `_public_payload` 的内部逻辑。"""
         item = self._get_item(task.id)
         return {
             "task_id": task.id,
@@ -192,12 +213,14 @@ class WorkerManager:
         }
 
     def _save(self):
+        """执行 `_save` 的内部逻辑。"""
         self.runtime.session_path = self.runtime.session_store.save(
             self.runtime.session
         )
 
 
 def _clean_type(value):
+    """执行 `_clean_type` 的内部逻辑。"""
     subagent_type = str(value or "worker").strip()
     if subagent_type not in {"worker", "Explore"}:
         raise ValueError("subagent_type must be worker or Explore")
@@ -205,6 +228,7 @@ def _clean_type(value):
 
 
 def _clean_scope(value):
+    """执行 `_clean_scope` 的内部逻辑。"""
     if value is None:
         return []
     if isinstance(value, str):
@@ -215,4 +239,5 @@ def _clean_scope(value):
 
 
 def dumps_payload(payload):
+    """执行 `dumps_payload` 的内部逻辑。"""
     return json.dumps(payload, ensure_ascii=False, sort_keys=True)

@@ -1,4 +1,4 @@
-"""命令行入口。
+"""Pico 运行时实现模块。
 
 这个模块负责把“用户怎么启动 pico”翻译成 runtime 能理解的对象：
 解析参数、挑模型后端、构建工作区快照、恢复或新建 session，
@@ -84,6 +84,7 @@ SECRET_ENV_NAMES_VAR = "PICO_SECRET_ENV_NAMES"
 
 
 def _configured_secret_names(args):
+    """执行 `_configured_secret_names` 的内部逻辑。"""
     configured_secret_names = set(DEFAULT_SECRET_ENV_NAMES)
     configured_secret_names.update(str(name).upper() for name in args.secret_env_names)
     extra_names = os.environ.get(SECRET_ENV_NAMES_VAR, "")
@@ -95,6 +96,7 @@ def _configured_secret_names(args):
 
 
 def _provider_client_classes():
+    """执行 `_provider_client_classes` 的内部逻辑。"""
     return ProviderClientClasses(
         openai=OpenAICompatibleModelClient,
         anthropic=AnthropicCompatibleModelClient,
@@ -103,6 +105,7 @@ def _provider_client_classes():
 
 
 def _build_provider_runtime(args):
+    """执行 `_build_provider_runtime` 的内部逻辑。"""
     cached = getattr(args, "_provider_runtime", None)
     if cached is not None:
         return cached
@@ -112,10 +115,12 @@ def _build_provider_runtime(args):
 
 
 def _build_model_client(args):
+    """执行 `_build_model_client` 的内部逻辑。"""
     return _build_provider_runtime(args).model_client
 
 
 def build_welcome(agent, model, host):
+    """执行 `build_welcome` 的内部逻辑。"""
     width = max(68, min(shutil.get_terminal_size((80, 20)).columns, 84))
     inner = width - 4
     gap = 3
@@ -123,21 +128,26 @@ def build_welcome(agent, model, host):
     right_width = inner - gap - left_width
 
     def row(text):
+        """执行 `row` 的内部逻辑。"""
         body = middle(text, width - 4)
         return f"| {body.ljust(width - 4)} |"
 
     def divider(char="-"):
+        """执行 `divider` 的内部逻辑。"""
         return "+" + char * (width - 2) + "+"
 
     def center(text):
+        """执行 `center` 的内部逻辑。"""
         body = middle(text, inner)
         return f"| {body.center(inner)} |"
 
     def cell(label, value, size):
+        """执行 `cell` 的内部逻辑。"""
         body = middle(f"{label:<9} {value}", size)
         return body.ljust(size)
 
     def pair(left_label, left_value, right_label, right_value):
+        """执行 `pair` 的内部逻辑。"""
         left = cell(left_label, left_value, left_width)
         right = cell(right_label, right_value, right_width)
         return f"| {left}{' ' * gap}{right} |"
@@ -279,6 +289,7 @@ def build_agent(args):
 
 
 def build_arg_parser():
+    """执行 `build_arg_parser` 的内部逻辑。"""
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="Minimal coding agent for provider profiles backed by OpenAI-compatible or Anthropic-compatible APIs.",
@@ -446,6 +457,7 @@ def build_arg_parser():
 
 
 def handle_repl_command(agent, user_input):
+    """执行 `handle_repl_command` 的内部逻辑。"""
     raw_command = ""
     command_args = ""
     command_name = ""
@@ -542,6 +554,7 @@ def handle_repl_command(agent, user_input):
 
 
 def _format_mode_status(agent):
+    """执行 `_format_mode_status` 的内部逻辑。"""
     lines = [f"runtime mode: {agent.runtime_mode}"]
     plan_path = getattr(agent.plan_mode, "plan_path", "")
     if plan_path:
@@ -550,6 +563,7 @@ def _format_mode_status(agent):
 
 
 def _format_session_status(agent):
+    """执行 `_format_session_status` 的内部逻辑。"""
     task_state = getattr(agent, "current_task_state", None)
     run_id = getattr(task_state, "run_id", "") or ""
     run_dir = str(agent.run_store.run_dir(run_id)) if run_id else "-"
@@ -580,6 +594,7 @@ def _format_session_status(agent):
 
 
 def _format_subagent_status(agent):
+    """执行 `_format_subagent_status` 的内部逻辑。"""
     return "\n".join(
         [
             "subagent tools: agent(description, prompt, subagent_type='Explore|worker', write_scope=[]), send_message(to, message), task_stop(task_id)",
@@ -589,6 +604,7 @@ def _format_subagent_status(agent):
 
 
 def _worker_summary(agent):
+    """执行 `_worker_summary` 的内部逻辑。"""
     items = agent.worker_manager.to_dict().get("items", [])
     if not items:
         return "none"
@@ -596,6 +612,7 @@ def _worker_summary(agent):
 
 
 def _handle_compact(agent, args_text):
+    """执行 `_handle_compact` 的内部逻辑。"""
     args_text = str(args_text or "").strip()
     summary_mode = "deterministic"
     if args_text == "--llm":
@@ -609,6 +626,7 @@ def _handle_compact(agent, args_text):
 
 
 def _compact_command_output(result):
+    """执行 `_compact_command_output` 的内部逻辑。"""
     output = {
         "summary_mode": result.get("summary_mode", ""),
         "summary_called": bool(result.get("summary_called", False)),
@@ -624,6 +642,7 @@ def _compact_command_output(result):
 
 
 def _format_usage(agent):
+    """执行 `_format_usage` 的内部逻辑。"""
     metadata = dict(getattr(agent, "last_completion_metadata", {}) or {})
     context_usage = dict(
         (getattr(agent, "last_prompt_metadata", {}) or {}).get("context_usage", {})
@@ -665,6 +684,7 @@ def _format_usage(agent):
 
 
 def _safe_url_host(sanitized_url):
+    """执行 `_safe_url_host` 的内部逻辑。"""
     if not sanitized_url:
         return "-"
     try:
@@ -677,6 +697,7 @@ def _safe_url_host(sanitized_url):
 
 
 def _fallback_url_host(sanitized_url):
+    """执行 `_fallback_url_host` 的内部逻辑。"""
     _, sep, rest = sanitized_url.partition("://")
     candidate = rest if sep else sanitized_url
     candidate = candidate.split("/", 1)[0]
@@ -684,6 +705,7 @@ def _fallback_url_host(sanitized_url):
 
 
 def _context_payload(agent):
+    """执行 `_context_payload` 的内部逻辑。"""
     metadata = dict(getattr(agent, "last_prompt_metadata", {}) or {})
     if not metadata:
         metadata = agent.prompt_metadata("", "")
@@ -696,6 +718,7 @@ def _context_payload(agent):
 
 
 def _llm_handoff_status(orchestrator):
+    """执行 `_llm_handoff_status` 的内部逻辑。"""
     usage = dict(orchestrator.get("compact_call_usage", {}) or {})
     pre = int(orchestrator.get("pre_compact_estimated_tokens", 0) or 0)
     post = int(orchestrator.get("post_compact_estimated_tokens", 0) or 0)
@@ -709,10 +732,12 @@ def _llm_handoff_status(orchestrator):
 
 
 def _format_model(agent):
+    """执行 `_format_model` 的内部逻辑。"""
     return f"model: {getattr(agent.model_client, 'model', '-') or '-'}"
 
 
 def _format_history(agent):
+    """执行 `_format_history` 的内部逻辑。"""
     rows = agent.session_store.list_sessions()
     if not rows:
         return "(no sessions)"
@@ -726,6 +751,7 @@ def _format_history(agent):
 
 
 def _resolve_session_id(agent, target):
+    """执行 `_resolve_session_id` 的内部逻辑。"""
     if target == "latest":
         return agent.session_store.latest()
     rows = agent.session_store.list_sessions()
@@ -741,6 +767,7 @@ def _resolve_session_id(agent, target):
 
 
 def _cli_ask_user(question, choices):
+    """执行 `_cli_ask_user` 的内部逻辑。"""
     if choices:
         print(question)
         for index, choice in enumerate(choices, start=1):
@@ -753,6 +780,7 @@ def _cli_ask_user(question, choices):
 
 
 def _drain_idle_worker_notifications(agent):
+    """执行 `_drain_idle_worker_notifications` 的内部逻辑。"""
     notifications = agent.engine.drain_worker_notifications()
     for notification in notifications:
         print(f"\n[worker notification]\n{notification}")
@@ -760,6 +788,7 @@ def _drain_idle_worker_notifications(agent):
 
 
 def interaction_mode(args):
+    """执行 `interaction_mode` 的内部逻辑。"""
     if args.prompt or getattr(args, "prompt_file", None):
         return "one_shot"
     if getattr(args, "repl", False):
@@ -770,6 +799,7 @@ def interaction_mode(args):
 
 
 def validate_args(args):
+    """执行 `validate_args` 的内部逻辑。"""
     if getattr(args, "prompt_file", None) and getattr(args, "prompt", None):
         return "--prompt-file cannot be combined with positional prompt"
     if getattr(args, "session_id", None) and getattr(args, "resume", None):
@@ -786,12 +816,14 @@ def validate_args(args):
 
 
 def _one_shot_prompt(args):
+    """执行 `_one_shot_prompt` 的内部逻辑。"""
     if getattr(args, "prompt_file", None):
         return Path(args.prompt_file).read_text(encoding="utf-8")
     return " ".join(args.prompt).strip()
 
 
 def main(argv=None):
+    """执行 `main` 的内部逻辑。"""
     args = build_arg_parser().parse_args(argv)
     validation_error = validate_args(args)
     if validation_error:

@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 from types import SimpleNamespace
 
 from pico.core.context_replacements import commit_proposed_replacements
@@ -5,6 +6,7 @@ from pico.core.turn_history import TurnHistoryBuilder
 
 
 def fake_agent(history, context_replacements=None, changed_paths=None):
+    """执行 `fake_agent` 的内部逻辑。"""
     session = {"history": history}
     if context_replacements is not None:
         session["context_replacements"] = context_replacements
@@ -14,6 +16,7 @@ def fake_agent(history, context_replacements=None, changed_paths=None):
 
 
 def old_tool_item(**overrides):
+    """执行 `old_tool_item` 的内部逻辑。"""
     item = {
         "role": "tool",
         "name": "read_file",
@@ -31,6 +34,7 @@ def old_tool_item(**overrides):
 
 
 def later_turns(count=4):
+    """执行 `later_turns` 的内部逻辑。"""
     history = []
     for index in range(1, count + 1):
         history.append({"role": "user", "content": f"later user {index}", "turn_id": f"t{index}"})
@@ -39,10 +43,12 @@ def later_turns(count=4):
 
 
 def render_history(agent):
+    """执行 `render_history` 的内部逻辑。"""
     return TurnHistoryBuilder(agent).render_section(60000)
 
 
 def test_turn_history_proposes_replacement_records_without_writing_session_ledger():
+    """执行 `test_turn_history_proposes_replacement_records_without_writing_session_ledger` 的内部逻辑。"""
     history = [old_tool_item(), *later_turns()]
     agent = fake_agent(history)
 
@@ -71,6 +77,7 @@ def test_turn_history_proposes_replacement_records_without_writing_session_ledge
 
 
 def test_turn_history_uses_existing_matching_replacement_ledger_record():
+    """执行 `test_turn_history_uses_existing_matching_replacement_ledger_record` 的内部逻辑。"""
     ledger = {
         "records": [
             {
@@ -96,6 +103,7 @@ def test_turn_history_uses_existing_matching_replacement_ledger_record():
 
 
 def test_turn_history_uses_event_id_keyed_replacement_ledger_record():
+    """执行 `test_turn_history_uses_event_id_keyed_replacement_ledger_record` 的内部逻辑。"""
     ledger = {
         "event-read": {
             "content_sha256": "sha-current",
@@ -122,6 +130,7 @@ def test_turn_history_uses_event_id_keyed_replacement_ledger_record():
 
 
 def test_turn_history_reads_mixed_legacy_records_and_event_id_keyed_ledger():
+    """执行 `test_turn_history_reads_mixed_legacy_records_and_event_id_keyed_ledger` 的内部逻辑。"""
     ledger = {
         "records": [
             {
@@ -148,6 +157,7 @@ def test_turn_history_reads_mixed_legacy_records_and_event_id_keyed_ledger():
 
 
 def test_turn_history_ignores_stale_replacement_hash_and_proposes_fresh_record():
+    """执行 `test_turn_history_ignores_stale_replacement_hash_and_proposes_fresh_record` 的内部逻辑。"""
     ledger = {
         "records": [
             {
@@ -170,6 +180,7 @@ def test_turn_history_ignores_stale_replacement_hash_and_proposes_fresh_record()
 
 
 def test_turn_history_never_ledger_controls_old_items_without_event_id_and_content_hash():
+    """执行 `test_turn_history_never_ledger_controls_old_items_without_event_id_and_content_hash` 的内部逻辑。"""
     ledger = {
         "records": [
             {
@@ -198,6 +209,7 @@ def test_turn_history_never_ledger_controls_old_items_without_event_id_and_conte
 
 
 def test_existing_replacement_ledger_is_reversed_when_path_becomes_changed_across_turns():
+    """执行 `test_existing_replacement_ledger_is_reversed_when_path_becomes_changed_across_turns` 的内部逻辑。"""
     ledger = {
         "records": [
             {
@@ -224,6 +236,7 @@ def test_existing_replacement_ledger_is_reversed_when_path_becomes_changed_acros
 
 
 def test_commit_proposed_replacements_writes_event_id_keyed_session_records():
+    """执行 `test_commit_proposed_replacements_writes_event_id_keyed_session_records` 的内部逻辑。"""
     session = {}
     metadata = {
         "history": {

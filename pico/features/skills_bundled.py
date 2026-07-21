@@ -1,4 +1,4 @@
-"""Built-in Pico skills."""
+"""Pico 运行时实现模块。"""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from .skills import Skill
 
 
 def bundled_skills():
+    """执行 `bundled_skills` 的内部逻辑。"""
     return [
         Skill(
             name="simplify",
@@ -74,7 +75,9 @@ def bundled_skills():
 
 
 def _with_optional_section(title, paragraphs, section_title):
+    """执行 `_with_optional_section` 的内部逻辑。"""
     def render(arguments=""):
+        """执行 `render` 的内部逻辑。"""
         lines = [title, "", *paragraphs]
         if arguments:
             lines.extend(["", f"## {section_title}", "", str(arguments)])

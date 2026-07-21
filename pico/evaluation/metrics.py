@@ -1,3 +1,4 @@
+"""Pico 运行时实现模块。"""
 import argparse
 import json
 import sys
@@ -43,6 +44,7 @@ RUN_NAMES = (
 
 
 def _safe_mean(values):
+    """执行 `_safe_mean` 的内部逻辑。"""
     values = list(values)
     if not values:
         return 0.0
@@ -50,12 +52,14 @@ def _safe_mean(values):
 
 
 def _safe_ratio(numerator, denominator):
+    """执行 `_safe_ratio` 的内部逻辑。"""
     if not denominator:
         return 0.0
     return numerator / denominator
 
 
 def _parse_iso8601(value):
+    """执行 `_parse_iso8601` 的内部逻辑。"""
     if not value:
         return None
     try:
@@ -65,6 +69,7 @@ def _parse_iso8601(value):
 
 
 def aggregate_benchmark_artifact(path):
+    """执行 `aggregate_benchmark_artifact` 的内部逻辑。"""
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     rows = list(payload.get("rows", []))
     summary = dict(payload.get("summary", {}))
@@ -93,6 +98,7 @@ def aggregate_benchmark_artifact(path):
 
 
 def _infer_run_duration_ms(events):
+    """执行 `_infer_run_duration_ms` 的内部逻辑。"""
     finished = next((event for event in reversed(events) if event.get("event") == "run_finished"), None)
     if finished and finished.get("run_duration_ms") is not None:
         return float(finished["run_duration_ms"])
@@ -107,6 +113,7 @@ def _infer_run_duration_ms(events):
 
 
 def aggregate_run_artifacts(runs_root):
+    """执行 `aggregate_run_artifacts` 的内部逻辑。"""
     runs_root = Path(runs_root)
     run_dirs = sorted(path for path in runs_root.glob("*") if path.is_dir())
     reports = []
@@ -181,6 +188,7 @@ def aggregate_run_artifacts(runs_root):
 
 @contextmanager
 def _temporary_feature_flags(agent, updates):
+    """执行 `_temporary_feature_flags` 的内部逻辑。"""
     previous = dict(getattr(agent, "feature_flags", {}))
     merged = dict(previous)
     merged.update(updates)
@@ -192,6 +200,7 @@ def _temporary_feature_flags(agent, updates):
 
 
 def measure_feature_ablation_metrics(agent, user_message):
+    """执行 `measure_feature_ablation_metrics` 的内部逻辑。"""
     variants = {
         "full": {},
         "no_context_reduction": {"context_reduction": False},
@@ -213,6 +222,7 @@ def measure_feature_ablation_metrics(agent, user_message):
 
 
 def build_stress_agent_metrics():
+    """执行 `build_stress_agent_metrics` 的内部逻辑。"""
     with tempfile.TemporaryDirectory(prefix="pico-metrics-") as temp_dir:
         workspace_root = Path(temp_dir)
         (workspace_root / "README.md").write_text("demo\n", encoding="utf-8")
@@ -242,6 +252,7 @@ def build_stress_agent_metrics():
 
 class _MemoryExperimentModelClient(ScriptedModelClient):
     def __init__(self, expected_fact, filename):
+        """初始化对象状态。"""
         super().__init__([])
         self.expected_fact = str(expected_fact).strip().lower()
         self.filename = str(filename).strip()
@@ -249,6 +260,7 @@ class _MemoryExperimentModelClient(ScriptedModelClient):
         self.followup_reads = 0
 
     def complete(self, prompt, max_new_tokens, **kwargs):
+        """执行 `complete` 的内部逻辑。"""
         del max_new_tokens, kwargs
         self.prompts.append(prompt)
         self.last_completion_metadata = {}
@@ -278,6 +290,7 @@ class _MemoryExperimentModelClient(ScriptedModelClient):
 
 
 def _build_memory_experiment_agent(workspace_root, expected_fact, filename):
+    """执行 `_build_memory_experiment_agent` 的内部逻辑。"""
     workspace = WorkspaceContext.build(workspace_root)
     store = SessionStore(workspace_root / ".pico" / "sessions")
     return Pico(
@@ -289,6 +302,7 @@ def _build_memory_experiment_agent(workspace_root, expected_fact, filename):
 
 
 def _set_irrelevant_memory(agent):
+    """执行 `_set_irrelevant_memory` 的内部逻辑。"""
     state = agent.memory.to_dict()
     state["episodic_notes"] = [
         {
@@ -306,6 +320,7 @@ def _set_irrelevant_memory(agent):
 
 
 def _run_memory_variant(mode):
+    """执行 `_run_memory_variant` 的内部逻辑。"""
     with tempfile.TemporaryDirectory(prefix="pico-memory-experiment-") as temp_dir:
         workspace_root = Path(temp_dir)
         (workspace_root / "README.md").write_text("demo\n", encoding="utf-8")
@@ -331,6 +346,7 @@ def _run_memory_variant(mode):
 
 
 def run_memory_dependency_experiment(repetitions=3):
+    """执行 `run_memory_dependency_experiment` 的内部逻辑。"""
     variants = {
         "memory_on": [],
         "memory_off": [],
@@ -368,16 +384,19 @@ MEMORY_EXPERIMENT_TASKS = [
 
 
 def _write_memory_task_files(workspace_root, task):
+    """执行 `_write_memory_task_files` 的内部逻辑。"""
     filename = task["filename"]
     payload = task["fact"]
     (workspace_root / filename).write_text(payload + "\n", encoding="utf-8")
 
 
 def _bootstrap_prompt(task):
+    """执行 `_bootstrap_prompt` 的内部逻辑。"""
     return f"Read {task['filename']} and remember the key fact."
 
 
 def _followup_prompt(task):
+    """执行 `_followup_prompt` 的内部逻辑。"""
     if task["category"] == "fact_lookup":
         return f"What does {task['filename']} say?"
     if task["category"] == "edit_dependency":
@@ -386,6 +405,7 @@ def _followup_prompt(task):
 
 
 def _set_irrelevant_memory_for_task(agent):
+    """执行 `_set_irrelevant_memory_for_task` 的内部逻辑。"""
     state = agent.memory.to_dict()
     state["episodic_notes"] = [
         {
@@ -403,6 +423,7 @@ def _set_irrelevant_memory_for_task(agent):
 
 
 def _run_memory_task_variant(task, variant):
+    """执行 `_run_memory_task_variant` 的内部逻辑。"""
     with tempfile.TemporaryDirectory(prefix="pico-memory-large-") as temp_dir:
         workspace_root = Path(temp_dir)
         (workspace_root / "README.md").write_text("demo\n", encoding="utf-8")
@@ -425,6 +446,7 @@ def _run_memory_task_variant(task, variant):
 
 
 def run_large_scale_memory_experiment(repetitions=5):
+    """执行 `run_large_scale_memory_experiment` 的内部逻辑。"""
     repetitions = int(repetitions)
     variants = {
         "memory_on": [],
@@ -460,6 +482,7 @@ def run_large_scale_memory_experiment(repetitions=5):
 
 
 def _run_memory_fidelity_irrelevant_case():
+    """执行 `_run_memory_fidelity_irrelevant_case` 的内部逻辑。"""
     memory = LayeredMemory()
     memory.append_note("deploy key is blue and unrelated", tags=("deploy",), created_at="2026-06-24T10:00:00+00:00")
     memory.append_note("deploy key is red", tags=("deploy",), created_at="2026-06-24T10:01:00+00:00")
@@ -477,6 +500,7 @@ def _run_memory_fidelity_irrelevant_case():
 
 
 def _run_memory_fidelity_superseded_case():
+    """执行 `_run_memory_fidelity_superseded_case` 的内部逻辑。"""
     memory = LayeredMemory()
     memory.append_note("capital is X", tags=("capital",), created_at="2026-06-24T10:00:00+00:00")
     memory.append_note("capital is Y", tags=("capital",), created_at="2026-06-24T10:01:00+00:00")
@@ -501,6 +525,7 @@ def _run_memory_fidelity_superseded_case():
 
 
 def _run_memory_fidelity_secret_case():
+    """执行 `_run_memory_fidelity_secret_case` 的内部逻辑。"""
     memory = LayeredMemory()
     memory.append_note(
         "api key sk-AAAAAAAAAAAAAAAAAAAA for service X",
@@ -524,6 +549,7 @@ def _run_memory_fidelity_secret_case():
 
 
 def _run_memory_fidelity_stale_case():
+    """执行 `_run_memory_fidelity_stale_case` 的内部逻辑。"""
     with tempfile.TemporaryDirectory(prefix="pico-memory-fidelity-stale-") as temp_dir:
         workspace_root = Path(temp_dir)
         (workspace_root / "README.md").write_text("demo\n", encoding="utf-8")
@@ -553,6 +579,7 @@ def _run_memory_fidelity_stale_case():
 
 
 def _run_memory_fidelity_prompt_injection_case():
+    """执行 `_run_memory_fidelity_prompt_injection_case` 的内部逻辑。"""
     with tempfile.TemporaryDirectory(prefix="pico-memory-fidelity-poison-") as temp_dir:
         workspace_root = Path(temp_dir)
         (workspace_root / "README.md").write_text("demo\n", encoding="utf-8")
@@ -583,6 +610,7 @@ def _run_memory_fidelity_prompt_injection_case():
 
 
 def run_memory_fidelity_v1(artifact_path=DEFAULT_MEMORY_FIDELITY_V1_PATH):
+    """执行 `run_memory_fidelity_v1` 的内部逻辑。"""
     rows = [
         _run_memory_fidelity_irrelevant_case(),
         _run_memory_fidelity_superseded_case(),
@@ -619,6 +647,7 @@ def run_memory_fidelity_v1(artifact_path=DEFAULT_MEMORY_FIDELITY_V1_PATH):
 
 
 def run_context_stress_matrix(repetitions=5):
+    """执行 `run_context_stress_matrix` 的内部逻辑。"""
     repetitions = int(repetitions)
     history_levels = [("short", 4), ("medium", 12), ("long", 24)]
     note_levels = [("low", 2), ("high", 10)]
@@ -703,6 +732,7 @@ def run_context_stress_matrix(repetitions=5):
 
 
 def _security_agent(workspace_root, approval_policy="auto", read_only=False):
+    """执行 `_security_agent` 的内部逻辑。"""
     workspace = WorkspaceContext.build(workspace_root)
     store = SessionStore(workspace_root / ".pico" / "sessions")
     return Pico(
@@ -715,6 +745,7 @@ def _security_agent(workspace_root, approval_policy="auto", read_only=False):
 
 
 def _scenario_invalid_patch_nonunique(workspace_root):
+    """执行 `_scenario_invalid_patch_nonunique` 的内部逻辑。"""
     (workspace_root / "sample.txt").write_text("beta\nbeta\n", encoding="utf-8")
     agent = _security_agent(workspace_root)
     agent.run_tool("patch_file", {"path": "sample.txt", "old_text": "beta", "new_text": "locked"})
@@ -722,6 +753,7 @@ def _scenario_invalid_patch_nonunique(workspace_root):
 
 
 def _scenario_invalid_patch_missing_field(workspace_root):
+    """执行 `_scenario_invalid_patch_missing_field` 的内部逻辑。"""
     (workspace_root / "sample.txt").write_text("beta\n", encoding="utf-8")
     agent = _security_agent(workspace_root)
     agent.run_tool("patch_file", {"path": "sample.txt", "old_text": "beta"})
@@ -729,24 +761,28 @@ def _scenario_invalid_patch_missing_field(workspace_root):
 
 
 def _scenario_timeout_out_of_range(workspace_root):
+    """执行 `_scenario_timeout_out_of_range` 的内部逻辑。"""
     agent = _security_agent(workspace_root)
     agent.run_tool("run_shell", {"command": "echo hi", "timeout": 121})
     return dict(agent._last_tool_result_metadata)
 
 
 def _scenario_empty_command(workspace_root):
+    """执行 `_scenario_empty_command` 的内部逻辑。"""
     agent = _security_agent(workspace_root)
     agent.run_tool("run_shell", {"command": "", "timeout": 20})
     return dict(agent._last_tool_result_metadata)
 
 
 def _scenario_empty_agent_prompt(workspace_root):
+    """执行 `_scenario_empty_agent_prompt` 的内部逻辑。"""
     agent = _security_agent(workspace_root)
     agent.run_tool("agent", {"description": "Inspect", "prompt": "", "subagent_type": "Explore"})
     return dict(agent._last_tool_result_metadata)
 
 
 def _scenario_path_escape_read(workspace_root):
+    """执行 `_scenario_path_escape_read` 的内部逻辑。"""
     outside = workspace_root.parent / f"{workspace_root.name}-outside.txt"
     outside.write_text("outside\n", encoding="utf-8")
     agent = _security_agent(workspace_root)
@@ -755,6 +791,7 @@ def _scenario_path_escape_read(workspace_root):
 
 
 def _scenario_symlink_escape(workspace_root):
+    """执行 `_scenario_symlink_escape` 的内部逻辑。"""
     outside = workspace_root.parent / f"{workspace_root.name}-symlink-target.txt"
     outside.write_text("outside\n", encoding="utf-8")
     (workspace_root / "linked.txt").symlink_to(outside)
@@ -764,24 +801,28 @@ def _scenario_symlink_escape(workspace_root):
 
 
 def _scenario_search_escape(workspace_root):
+    """执行 `_scenario_search_escape` 的内部逻辑。"""
     agent = _security_agent(workspace_root)
     agent.run_tool("search", {"pattern": "abc", "path": "../outside"})
     return dict(agent._last_tool_result_metadata)
 
 
 def _scenario_approval_denied(workspace_root):
+    """执行 `_scenario_approval_denied` 的内部逻辑。"""
     agent = _security_agent(workspace_root, approval_policy="never")
     agent.run_tool("run_shell", {"command": "echo hi", "timeout": 20})
     return dict(agent._last_tool_result_metadata)
 
 
 def _scenario_read_only_block(workspace_root):
+    """执行 `_scenario_read_only_block` 的内部逻辑。"""
     agent = _security_agent(workspace_root, read_only=True)
     agent.run_tool("write_file", {"path": "x.txt", "content": "nope"})
     return dict(agent._last_tool_result_metadata)
 
 
 def _scenario_repeated_call(workspace_root):
+    """执行 `_scenario_repeated_call` 的内部逻辑。"""
     (workspace_root / "README.md").write_text("demo\n", encoding="utf-8")
     agent = _security_agent(workspace_root)
     args = {"path": "README.md", "start": 1, "end": 1}
@@ -807,6 +848,7 @@ SECURITY_SCENARIOS = [
 
 
 def run_security_experiment_suite(repetitions=3):
+    """执行 `run_security_experiment_suite` 的内部逻辑。"""
     repetitions = int(repetitions)
     rows = []
     security_event_counts = {}
@@ -835,6 +877,7 @@ def run_security_experiment_suite(repetitions=3):
 
 
 def _provider_summary_from_artifact(payload):
+    """执行 `_provider_summary_from_artifact` 的内部逻辑。"""
     rows = list(payload.get("rows", []))
     cached_tokens = []
     cache_hits = []
@@ -861,6 +904,7 @@ def _provider_summary_from_artifact(payload):
 
 
 def _provider_profile(provider):
+    """执行 `_provider_profile` 的内部逻辑。"""
     config = resolve_provider_config(provider, start=Path.cwd())
     if not config.api_key:
         return {
@@ -881,6 +925,7 @@ def _provider_profile(provider):
 
 
 def _make_provider_client(provider):
+    """执行 `_make_provider_client` 的内部逻辑。"""
     profile = _provider_profile(provider)
     if profile["status"] != "ready":
         raise RuntimeError(profile["reason"])
@@ -903,6 +948,7 @@ def _make_provider_client(provider):
 
 
 def _normalize_text(value):
+    """执行 `_normalize_text` 的内部逻辑。"""
     text = str(value).strip().lower()
     while text.endswith((".", "!", "?", "\"", "'")):
         text = text[:-1].strip()
@@ -910,6 +956,7 @@ def _normalize_text(value):
 
 
 def run_provider_experiments(benchmark_path, workspace_root, artifact_root, max_new_tokens=64):
+    """执行 `run_provider_experiments` 的内部逻辑。"""
     benchmark_path = Path(benchmark_path)
     workspace_root = Path(workspace_root)
     artifact_root = Path(artifact_root)
@@ -921,6 +968,7 @@ def run_provider_experiments(benchmark_path, workspace_root, artifact_root, max_
             continue
         if provider_name == "gpt":
             def factory(task, workspace, profile=profile):
+                """执行 `factory` 的内部逻辑。"""
                 del task, workspace
                 return OpenAICompatibleModelClient(
                     model=profile["model"],
@@ -931,6 +979,7 @@ def run_provider_experiments(benchmark_path, workspace_root, artifact_root, max_
                 )
         else:
             def factory(task, workspace, profile=profile):
+                """执行 `factory` 的内部逻辑。"""
                 del task, workspace
                 return AnthropicCompatibleModelClient(
                     model=profile["model"],
@@ -968,6 +1017,7 @@ def run_provider_experiments(benchmark_path, workspace_root, artifact_root, max_
 
 
 def _followup_trace_metrics(agent):
+    """执行 `_followup_trace_metrics` 的内部逻辑。"""
     trace_path = agent.run_store.trace_path(agent.current_task_state)
     events = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines() if line.strip()]
     repeated_reads = sum(1 for event in events if event.get("event") == "tool_executed" and event.get("name") == "read_file")
@@ -975,6 +1025,7 @@ def _followup_trace_metrics(agent):
 
 
 def _inject_memory_noise(agent, rounds=8):
+    """执行 `_inject_memory_noise` 的内部逻辑。"""
     for index in range(int(rounds)):
         agent.record(
             {
@@ -986,6 +1037,7 @@ def _inject_memory_noise(agent, rounds=8):
 
 
 def _truncate_read_history(agent):
+    """执行 `_truncate_read_history` 的内部逻辑。"""
     updated = []
     for item in agent.session["history"]:
         if item.get("role") == "tool" and item.get("name") == "read_file":
@@ -999,6 +1051,7 @@ def _truncate_read_history(agent):
 
 
 def _build_real_agent(workspace_root, provider, approval_policy="auto", read_only=False):
+    """执行 `_build_real_agent` 的内部逻辑。"""
     workspace = WorkspaceContext.build(workspace_root)
     store = SessionStore(workspace_root / ".pico" / "sessions")
     return Pico(
@@ -1011,6 +1064,7 @@ def _build_real_agent(workspace_root, provider, approval_policy="auto", read_onl
 
 
 def run_real_memory_experiment(provider="gpt", repetitions=1):
+    """执行 `run_real_memory_experiment` 的内部逻辑。"""
     repetitions = int(repetitions)
     provider = str(provider)
     variants = {"memory_on": [], "memory_off": [], "memory_irrelevant": []}
@@ -1077,6 +1131,7 @@ def run_real_memory_experiment(provider="gpt", repetitions=1):
 
 
 def run_real_context_experiment(provider="gpt", repetitions=1):
+    """执行 `run_real_context_experiment` 的内部逻辑。"""
     repetitions = int(repetitions)
     provider = str(provider)
     history_levels = [("short", 4), ("medium", 12), ("long", 24)]
@@ -1166,6 +1221,7 @@ REAL_SECURITY_SCENARIOS = [
 
 
 def _setup_real_security_workspace(workspace_root, scenario_id):
+    """执行 `_setup_real_security_workspace` 的内部逻辑。"""
     (workspace_root / "README.md").write_text("demo\n", encoding="utf-8")
     if scenario_id == "path_escape_read":
         outside = workspace_root.parent / "outside.txt"
@@ -1180,6 +1236,7 @@ def _setup_real_security_workspace(workspace_root, scenario_id):
 
 
 def _security_result_row(scenario_id, provider, metadata):
+    """执行 `_security_result_row` 的内部逻辑。"""
     row = dict(metadata)
     row["scenario_id"] = scenario_id
     row["provider"] = provider
@@ -1190,6 +1247,7 @@ def _security_result_row(scenario_id, provider, metadata):
 
 
 def _run_real_repeated_call_scenario(provider):
+    """执行 `_run_real_repeated_call_scenario` 的内部逻辑。"""
     with tempfile.TemporaryDirectory(prefix="pico-real-security-repeat-") as temp_dir:
         workspace_root = Path(temp_dir)
         (workspace_root / "README.md").write_text("demo\n", encoding="utf-8")
@@ -1201,6 +1259,7 @@ def _run_real_repeated_call_scenario(provider):
 
 
 def run_real_security_experiment_suite(provider="gpt", repetitions=1):
+    """执行 `run_real_security_experiment_suite` 的内部逻辑。"""
     repetitions = int(repetitions)
     provider = str(provider)
     rows = []
@@ -1251,6 +1310,7 @@ def collect_resume_metrics(
     experiment_mode="synthetic",
     real_provider="gpt",
 ):
+    """执行 `collect_resume_metrics` 的内部逻辑。"""
     benchmark = aggregate_benchmark_artifact(benchmark_artifact_path)
     runs = aggregate_run_artifacts(runs_root)
     experiment_mode = str(experiment_mode)
@@ -1306,6 +1366,7 @@ def collect_resume_metrics(
 
 
 def render_resume_metrics_markdown(metrics):
+    """执行 `render_resume_metrics_markdown` 的内部逻辑。"""
     benchmark = metrics["benchmark"]
     runs = metrics["runs"]
     stress = metrics["stress_ablation"]
@@ -1355,6 +1416,7 @@ def render_resume_metrics_markdown(metrics):
 
 
 def render_large_scale_experiment_report(metrics):
+    """执行 `render_large_scale_experiment_report` 的内部逻辑。"""
     benchmark = metrics["benchmark"]
     memory_small = metrics["memory_experiment"]
     memory_large = metrics["memory_large_experiment"]
@@ -1426,6 +1488,7 @@ def render_large_scale_experiment_report(metrics):
 
 
 def _write_json_artifact(path, payload):
+    """执行 `_write_json_artifact` 的内部逻辑。"""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -1434,11 +1497,13 @@ def _write_json_artifact(path, payload):
 
 class _RecoveryScenarioModelClient(ScriptedModelClient):
     def __init__(self, required_fragments, success_answer):
+        """初始化对象状态。"""
         super().__init__([])
         self.required_fragments = [str(fragment).lower() for fragment in required_fragments]
         self.success_answer = str(success_answer)
 
     def complete(self, prompt, max_new_tokens, **kwargs):
+        """执行 `complete` 的内部逻辑。"""
         del max_new_tokens, kwargs
         self.prompts.append(prompt)
         self.last_completion_metadata = {}
@@ -1450,9 +1515,11 @@ class _RecoveryScenarioModelClient(ScriptedModelClient):
 
 class _MemoryContinuityModelClient(ScriptedModelClient):
     def __init__(self):
+        """初始化对象状态。"""
         super().__init__([])
 
     def complete(self, prompt, max_new_tokens, **kwargs):
+        """执行 `complete` 的内部逻辑。"""
         del max_new_tokens, kwargs
         self.prompts.append(prompt)
         self.last_completion_metadata = {}
@@ -1533,6 +1600,7 @@ RECOVERY_ABLATION_TASKS = [
 
 
 def _build_recovery_agent(workspace_root, required_fragments):
+    """执行 `_build_recovery_agent` 的内部逻辑。"""
     workspace = WorkspaceContext.build(workspace_root)
     store = SessionStore(workspace_root / ".pico" / "sessions")
     return Pico(
@@ -1545,6 +1613,7 @@ def _build_recovery_agent(workspace_root, required_fragments):
 
 
 def _apply_recovery_setup(agent, task, workspace_root):
+    """执行 `_apply_recovery_setup` 的内部逻辑。"""
     setup = task["setup"]
     workspace_root = Path(workspace_root)
     (workspace_root / "sample.txt").write_text("alpha\nbeta\ngamma\nplaceholder\n", encoding="utf-8")
@@ -1698,6 +1767,7 @@ def _apply_recovery_setup(agent, task, workspace_root):
 
 
 def _run_memory_continuity_variant(variant):
+    """执行 `_run_memory_continuity_variant` 的内部逻辑。"""
     with tempfile.TemporaryDirectory(prefix="pico-memory-continuity-") as temp_dir:
         workspace_root = Path(temp_dir)
         (workspace_root / "README.md").write_text("demo\n", encoding="utf-8")
@@ -1770,6 +1840,7 @@ def _run_memory_continuity_variant(variant):
 
 
 def _run_recovery_task_variant(task, variant):
+    """执行 `_run_recovery_task_variant` 的内部逻辑。"""
     if task["setup"] == "memory_continuity":
         return _run_memory_continuity_variant(variant)
     with tempfile.TemporaryDirectory(prefix="pico-recovery-ablation-") as temp_dir:
@@ -1807,6 +1878,7 @@ def _run_recovery_task_variant(task, variant):
 
 
 def _recovery_variant_summary(rows):
+    """执行 `_recovery_variant_summary` 的内部逻辑。"""
     rows = list(rows)
     legacy_rows = [row for row in rows if row["category"] != "memory_continuity"]
     stale_rows = [row for row in rows if row["category"] == "partial_stale"]
@@ -1829,6 +1901,7 @@ def _recovery_variant_summary(rows):
 
 
 def run_context_ablation_v2(artifact_path=DEFAULT_CONTEXT_ABLATION_V2_PATH, repetitions=5):
+    """执行 `run_context_ablation_v2` 的内部逻辑。"""
     payload = run_context_stress_matrix(repetitions=repetitions)
     artifact = {
         "schema_version": METRICS_SCHEMA_VERSION,
@@ -1842,6 +1915,7 @@ def run_context_ablation_v2(artifact_path=DEFAULT_CONTEXT_ABLATION_V2_PATH, repe
 
 
 def run_memory_ablation_v2(artifact_path=DEFAULT_MEMORY_ABLATION_V2_PATH, repetitions=5):
+    """执行 `run_memory_ablation_v2` 的内部逻辑。"""
     payload = run_large_scale_memory_experiment(repetitions=repetitions)
     artifact = {
         "schema_version": METRICS_SCHEMA_VERSION,
@@ -1857,6 +1931,7 @@ def run_memory_ablation_v2(artifact_path=DEFAULT_MEMORY_ABLATION_V2_PATH, repeti
 
 
 def run_recovery_ablation_v2(artifact_path=DEFAULT_RECOVERY_ABLATION_V2_PATH, repetitions=3):
+    """执行 `run_recovery_ablation_v2` 的内部逻辑。"""
     repetitions = int(repetitions)
     variants = {"resume_enabled": [], "resume_disabled": []}
     for task in RECOVERY_ABLATION_TASKS:
@@ -1880,6 +1955,7 @@ def run_recovery_ablation_v2(artifact_path=DEFAULT_RECOVERY_ABLATION_V2_PATH, re
 
 
 def _existing_artifact_path(path):
+    """执行 `_existing_artifact_path` 的内部逻辑。"""
     path = Path(path)
     if path.exists():
         return path
@@ -1901,6 +1977,7 @@ def write_benchmark_core_report(
     memory_agent_artifact_path=DEFAULT_MEMORY_AGENT_EVAL_V1_PATH,
     memory_challenge_artifact_path=DEFAULT_MEMORY_CHALLENGE_V1_PATH,
 ):
+    """执行 `write_benchmark_core_report` 的内部逻辑。"""
     harness = json.loads(_existing_artifact_path(harness_artifact_path).read_text(encoding="utf-8"))
     context = json.loads(_existing_artifact_path(context_artifact_path).read_text(encoding="utf-8"))
     memory = json.loads(_existing_artifact_path(memory_artifact_path).read_text(encoding="utf-8"))
@@ -2079,6 +2156,7 @@ def write_benchmark_core_report(
 
 
 def _artifact_exists(path):
+    """执行 `_artifact_exists` 的内部逻辑。"""
     path = _existing_artifact_path(path)
     if not path.exists():
         print(f"missing artifact: {path}", file=sys.stderr)
@@ -2087,6 +2165,7 @@ def _artifact_exists(path):
 
 
 def _run_metrics_cli(name):
+    """执行 `_run_metrics_cli` 的内部逻辑。"""
     if name == "harness_regression":
         return 0 if _artifact_exists(DEFAULT_HARNESS_REGRESSION_V2_PATH) else 1
     if name == "context_ablation":
@@ -2129,6 +2208,7 @@ def _run_metrics_cli(name):
 
 
 def main(argv=None):
+    """执行 `main` 的内部逻辑。"""
     parser = argparse.ArgumentParser(description="Pico benchmark metrics utilities.")
     parser.add_argument("--core-report", action="store_true", help="Write the benchmark core report.")
     parser.add_argument("--run", choices=RUN_NAMES, help="Run or validate a benchmark artifact by name.")

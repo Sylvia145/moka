@@ -1,4 +1,4 @@
-"""Typed model input blocks.
+"""Pico 运行时实现模块。
 
 Pico keeps conversation history as text, but provider adapters can accept
 structured model input when a turn needs media. Image bytes live only at the
@@ -21,12 +21,15 @@ class ImageBlock:
 
     @property
     def byte_count(self):
+        """执行 `byte_count` 的内部逻辑。"""
         return len(self.data)
 
     def base64_data(self):
+        """执行 `base64_data` 的内部逻辑。"""
         return base64.b64encode(self.data).decode("ascii")
 
     def data_url(self):
+        """执行 `data_url` 的内部逻辑。"""
         return f"data:{self.mime_type};base64,{self.base64_data()}"
 
 
@@ -36,15 +39,18 @@ class ModelInput:
     images: tuple[ImageBlock, ...] = field(default_factory=tuple)
 
     def __init__(self, text: str, images=None):
+        """初始化对象状态。"""
         object.__setattr__(self, "text", str(text))
         object.__setattr__(self, "images", tuple(images or ()))
 
     @property
     def image_count(self):
+        """执行 `image_count` 的内部逻辑。"""
         return len(self.images)
 
 
 def ensure_model_input(value):
+    """执行 `ensure_model_input` 的内部逻辑。"""
     if isinstance(value, ModelInput):
         return value
     return ModelInput(text=str(value))

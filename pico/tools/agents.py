@@ -1,4 +1,4 @@
-"""Coordinator subagent tool definitions."""
+"""Pico 运行时实现模块。"""
 
 from ..core.worker_manager import dumps_payload
 
@@ -43,6 +43,7 @@ def validate_agent_runtime(agent, name, args):
 
 
 def tool_agent(agent, args):
+    """执行 `tool_agent` 的内部逻辑。"""
     return dumps_payload(
         agent.worker_manager.spawn(
             args["description"],
@@ -55,8 +56,10 @@ def tool_agent(agent, args):
 
 
 def tool_send_message(agent, args):
+    """执行 `tool_send_message` 的内部逻辑。"""
     return dumps_payload(agent.worker_manager.continue_task(args["to"], args["message"]))
 
 
 def tool_task_stop(agent, args):
+    """执行 `tool_task_stop` 的内部逻辑。"""
     return dumps_payload(agent.worker_manager.stop_task(args["task_id"]))

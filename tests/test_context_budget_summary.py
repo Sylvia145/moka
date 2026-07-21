@@ -1,7 +1,9 @@
+"""Pico 自动化测试模块。"""
 from pico.core.context_budget_summary import context_budget_summary, update_from_orchestrator
 
 
 def test_context_budget_summary_includes_compact_call_usage_and_net_benefit():
+    """执行 `test_context_budget_summary_includes_compact_call_usage_and_net_benefit` 的内部逻辑。"""
     summary = context_budget_summary(
         {
             "context_usage": {
@@ -30,6 +32,7 @@ def test_context_budget_summary_includes_compact_call_usage_and_net_benefit():
 
 
 def test_context_budget_summary_preserves_negative_net_benefit():
+    """执行 `test_context_budget_summary_preserves_negative_net_benefit` 的内部逻辑。"""
     summary = context_budget_summary(
         {
             "context_usage": {
@@ -49,6 +52,7 @@ def test_context_budget_summary_preserves_negative_net_benefit():
 
 
 def test_update_from_orchestrator_carries_compact_call_usage():
+    """执行 `test_update_from_orchestrator_carries_compact_call_usage` 的内部逻辑。"""
     summary = update_from_orchestrator(
         {},
         {

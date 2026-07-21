@@ -1,9 +1,10 @@
-"""Unit tests for verification signal extraction from tool traces."""
+"""Pico 自动化测试模块。"""
 
 from pico.core.verification import reduce_verification_signal
 
 
 def tool_event(command, status="ok"):
+    """执行 `tool_event` 的内部逻辑。"""
     return {
         "event": "tool_executed",
         "name": "run_shell",
@@ -14,6 +15,7 @@ def tool_event(command, status="ok"):
 
 
 def test_verification_classifier_rejects_marker_only_shell_commands():
+    """执行 `test_verification_classifier_rejects_marker_only_shell_commands` 的内部逻辑。"""
     for command in (
         "echo pytest",
         "printf pytest",
@@ -24,6 +26,7 @@ def test_verification_classifier_rejects_marker_only_shell_commands():
 
 
 def test_verification_classifier_accepts_common_test_commands():
+    """执行 `test_verification_classifier_accepts_common_test_commands` 的内部逻辑。"""
     cases = {
         "pytest -q": "test",
         "uv run pytest tests -q": "test",
@@ -57,6 +60,7 @@ def test_verification_classifier_accepts_common_test_commands():
 
 
 def test_verification_signal_marks_workspace_change_as_missing_until_verified():
+    """执行 `test_verification_signal_marks_workspace_change_as_missing_until_verified` 的内部逻辑。"""
     changed = {
         "event": "tool_executed",
         "name": "write_file",

@@ -1,4 +1,4 @@
-"""Streamable HTTP transport for remote MCP servers.
+"""Pico 运行时实现模块。
 
 This client intentionally does not retry `tools/call`: after a network failure,
 the remote side may have already performed a non-idempotent action.
@@ -18,6 +18,7 @@ MCP_PROTOCOL_VERSION = "2025-11-25"
 
 class McpHttpError(RuntimeError):
     def __init__(self, code: str, message: str):
+        """初始化对象状态。"""
         super().__init__(f"{code}: {message}")
         self.code = code
 
@@ -28,11 +29,13 @@ class McpOutcomeUnknownError(McpHttpError):
 
 class _NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
+        """执行 `redirect_request` 的内部逻辑。"""
         return None
 
 
 class McpStreamableHttpClient:
     def __init__(self, config: McpServerConfig):
+        """初始化对象状态。"""
         self.config = config
         self.url = _validate_url(config)
         self._next_id = 1
@@ -43,9 +46,11 @@ class McpStreamableHttpClient:
         self._opener = build_opener(_NoRedirect())
 
     def list_tools(self):
+        """执行 `list_tools` 的内部逻辑。"""
         return list(self._request("tools/list", retryable=True).get("tools", []))
 
     def call_tool(self, name, arguments):
+        """执行 `call_tool` 的内部逻辑。"""
         try:
             return self._request(
                 "tools/call",
@@ -61,10 +66,12 @@ class McpStreamableHttpClient:
             raise
 
     def close(self):
+        """执行 `close` 的内部逻辑。"""
         self._session_id = None
         self._initialized = False
 
     def _initialize(self):
+        """执行 `_initialize` 的内部逻辑。"""
         result = self._request_raw(
             "initialize",
             {
@@ -78,9 +85,11 @@ class McpStreamableHttpClient:
         self._notify("notifications/initialized")
 
     def _notify(self, method):
+        """执行 `_notify` 的内部逻辑。"""
         self._request_raw(method, None, notification=True)
 
     def _request(self, method, params=None, *, retryable):
+        """执行 `_request` 的内部逻辑。"""
         with self._lock:
             attempts = max(0, int(self.config.max_retries)) if retryable else 0
             for attempt in range(attempts + 1):
@@ -98,6 +107,7 @@ class McpStreamableHttpClient:
             raise AssertionError("unreachable")
 
     def _request_raw(self, method, params, *, notification=False):
+        """执行 `_request_raw` 的内部逻辑。"""
         request_id = None if notification else self._next_request_id()
         payload = {"jsonrpc": "2.0", "method": method}
         if request_id is not None:
@@ -117,6 +127,7 @@ class McpStreamableHttpClient:
         return dict(message.get("result", {}))
 
     def _post(self, payload, *, expect_body=True):
+        """执行 `_post` 的内部逻辑。"""
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         headers = {
             "Accept": "application/json, text/event-stream",
@@ -151,16 +162,19 @@ class McpStreamableHttpClient:
             raise McpHttpError("mcp_http_connect_failed", "remote MCP connection failed") from exc
 
     def _next_request_id(self):
+        """执行 `_next_request_id` 的内部逻辑。"""
         request_id = self._next_id
         self._next_id += 1
         return request_id
 
     def _reset_session(self):
+        """执行 `_reset_session` 的内部逻辑。"""
         self._session_id = None
         self._initialized = False
 
 
 def _validate_url(config: McpServerConfig) -> str:
+    """执行 `_validate_url` 的内部逻辑。"""
     if not config.url:
         raise ValueError(f"MCP HTTP server {config.name!r} requires url")
     parsed = urlparse(config.url)
@@ -172,6 +186,7 @@ def _validate_url(config: McpServerConfig) -> str:
 
 
 def _resolve_token(config: McpServerConfig) -> str:
+    """执行 `_resolve_token` 的内部逻辑。"""
     if not config.token_env:
         return ""
     token = os.environ.get(config.token_env, "")
@@ -181,6 +196,7 @@ def _resolve_token(config: McpServerConfig) -> str:
 
 
 def _read_limited(response, limit: int) -> bytes:
+    """执行 `_read_limited` 的内部逻辑。"""
     size_limit = max(1, int(limit))
     data = response.read(size_limit + 1)
     if len(data) > size_limit:
@@ -189,6 +205,7 @@ def _read_limited(response, limit: int) -> bytes:
 
 
 def _parse_response(data: bytes, content_type: str) -> list[dict]:
+    """执行 `_parse_response` 的内部逻辑。"""
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError as exc:
@@ -203,6 +220,7 @@ def _parse_response(data: bytes, content_type: str) -> list[dict]:
 
 
 def _parse_sse(text: str) -> list[dict]:
+    """执行 `_parse_sse` 的内部逻辑。"""
     messages = []
     data_lines = []
     for line in text.splitlines():
@@ -221,6 +239,7 @@ def _parse_sse(text: str) -> list[dict]:
 
 
 def _parse_sse_message(text: str) -> dict:
+    """执行 `_parse_sse_message` 的内部逻辑。"""
     try:
         message = json.loads(text)
     except json.JSONDecodeError as exc:
@@ -231,6 +250,7 @@ def _parse_sse_message(text: str) -> dict:
 
 
 def _select_response(messages: list[dict], request_id: int) -> dict:
+    """执行 `_select_response` 的内部逻辑。"""
     for message in messages:
         if message.get("id") == request_id:
             return message

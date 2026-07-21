@@ -1,4 +1,4 @@
-"""Final-answer readiness gate over TaskState evidence."""
+"""Pico 运行时实现模块。"""
 
 import hashlib
 
@@ -17,6 +17,7 @@ VALID_MODES = {"off", "warn", "soft", "strict"}
 
 
 def evaluate_final_readiness(task_state, mode, workspace_root=None):
+    """执行 `evaluate_final_readiness` 的内部逻辑。"""
     mode = str(mode or "warn")
     if mode not in VALID_MODES:
         mode = "warn"
@@ -53,6 +54,7 @@ def evaluate_final_readiness(task_state, mode, workspace_root=None):
 
 
 def readiness_notice(decision):
+    """执行 `readiness_notice` 的内部逻辑。"""
     messages = [reason_message(reason) for reason in decision.get("reasons", [])]
     text = "\n".join(f"- {message}" for message in messages) or "- Readiness warning."
     if decision.get("action") == "block":
@@ -64,6 +66,7 @@ def readiness_notice(decision):
 
 
 def reduce_final_readiness_summary(summary, event):
+    """执行 `reduce_final_readiness_summary` 的内部逻辑。"""
     summary = dict(summary or {})
     summary.setdefault("schema_version", FINAL_READINESS_SUMMARY_SCHEMA)
     decision = str(event.get("decision", ""))
@@ -76,12 +79,14 @@ def reduce_final_readiness_summary(summary, event):
 
 
 def _reason_signature(reasons):
+    """执行 `_reason_signature` 的内部逻辑。"""
     if not reasons:
         return ""
     return hashlib.sha256("|".join(sorted(reasons)).encode("utf-8")).hexdigest()[:16]
 
 
 def _state(task_state):
+    """执行 `_state` 的内部逻辑。"""
     summaries = dict(task_state.evidence_summaries or {})
     state = dict(summaries.get("final_readiness_state", {}) or {})
     summaries["final_readiness_state"] = state

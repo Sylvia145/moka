@@ -1,4 +1,4 @@
-"""Runtime artifact graph and verifier suggestion helpers."""
+"""Pico 运行时实现模块。"""
 
 import json
 import re
@@ -9,6 +9,7 @@ ROUTE_RE = re.compile(r"""["'](/api/[^"'\s)]*)["']""")
 
 
 def build_artifact_graph(root, changed_paths):
+    """执行 `build_artifact_graph` 的内部逻辑。"""
     root = Path(root)
     paths = sorted(dict.fromkeys(str(path) for path in changed_paths if str(path).strip()))
     graph = {
@@ -28,6 +29,7 @@ def build_artifact_graph(root, changed_paths):
 
 
 def build_verifier_suggestions(root, graph):
+    """执行 `build_verifier_suggestions` 的内部逻辑。"""
     root = Path(root)
     suggestions = []
     package_json = root / "package.json"
@@ -45,6 +47,7 @@ def build_verifier_suggestions(root, graph):
 
 
 def _category(path):
+    """执行 `_category` 的内部逻辑。"""
     normalized = path.replace("\\", "/")
     name = normalized.rsplit("/", 1)[-1]
     suffix = Path(name).suffix.lower()
@@ -62,6 +65,7 @@ def _category(path):
 
 
 def _collect_refs(graph, text):
+    """执行 `_collect_refs` 的内部逻辑。"""
     for line in text.splitlines()[:500]:
         refs = ROUTE_RE.findall(line)
         if not refs:
@@ -73,6 +77,7 @@ def _collect_refs(graph, text):
 
 
 def _read_text(path):
+    """执行 `_read_text` 的内部逻辑。"""
     try:
         if not path.is_file() or path.stat().st_size > 200_000:
             return ""
@@ -82,6 +87,7 @@ def _read_text(path):
 
 
 def _package_scripts(path):
+    """执行 `_package_scripts` 的内部逻辑。"""
     try:
         return dict(json.loads(path.read_text(encoding="utf-8")).get("scripts", {}) or {})
     except (OSError, json.JSONDecodeError):
@@ -89,5 +95,6 @@ def _package_scripts(path):
 
 
 def _has_python_tests(root):
+    """执行 `_has_python_tests` 的内部逻辑。"""
     tests_dir = root / "tests"
     return tests_dir.is_dir() and any(path.suffix == ".py" for path in tests_dir.rglob("*.py"))

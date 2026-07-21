@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 import importlib.util
 import sys
@@ -7,6 +8,7 @@ import pytest
 
 
 def _load_run_acceptance():
+    """执行 `_load_run_acceptance` 的内部逻辑。"""
     script_path = Path(__file__).resolve().parents[1] / "scripts" / "run_real_session_acceptance.py"
     spec = importlib.util.spec_from_file_location("run_real_session_acceptance", script_path)
     module = importlib.util.module_from_spec(spec)
@@ -19,6 +21,7 @@ def _load_run_acceptance():
     reason="real-session gate drives a live model run; not hermetic on Windows",
 )
 def test_gate8_acceptance_harness_writes_real_session_evidence_bundle(tmp_path):
+    """执行 `test_gate8_acceptance_harness_writes_real_session_evidence_bundle` 的内部逻辑。"""
     run_acceptance = _load_run_acceptance()
     output_dir = tmp_path / "gate8-evidence"
 

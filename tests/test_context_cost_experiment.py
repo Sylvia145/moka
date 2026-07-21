@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 import subprocess
 import sys
@@ -18,6 +19,7 @@ from pico.evaluation.context_cost import (
 
 
 def test_compute_cost_usd_uses_cached_input_discount():
+    """执行 `test_compute_cost_usd_uses_cached_input_discount` 的内部逻辑。"""
     pricing = ProviderPricing(
         input_per_1m=2.00,
         cached_input_per_1m=0.20,
@@ -38,6 +40,7 @@ def test_compute_cost_usd_uses_cached_input_discount():
 
 
 def test_extract_usage_sums_all_model_calls_from_trace(tmp_path):
+    """执行 `test_extract_usage_sums_all_model_calls_from_trace` 的内部逻辑。"""
     report_path = tmp_path / "report.json"
     trace_path = tmp_path / "trace.jsonl"
     report_path.write_text(
@@ -130,6 +133,7 @@ def test_extract_usage_sums_all_model_calls_from_trace(tmp_path):
 
 
 def test_extract_usage_downgrades_partial_or_synthetic_metadata_to_proxy(tmp_path):
+    """执行 `test_extract_usage_downgrades_partial_or_synthetic_metadata_to_proxy` 的内部逻辑。"""
     report_path = tmp_path / "report.json"
     trace_path = tmp_path / "trace.jsonl"
     report_path.write_text(json.dumps({"status": "completed"}), encoding="utf-8")
@@ -179,6 +183,7 @@ def test_extract_usage_downgrades_partial_or_synthetic_metadata_to_proxy(tmp_pat
 
 
 def test_extract_usage_requires_current_provider_identity_for_actual_bucket(tmp_path):
+    """执行 `test_extract_usage_requires_current_provider_identity_for_actual_bucket` 的内部逻辑。"""
     report_path = tmp_path / "report.json"
     trace_path = tmp_path / "trace.jsonl"
     report_path.write_text(json.dumps({"status": "completed"}), encoding="utf-8")
@@ -224,6 +229,7 @@ def test_extract_usage_requires_current_provider_identity_for_actual_bucket(tmp_
 
 
 def test_extract_usage_requires_complete_provider_token_metadata(tmp_path):
+    """执行 `test_extract_usage_requires_complete_provider_token_metadata` 的内部逻辑。"""
     report_path = tmp_path / "report.json"
     trace_path = tmp_path / "trace.jsonl"
     report_path.write_text(json.dumps({"status": "completed"}), encoding="utf-8")
@@ -280,6 +286,7 @@ def _row(
     cost_usd=None,
     usage_source="actual",
 ):
+    """执行 `_row` 的内部逻辑。"""
     return ExperimentRow(
         task_id=task_id,
         layer="scripted",
@@ -308,6 +315,7 @@ def _row(
 
 
 def test_summarize_paired_rows_splits_actual_proxy_and_reports_quality_regressions():
+    """执行 `test_summarize_paired_rows_splits_actual_proxy_and_reports_quality_regressions` 的内部逻辑。"""
     summary = summarize_paired_rows(
         [
             _row("a", "full_orchestrator", 700, cost_usd=0.7),
@@ -337,6 +345,7 @@ def test_summarize_paired_rows_splits_actual_proxy_and_reports_quality_regressio
 
 
 def test_lower_cost_with_unknown_or_failed_verification_is_not_claimable():
+    """执行 `test_lower_cost_with_unknown_or_failed_verification_is_not_claimable` 的内部逻辑。"""
     unknown_summary = summarize_paired_rows(
         [
             _row("a", "full_orchestrator", 500, verification_status="unknown"),
@@ -363,6 +372,7 @@ def test_lower_cost_with_unknown_or_failed_verification_is_not_claimable():
 
 
 def test_deterministic_prompt_experiment_pairs_full_and_no_reduction(tmp_path):
+    """执行 `test_deterministic_prompt_experiment_pairs_full_and_no_reduction` 的内部逻辑。"""
     payload = run_deterministic_prompt_experiment(
         output_dir=tmp_path / "context-cost",
         repetitions=1,
@@ -378,6 +388,7 @@ def test_deterministic_prompt_experiment_pairs_full_and_no_reduction(tmp_path):
 
 
 def test_scripted_e2e_experiment_records_quality_and_report_paths(tmp_path):
+    """执行 `test_scripted_e2e_experiment_records_quality_and_report_paths` 的内部逻辑。"""
     payload = run_scripted_e2e_experiment(
         output_dir=tmp_path / "context-cost",
         repetitions=1,
@@ -391,6 +402,7 @@ def test_scripted_e2e_experiment_records_quality_and_report_paths(tmp_path):
 
 
 def test_collect_rows_from_run_manifest_reads_existing_reports(tmp_path):
+    """执行 `test_collect_rows_from_run_manifest_reads_existing_reports` 的内部逻辑。"""
     report = tmp_path / "full" / "report.json"
     trace = tmp_path / "full" / "trace.jsonl"
     report.parent.mkdir()
@@ -446,6 +458,7 @@ def test_collect_rows_from_run_manifest_reads_existing_reports(tmp_path):
 
 
 def test_render_markdown_report_separates_actual_and_proxy_usage():
+    """执行 `test_render_markdown_report_separates_actual_and_proxy_usage` 的内部逻辑。"""
     payload = {
         "pricing": {
             "input_per_1m": 2.0,
@@ -513,6 +526,7 @@ def test_render_markdown_report_separates_actual_and_proxy_usage():
 
 
 def test_write_experiment_artifacts_writes_json_csv_and_markdown(tmp_path):
+    """执行 `test_write_experiment_artifacts_writes_json_csv_and_markdown` 的内部逻辑。"""
     payload = run_deterministic_prompt_experiment(
         output_dir=tmp_path / "work",
         repetitions=1,
@@ -528,6 +542,7 @@ def test_write_experiment_artifacts_writes_json_csv_and_markdown(tmp_path):
 
 
 def test_context_cost_cli_deterministic_smoke(tmp_path):
+    """执行 `test_context_cost_cli_deterministic_smoke` 的内部逻辑。"""
     output_dir = tmp_path / "cli-output"
     result = subprocess.run(
         [

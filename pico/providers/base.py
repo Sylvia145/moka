@@ -1,4 +1,4 @@
-"""Provider-facing result types."""
+"""Pico 运行时实现模块。"""
 
 from dataclasses import dataclass, field
 
@@ -10,6 +10,7 @@ class ModelResult:
 
 
 def complete_model(model_client, prompt, max_new_tokens, **kwargs):
+    """执行 `complete_model` 的内部逻辑。"""
     if hasattr(model_client, "complete_result"):
         return model_client.complete_result(prompt, max_new_tokens, **kwargs)
     text = model_client.complete(prompt, max_new_tokens, **kwargs)

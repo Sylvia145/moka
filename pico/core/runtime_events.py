@@ -1,4 +1,4 @@
-"""Structured trace event helpers.
+"""Pico 运行时实现模块。
 
 Runtime events are normalized here before they enter the run trace. The helper
 sets stable trace, turn, phase, and span fields but leaves event-specific
@@ -26,6 +26,7 @@ PHASE_BY_EVENT = {
 
 
 def build_runtime_event(runtime, task_state, event, payload):
+    """执行 `build_runtime_event` 的内部逻辑。"""
     payload = dict(payload or {})
     payload["event"] = str(event)
     payload["created_at"] = now()
@@ -48,6 +49,7 @@ def build_runtime_event(runtime, task_state, event, payload):
 
 
 def _status_for(event, payload):
+    """执行 `_status_for` 的内部逻辑。"""
     if "status" in payload:
         return str(payload.get("status") or "")
     if event == "tool_executed":
@@ -60,4 +62,5 @@ def _status_for(event, payload):
 
 
 def _error_type(payload):
+    """执行 `_error_type` 的内部逻辑。"""
     return str(payload.get("tool_error_code") or payload.get("security_event_type") or payload.get("error_type") or "")

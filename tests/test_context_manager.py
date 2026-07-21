@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 from pico.testing import ScriptedModelClient
 from pico import Pico, SessionStore, WorkspaceContext
 from pico.core.context_report import ContextReportBuilder
@@ -5,11 +6,13 @@ from pico.core.context_manager import ContextManager
 
 
 def build_workspace(tmp_path):
+    """执行 `build_workspace` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     return WorkspaceContext.build(tmp_path)
 
 
 def build_agent(tmp_path, outputs, **kwargs):
+    """执行 `build_agent` 的内部逻辑。"""
     workspace = build_workspace(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
     approval_policy = kwargs.pop("approval_policy", "auto")
@@ -23,6 +26,7 @@ def build_agent(tmp_path, outputs, **kwargs):
 
 
 def test_context_manager_assembles_sections_in_expected_order(tmp_path):
+    """执行 `test_context_manager_assembles_sections_in_expected_order` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
     agent.memory.append_note("deploy key is red", tags=("deploy",), created_at="2026-04-07T10:00:00+00:00")
     agent.record({"role": "user", "content": "old request", "created_at": "2026-04-07T09:59:00+00:00"})
@@ -40,11 +44,13 @@ def test_context_manager_assembles_sections_in_expected_order(tmp_path):
 
 
 def test_context_manager_build_delegates_metadata_to_report_builder(tmp_path, monkeypatch):
+    """执行 `test_context_manager_build_delegates_metadata_to_report_builder` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
     calls = []
     original = ContextReportBuilder.build
 
     def recording_build(self, **kwargs):
+        """执行 `recording_build` 的内部逻辑。"""
         calls.append(kwargs)
         return original(self, **kwargs)
 
@@ -74,6 +80,7 @@ def test_context_manager_build_delegates_metadata_to_report_builder(tmp_path, mo
 
 
 def test_context_manager_reduces_relevant_memory_before_history_and_preserves_newer_context(tmp_path):
+    """执行 `test_context_manager_reduces_relevant_memory_before_history_and_preserves_newer_context` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
     agent.prefix = "PREFIX " + ("A" * 600)
     agent.memory.render_memory_text = lambda: "MEMORY " + ("B" * 600)
@@ -110,6 +117,7 @@ def test_context_manager_reduces_relevant_memory_before_history_and_preserves_ne
 
 
 def test_context_manager_renders_top_three_episodic_notes_per_note_under_budget(tmp_path):
+    """执行 `test_context_manager_renders_top_three_episodic_notes_per_note_under_budget` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
     agent.memory.append_note("alpha episodic note " + ("A" * 120), tags=("recall",), created_at="2026-04-07T10:00:00+00:00")
     agent.memory.append_note("beta episodic recall note " + ("B" * 120), created_at="2026-04-07T10:01:00+00:00")
@@ -150,6 +158,7 @@ def test_context_manager_renders_top_three_episodic_notes_per_note_under_budget(
 
 
 def test_context_manager_preserves_current_request_when_over_budget(tmp_path):
+    """执行 `test_context_manager_preserves_current_request_when_over_budget` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
     agent.prefix = "PREFIX " + ("A" * 600)
     agent.memory.render_memory_text = lambda: "MEMORY " + ("B" * 600)
@@ -175,6 +184,7 @@ def test_context_manager_preserves_current_request_when_over_budget(tmp_path):
 
 
 def test_context_manager_collapses_older_duplicate_reads_into_one_summary_line(tmp_path):
+    """执行 `test_context_manager_collapses_older_duplicate_reads_into_one_summary_line` 的内部逻辑。"""
     file_path = tmp_path / "sample.txt"
     file_path.write_text("alpha\nbeta\n", encoding="utf-8")
     agent = build_agent(tmp_path, [])
@@ -213,6 +223,7 @@ def test_context_manager_collapses_older_duplicate_reads_into_one_summary_line(t
 
 
 def test_context_manager_summarizes_older_tool_output_into_one_line(tmp_path):
+    """执行 `test_context_manager_summarizes_older_tool_output_into_one_line` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
     agent.record(
         {
@@ -244,6 +255,7 @@ def test_context_manager_summarizes_older_tool_output_into_one_line(tmp_path):
 
 
 def test_context_manager_relevant_memory_can_mix_durable_notes(tmp_path):
+    """执行 `test_context_manager_relevant_memory_can_mix_durable_notes` 的内部逻辑。"""
     memory_root = tmp_path / ".pico" / "memory"
     topics_dir = memory_root / "topics"
     topics_dir.mkdir(parents=True)

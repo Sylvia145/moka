@@ -1,4 +1,4 @@
-"""Turn-aware transcript rendering.
+"""Pico 运行时实现模块。
 
 TurnHistoryBuilder renders persisted conversation history into a prompt-ready
 transcript. It can project old large tool results as artifact-backed stubs, but
@@ -22,6 +22,7 @@ PRESSURE_LIMITS = {
 
 
 def tail_clip(text, limit):
+    """执行 `tail_clip` 的内部逻辑。"""
     text = str(text)
     if limit <= 0:
         return ""
@@ -34,9 +35,11 @@ def tail_clip(text, limit):
 
 class TurnHistoryBuilder:
     def __init__(self, agent):
+        """初始化对象状态。"""
         self.agent = agent
 
     def enrich(self, item):
+        """执行 `enrich` 的内部逻辑。"""
         item = dict(item)
         if not item.get("turn_id"):
             current_turn = str(getattr(self.agent, "current_turn_id", "") or "")
@@ -55,11 +58,13 @@ class TurnHistoryBuilder:
         return item
 
     def raw_text(self, history):
+        """执行 `raw_text` 的内部逻辑。"""
         if not history:
             return "Transcript:\n- empty"
         return "\n".join(["Transcript:", *self._render_turn_lines(history, line_limit=2000)])
 
     def render_section(self, budget, pressure=None):
+        """执行 `render_section` 的内部逻辑。"""
         history = list(getattr(self.agent, "session", {}).get("history", []))
         raw = self.raw_text(history)
         if not history:
@@ -97,6 +102,7 @@ class TurnHistoryBuilder:
         return rendered, details
 
     def _group_turns(self, history):
+        """执行 `_group_turns` 的内部逻辑。"""
         turns = OrderedDict()
         for item in history:
             turn_id = str(item.get("turn_id") or "legacy")
@@ -104,6 +110,7 @@ class TurnHistoryBuilder:
         return turns
 
     def _compressed_turn_entries(self, turns, recent_turns, old_turn_line_limit=80):
+        """执行 `_compressed_turn_entries` 的内部逻辑。"""
         entries = []
         seen_older_reads = set()
         history_items = [item for items in turns.values() for item in items]
@@ -178,6 +185,7 @@ class TurnHistoryBuilder:
         return entries, details
 
     def _pressure_limits(self, pressure):
+        """执行 `_pressure_limits` 的内部逻辑。"""
         tier = (
             str(getattr(pressure, "tier", "") or "")
             or str(getattr(pressure, "pressure_tier", "") or "tier0_observe")
@@ -185,6 +193,7 @@ class TurnHistoryBuilder:
         return PRESSURE_LIMITS.get(tier, (3, 80))
 
     def _render_turn_lines(self, history, line_limit):
+        """执行 `_render_turn_lines` 的内部逻辑。"""
         lines = []
         for turn_id, items in self._group_turns(history).items():
             lines.append(f"Turn {turn_id}:")
@@ -193,6 +202,7 @@ class TurnHistoryBuilder:
         return lines
 
     def _render_item(self, item, line_limit):
+        """执行 `_render_item` 的内部逻辑。"""
         if item.get("kind") == "compact_summary":
             return str(item.get("content", "")).splitlines()
         if item.get("role") == "tool":
@@ -205,6 +215,7 @@ class TurnHistoryBuilder:
         return [f"[{item.get('role', '')}] {tail_clip(item.get('content', ''), line_limit)}"]
 
     def _reusable_file_summary(self, path):
+        """执行 `_reusable_file_summary` 的内部逻辑。"""
         memory = getattr(self.agent, "memory", None)
         if memory is None or not hasattr(memory, "to_dict"):
             return ""
@@ -212,6 +223,7 @@ class TurnHistoryBuilder:
         return str(summary.get("summary", "")).strip()
 
     def _summarize_old_tool_item(self, item):
+        """执行 `_summarize_old_tool_item` 的内部逻辑。"""
         artifact_ref = str(item.get("artifact_ref", "")).strip()
         if item.get("media_refs"):
             refs = render_media_refs(item)
@@ -229,10 +241,12 @@ class TurnHistoryBuilder:
         return self._render_item(item, 80)[0]
 
     def _current_changed_paths(self):
+        """执行 `_current_changed_paths` 的内部逻辑。"""
         task_state = getattr(self.agent, "current_task_state", None)
         return {str(path) for path in getattr(task_state, "changed_paths", []) if str(path).strip()}
 
     def _ledger_replacement(self, item, ledger, details):
+        """执行 `_ledger_replacement` 的内部逻辑。"""
         record = ledger.matching_record(item)
         if record:
             details["replacement_cache_hits"] += 1
@@ -248,6 +262,7 @@ class TurnHistoryBuilder:
         return summary
 
     def _record_stub_metadata(self, item, summary, details):
+        """执行 `_record_stub_metadata` 的内部逻辑。"""
         details["summarized_tool_count"] += 1
         artifact_ref = str(item.get("artifact_ref", "")).strip()
         if artifact_ref:
@@ -258,6 +273,7 @@ class TurnHistoryBuilder:
 
     @staticmethod
     def _last_matching_tool(history, predicate):
+        """执行 `_last_matching_tool` 的内部逻辑。"""
         for item in reversed(history):
             if item.get("role") == "tool" and predicate(item):
                 return item
@@ -265,9 +281,11 @@ class TurnHistoryBuilder:
 
     @staticmethod
     def _is_failed_tool(item):
+        """执行 `_is_failed_tool` 的内部逻辑。"""
         status = str(item.get("tool_status", ""))
         return bool(status and status != "ok") or bool(item.get("tool_error_code"))
 
 
 def should_render_tool_inline(item, context):
+    """执行 `should_render_tool_inline` 的内部逻辑。"""
     return ContextRetentionPolicy().should_render_tool_inline(item, context)

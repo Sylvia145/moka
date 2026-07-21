@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Pico 项目运行与验证脚本。"""
 import argparse
 import json
 import sys
@@ -17,6 +18,7 @@ from pico.evaluation.metrics import (  # noqa: E402
 
 
 def build_arg_parser():
+    """执行 `build_arg_parser` 的内部逻辑。"""
     parser = argparse.ArgumentParser(description="Run pico large-scale experiments and write all experiment artifacts.")
     parser.add_argument("--benchmark-artifact", required=True, help="Path to benchmark artifact JSON.")
     parser.add_argument("--runs-root", required=True, help="Path to .pico/runs root.")
@@ -40,6 +42,7 @@ def build_arg_parser():
 
 
 def main(argv=None):
+    """执行 `main` 的内部逻辑。"""
     args = build_arg_parser().parse_args(argv)
 
     provider_payload = run_provider_experiments(

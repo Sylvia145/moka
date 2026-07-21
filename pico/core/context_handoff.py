@@ -1,4 +1,4 @@
-"""LLM-backed handoff summary helpers for context compaction."""
+"""Pico 运行时实现模块。"""
 
 from __future__ import annotations
 
@@ -78,6 +78,7 @@ class HandoffParser:
     }
 
     def parse(self, raw_text: str) -> HandoffSummary:
+        """执行 `parse` 的内部逻辑。"""
         raw = str(raw_text or "")
         sections = self._sections(raw)
         goal = self._paragraph(sections.get("goal", ""))
@@ -93,6 +94,7 @@ class HandoffParser:
         )
 
     def _sections(self, raw_text: str) -> dict[str, str]:
+        """执行 `_sections` 的内部逻辑。"""
         sections = {}
         current = None
         lines = []
@@ -111,6 +113,7 @@ class HandoffParser:
 
     @staticmethod
     def _paragraph(text: str) -> str:
+        """执行 `_paragraph` 的内部逻辑。"""
         for line in str(text or "").splitlines():
             stripped = line.strip()
             if stripped:
@@ -119,6 +122,7 @@ class HandoffParser:
 
     @staticmethod
     def _bullets(text: str) -> tuple[str, ...]:
+        """执行 `_bullets` 的内部逻辑。"""
         items = []
         for line in str(text or "").splitlines():
             stripped = line.strip()
@@ -133,12 +137,14 @@ class HandoffAdapter:
     """Generates a handoff summary through the normalized model boundary."""
 
     def __init__(self, model_client, max_summary_tokens=1024):
+        """初始化对象状态。"""
         self.model_client = model_client
         self.max_summary_tokens = int(max_summary_tokens)
         self.parser = HandoffParser()
         self.last_usage = None
 
     def generate(self, delta_text: str, prior_summary_text: str = "") -> HandoffSummary | None:
+        """执行 `generate` 的内部逻辑。"""
         prior_block = ""
         if str(prior_summary_text or "").strip():
             prior_block = "## Prior Summary (merge into your output)\n\n" + str(prior_summary_text).strip()
@@ -160,6 +166,7 @@ class HandoffAdapter:
 
     @staticmethod
     def _usage(metadata):
+        """执行 `_usage` 的内部逻辑。"""
         meta = dict(metadata or {})
         input_tokens = _optional_int(meta.get("input_tokens"))
         output_tokens = _optional_int(meta.get("output_tokens"))
@@ -212,6 +219,7 @@ def render_delta_for_handoff(delta_items, *, max_chars=20_000):
 
 
 def _append_section(lines, title, items):
+    """执行 `_append_section` 的内部逻辑。"""
     if not items:
         return
     lines.extend(["", f"## {title}"])
@@ -219,6 +227,7 @@ def _append_section(lines, title, items):
 
 
 def _truncate(text, limit):
+    """执行 `_truncate` 的内部逻辑。"""
     text = str(text or "")
     if len(text) <= limit:
         return text
@@ -226,6 +235,7 @@ def _truncate(text, limit):
 
 
 def _optional_int(value):
+    """执行 `_optional_int` 的内部逻辑。"""
     try:
         return max(0, int(value or 0))
     except (TypeError, ValueError):

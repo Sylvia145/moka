@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 
 from pico import Pico, SessionStore, WorkspaceContext
@@ -9,6 +10,7 @@ from pico.testing import ScriptedModelClient
 
 
 def test_scoped_worker_activates_parent_review_guard_and_blocks_main_writes(tmp_path):
+    """执行 `test_scoped_worker_activates_parent_review_guard_and_blocks_main_writes` 的内部逻辑。"""
     server_path = prepare_workspace(tmp_path)
     agent = Pico(
         model_client=ScriptedModelClient(
@@ -56,6 +58,7 @@ def test_scoped_worker_activates_parent_review_guard_and_blocks_main_writes(tmp_
 
 
 def test_delegated_review_guard_is_restored_with_session(tmp_path):
+    """执行 `test_delegated_review_guard_is_restored_with_session` 的内部逻辑。"""
     server_path = prepare_workspace(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
     agent = Pico(

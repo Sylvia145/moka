@@ -1,4 +1,4 @@
-"""Required artifact extraction for final-readiness decisions."""
+"""Pico 运行时实现模块。"""
 
 import re
 from pathlib import Path
@@ -43,6 +43,7 @@ _FILE_SUFFIXES = frozenset(
 
 
 def summarize_required_artifacts(task_state, workspace_root=None):
+    """执行 `summarize_required_artifacts` 的内部逻辑。"""
     root = Path(workspace_root).resolve() if workspace_root else None
     paths = extract_required_artifact_paths(task_state.user_request, root)
     missing = []
@@ -57,6 +58,7 @@ def summarize_required_artifacts(task_state, workspace_root=None):
 
 
 def extract_required_artifact_paths(text, workspace_root=None):
+    """执行 `extract_required_artifact_paths` 的内部逻辑。"""
     root = Path(workspace_root).resolve() if workspace_root else None
     paths = []
     output_context = False
@@ -105,10 +107,12 @@ def extract_required_artifact_paths(text, workspace_root=None):
 
 
 def _line_negates_output(lowered_line):
+    """执行 `_line_negates_output` 的内部逻辑。"""
     return any(marker in lowered_line for marker in _NEGATED_OUTPUT_MARKERS)
 
 
 def _starts_non_output_section(line, lowered_line):
+    """执行 `_starts_non_output_section` 的内部逻辑。"""
     sectionish = line.startswith("#") or line.endswith(":")
     return sectionish and any(
         marker in lowered_line for marker in _NON_OUTPUT_SECTION_MARKERS
@@ -116,22 +120,26 @@ def _starts_non_output_section(line, lowered_line):
 
 
 def _first_marker_index(lowered_line, markers):
+    """执行 `_first_marker_index` 的内部逻辑。"""
     positions = [pos for marker in markers if (pos := lowered_line.find(marker)) >= 0]
     return min(positions) if positions else -1
 
 
 def _token_has_output_scope(output_context, output_marker_index, token_start):
+    """执行 `_token_has_output_scope` 的内部逻辑。"""
     if output_marker_index >= 0:
         return token_start >= output_marker_index
     return output_context
 
 
 def _line_declares_output_dir(line):
+    """执行 `_line_declares_output_dir` 的内部逻辑。"""
     lowered = str(line or "").lower()
     return any(marker in lowered for marker in ("写入", "output", "under", "保存到"))
 
 
 def _normalize_declared_path(token, root):
+    """执行 `_normalize_declared_path` 的内部逻辑。"""
     value = str(token or "").strip().strip("\"'")
     if not value or any(part in value for part in ("*", "{", "}", "\n")):
         return ""
@@ -149,6 +157,7 @@ def _normalize_declared_path(token, root):
 
 
 def _looks_like_directory_token(token):
+    """执行 `_looks_like_directory_token` 的内部逻辑。"""
     value = str(token or "").strip()
     if value.endswith("/"):
         return True

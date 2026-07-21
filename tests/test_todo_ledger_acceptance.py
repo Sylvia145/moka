@@ -1,4 +1,4 @@
-"""Acceptance tests for todo ledger evidence in run reports."""
+"""Pico 自动化测试模块。"""
 
 import json
 
@@ -7,6 +7,7 @@ from pico import Pico, SessionStore, WorkspaceContext
 
 
 def build_agent(tmp_path, outputs=None, **kwargs):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     return Pico(
@@ -19,10 +20,12 @@ def build_agent(tmp_path, outputs=None, **kwargs):
 
 
 def read_jsonl(path):
+    """执行 `read_jsonl` 的内部逻辑。"""
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def test_todo_tools_persist_state_and_emit_session_events(tmp_path):
+    """执行 `test_todo_tools_persist_state_and_emit_session_events` 的内部逻辑。"""
     agent = build_agent(tmp_path)
 
     added = agent.run_tool("todo_add", {"content": "Draft worker manager", "priority": "high"})
@@ -41,6 +44,7 @@ def test_todo_tools_persist_state_and_emit_session_events(tmp_path):
 
 
 def test_todo_tools_are_available_in_plan_mode_and_prompt_context(tmp_path):
+    """执行 `test_todo_tools_are_available_in_plan_mode_and_prompt_context` 的内部逻辑。"""
     agent = build_agent(tmp_path, ["<final>Plan ready.</final>"])
     agent.enter_plan_mode("subagent")
 
@@ -57,6 +61,7 @@ def test_todo_tools_are_available_in_plan_mode_and_prompt_context(tmp_path):
 
 
 def test_todo_changes_are_written_to_task_state_and_report(tmp_path):
+    """执行 `test_todo_changes_are_written_to_task_state_and_report` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -78,6 +83,7 @@ def test_todo_changes_are_written_to_task_state_and_report(tmp_path):
 
 
 def test_soft_final_readiness_reminds_for_current_run_high_priority_todo(tmp_path):
+    """执行 `test_soft_final_readiness_reminds_for_current_run_high_priority_todo` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [

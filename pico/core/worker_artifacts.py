@@ -1,4 +1,4 @@
-"""Evidence extraction for worker child runs."""
+"""Pico 运行时实现模块。"""
 
 import json
 import subprocess
@@ -8,6 +8,7 @@ from .workspace import IGNORED_PATH_NAMES
 
 
 def collect_worker_artifacts(root, child, task_state):
+    """执行 `collect_worker_artifacts` 的内部逻辑。"""
     run_dir = getattr(child, "current_run_dir", None)
     payload = {
         "run_id": str(getattr(task_state, "run_id", "") or ""),
@@ -28,6 +29,7 @@ def collect_worker_artifacts(root, child, task_state):
 
 
 def trace_error_codes(trace_path):
+    """执行 `trace_error_codes` 的内部逻辑。"""
     error_codes = []
     for line in trace_path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -72,6 +74,7 @@ def build_change_handoff(workspace_root, base_commit, artifacts):
 
 
 def _git_diff_evidence(workspace_root, base_commit):
+    """执行 `_git_diff_evidence` 的内部逻辑。"""
     if not workspace_root.exists():
         return {}
     diff_paths = _reviewable_paths(
@@ -91,16 +94,19 @@ def _git_diff_evidence(workspace_root, base_commit):
 
 
 def _git_untracked_paths(workspace_root):
+    """执行 `_git_untracked_paths` 的内部逻辑。"""
     return _reviewable_paths(
         _git_output(workspace_root, ["ls-files", "--others", "--exclude-standard"]).splitlines()
     )
 
 
 def _reviewable_paths(paths):
+    """执行 `_reviewable_paths` 的内部逻辑。"""
     return [path for path in paths if not any(part in IGNORED_PATH_NAMES for part in Path(path).parts)]
 
 
 def _git_output(workspace_root, args):
+    """执行 `_git_output` 的内部逻辑。"""
     result = subprocess.run(
         ["git", *args],
         cwd=workspace_root,
@@ -114,6 +120,7 @@ def _git_output(workspace_root, args):
 
 
 def _git_exit_code(workspace_root, args):
+    """执行 `_git_exit_code` 的内部逻辑。"""
     return subprocess.run(
         ["git", *args],
         cwd=workspace_root,
@@ -126,6 +133,7 @@ def _git_exit_code(workspace_root, args):
 
 
 def relative_path(root, path):
+    """执行 `relative_path` 的内部逻辑。"""
     if not path:
         return ""
     try:

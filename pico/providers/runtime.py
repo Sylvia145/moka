@@ -1,4 +1,4 @@
-"""Provider runtime assembly for CLI and other frontends."""
+"""Pico 运行时实现模块。"""
 
 import os
 from dataclasses import dataclass
@@ -35,6 +35,7 @@ class ProviderRuntime:
 
 
 def build_provider_runtime(args, client_classes=None):
+    """执行 `build_provider_runtime` 的内部逻辑。"""
     client_classes = client_classes or ProviderClientClasses()
     provider_config = _resolve_main_provider_config(args)
     model_client = build_model_client(
@@ -66,6 +67,7 @@ def build_model_client(
     timeout=None,
     client_classes=None,
 ):
+    """执行 `build_model_client` 的内部逻辑。"""
     client_classes = client_classes or ProviderClientClasses()
     resolved_config = config or _resolve_main_provider_config(
         args, provider=provider, use_cli_overrides=use_cli_overrides
@@ -76,6 +78,7 @@ def build_model_client(
 
 
 def model_client_from_config(config, args, *, timeout=None, client_classes=None):
+    """执行 `model_client_from_config` 的内部逻辑。"""
     client_classes = client_classes or ProviderClientClasses()
     timeout = getattr(args, "openai_timeout", 300) if timeout is None else timeout
     if config.protocol == "openai":
@@ -107,6 +110,7 @@ def model_client_from_config(config, args, *, timeout=None, client_classes=None)
 
 
 def _resolve_main_provider_config(args, provider=None, use_cli_overrides=True):
+    """执行 `_resolve_main_provider_config` 的内部逻辑。"""
     return resolve_provider_config(
         provider if provider is not None else getattr(args, "provider", None),
         start=getattr(args, "cwd", "."),
@@ -121,6 +125,7 @@ def _resolve_main_provider_config(args, provider=None, use_cli_overrides=True):
 
 
 def _build_vision_model_client(args, provider, client_classes):
+    """执行 `_build_vision_model_client` 的内部逻辑。"""
     config = resolve_vision_provider_config(
         provider,
         start=getattr(args, "cwd", "."),
@@ -138,6 +143,7 @@ def _build_vision_model_client(args, provider, client_classes):
 
 
 def _vision_timeout(args):
+    """执行 `_vision_timeout` 的内部逻辑。"""
     value = getattr(args, "vision_timeout", None)
     if value is None:
         value = os.environ.get(ENV_VISION_TIMEOUT)
@@ -145,12 +151,14 @@ def _vision_timeout(args):
 
 
 def _build_model_client_router(args, provider_config, model_client, client_classes):
+    """执行 `_build_model_client_router` 的内部逻辑。"""
     if provider_config.supports_vision:
         return ModelClientRouter(main_client=model_client, vision_client=model_client)
     if not provider_config.vision_provider:
         return ModelClientRouter(main_client=model_client)
 
     def vision_client_factory():
+        """执行 `vision_client_factory` 的内部逻辑。"""
         return _build_vision_model_client(
             args, provider_config.vision_provider, client_classes
         )

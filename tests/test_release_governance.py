@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 from pico import Pico, SessionStore, WorkspaceContext
 from pico.evaluation.release_governance import (
     evaluate_run,
@@ -11,6 +12,7 @@ from pico.testing import ScriptedModelClient
 
 
 def test_release_governance_keeps_production_files_out_of_worker_scope(tmp_path):
+    """执行 `test_release_governance_keeps_production_files_out_of_worker_scope` 的内部逻辑。"""
     server_path = prepare_workspace(tmp_path)
     agent = Pico(
         model_client=ScriptedModelClient(
@@ -42,6 +44,7 @@ def test_release_governance_keeps_production_files_out_of_worker_scope(tmp_path)
 
 
 def test_release_governance_over_streamable_http_keeps_same_business_boundaries(tmp_path):
+    """执行 `test_release_governance_over_streamable_http_keeps_same_business_boundaries` 的内部逻辑。"""
     prepare_workspace(tmp_path)
     with release_policy_http_server(response_mode="sse") as (url, state):
         agent = Pico(

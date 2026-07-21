@@ -1,4 +1,4 @@
-"""stdio transport implementation for MCP."""
+"""Pico 运行时实现模块。"""
 
 import json
 import subprocess
@@ -11,23 +11,28 @@ from .mcp import McpServerConfig
 
 class McpStdioClient:
     def __init__(self, config: McpServerConfig):
+        """初始化对象状态。"""
         self.config = config
         self.process = None
         self._next_id = 1
         self._lock = threading.RLock()
 
     def list_tools(self):
+        """执行 `list_tools` 的内部逻辑。"""
         return list(self._request("tools/list").get("tools", []))
 
     def call_tool(self, name, arguments):
+        """执行 `call_tool` 的内部逻辑。"""
         return self._request("tools/call", {"name": name, "arguments": dict(arguments or {})})
 
     def close(self):
+        """执行 `close` 的内部逻辑。"""
         if self.process is not None:
             self.process.terminate()
             self.process = None
 
     def _start(self):
+        """执行 `_start` 的内部逻辑。"""
         if self.process is not None and self.process.poll() is None:
             return
         self.process = subprocess.Popen(
@@ -51,10 +56,12 @@ class McpStdioClient:
         self._notify("notifications/initialized")
 
     def _notify(self, method):
+        """执行 `_notify` 的内部逻辑。"""
         self.process.stdin.write(json.dumps({"jsonrpc": "2.0", "method": method}) + "\n")
         self.process.stdin.flush()
 
     def _request(self, method, params=None, *, initialize=True):
+        """执行 `_request` 的内部逻辑。"""
         with self._lock:
             if initialize:
                 self._start()

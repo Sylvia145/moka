@@ -1,4 +1,4 @@
-"""Tests for artifact-backed retention of long tool results."""
+"""Pico 自动化测试模块。"""
 
 import hashlib
 import json
@@ -15,6 +15,7 @@ from pico.tools.base import RegisteredTool
 
 
 def build_agent(tmp_path, outputs=None, **kwargs):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("hello world\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
@@ -28,10 +29,12 @@ def build_agent(tmp_path, outputs=None, **kwargs):
 
 
 def read_jsonl(path):
+    """执行 `read_jsonl` 的内部逻辑。"""
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def test_long_shell_output_is_clipped_and_full_output_is_saved_as_run_artifact(tmp_path):
+    """执行 `test_long_shell_output_is_clipped_and_full_output_is_saved_as_run_artifact` 的内部逻辑。"""
     script = "print('x'*6000)"
     if sys.platform == "win32":
         # shlex.quote 产生 POSIX 单引号，cmd.exe 无法解析；Windows 用双引号包裹，
@@ -67,6 +70,7 @@ def test_long_shell_output_is_clipped_and_full_output_is_saved_as_run_artifact(t
 
 
 def test_run_shell_status_is_parsed_from_full_result_before_artifact_rendering(tmp_path):
+    """执行 `test_run_shell_status_is_parsed_from_full_result_before_artifact_rendering` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -93,6 +97,7 @@ def test_run_shell_status_is_parsed_from_full_result_before_artifact_rendering(t
 
 
 def test_long_tool_output_artifact_ref_survives_external_run_store(tmp_path):
+    """执行 `test_long_tool_output_artifact_ref_survives_external_run_store` 的内部逻辑。"""
     external_runs = tmp_path.parent / f"{tmp_path.name}-external-runs"
     agent = build_agent(
         tmp_path,
@@ -123,6 +128,7 @@ def test_long_tool_output_artifact_ref_survives_external_run_store(tmp_path):
 
 
 def test_long_read_file_result_is_artifact_backed_when_history_is_microcompacted(tmp_path):
+    """执行 `test_long_read_file_result_is_artifact_backed_when_history_is_microcompacted` 的内部逻辑。"""
     large_text = "\n".join(f"line-{index} " + ("x" * 40) for index in range(120))
     (tmp_path / "large.txt").write_text(large_text, encoding="utf-8")
     agent = build_agent(
@@ -170,6 +176,7 @@ def test_long_read_file_result_is_artifact_backed_when_history_is_microcompacted
 
 
 def test_recent_long_tool_result_is_not_microcompact_stubbed(tmp_path):
+    """执行 `test_recent_long_tool_result_is_not_microcompact_stubbed` 的内部逻辑。"""
     large_text = "\n".join(f"line-{index} " + ("x" * 40) for index in range(120))
     (tmp_path / "large.txt").write_text(large_text, encoding="utf-8")
     agent = build_agent(
@@ -189,6 +196,7 @@ def test_recent_long_tool_result_is_not_microcompact_stubbed(tmp_path):
 
 
 def test_microcompact_keeps_old_tool_result_tied_to_current_changed_path(tmp_path):
+    """执行 `test_microcompact_keeps_old_tool_result_tied_to_current_changed_path` 的内部逻辑。"""
     large_text = "\n".join(f"line-{index} " + ("x" * 40) for index in range(120))
     (tmp_path / "large.txt").write_text(large_text, encoding="utf-8")
     agent = build_agent(
@@ -217,6 +225,7 @@ def test_microcompact_keeps_old_tool_result_tied_to_current_changed_path(tmp_pat
     reason="multi-line python -c script with a for-suite cannot be quoted for cmd.exe",
 )
 def test_microcompact_keeps_latest_failed_tool_result_visible(tmp_path):
+    """执行 `test_microcompact_keeps_latest_failed_tool_result_visible` 的内部逻辑。"""
     script = "for i in range(140): print(f'FAIL-{i}')\nraise SystemExit(1)"
     command = f"{shlex.quote(sys.executable)} -c {shlex.quote(script)}"
     agent = build_agent(
@@ -244,6 +253,7 @@ def test_microcompact_keeps_latest_failed_tool_result_visible(tmp_path):
     reason="multi-line python -c script with a for-suite cannot be quoted for cmd.exe",
 )
 def test_microcompact_keeps_latest_workspace_changing_tool_result_visible(tmp_path):
+    """执行 `test_microcompact_keeps_latest_workspace_changing_tool_result_visible` 的内部逻辑。"""
     script = "\n".join(
         [
             "from pathlib import Path",

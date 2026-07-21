@@ -1,4 +1,4 @@
-"""Release smoke tests.
+"""Pico 自动化测试模块。
 
 This module verifies the two end-to-end user journeys that must work before
 public release:
@@ -19,6 +19,7 @@ from pico.testing import ScriptedModelClient
 
 
 def _build_workspace(tmp_path):
+    """执行 `_build_workspace` 的内部逻辑。"""
     (tmp_path / "README.md").write_text(
         "# demo\n\nQuick Start coming soon.\n", encoding="utf-8"
     )
@@ -27,6 +28,7 @@ def _build_workspace(tmp_path):
 
 
 def _build_agent(tmp_path, outputs):
+    """执行 `_build_agent` 的内部逻辑。"""
     workspace = _build_workspace(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
     return Pico(
@@ -118,6 +120,7 @@ def test_empty_response_does_not_silently_stop(tmp_path):
 
 
 def _has_live_provider():
+    """执行 `_has_live_provider` 的内部逻辑。"""
     keys = ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "DEEPSEEK_API_KEY")
     return any(os.environ.get(k) for k in keys) and os.environ.get("PICO_LIVE_SMOKE") == "1"
 
@@ -154,7 +157,7 @@ def test_dream_produces_non_empty_topics_with_live_provider(tmp_path):
     log_path.write_text(
         textwrap.dedent(
             """\
-            # 2026-05-13 daily log
+            # 2026-05-13 每日日志
 
             - 测试项目使用 pytest 而非 unittest
             - 部署前必须运行 `make test` 和 `make lint`

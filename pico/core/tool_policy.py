@@ -1,4 +1,4 @@
-"""Tool usage policy checks above raw permission gates."""
+"""Pico 运行时实现模块。"""
 
 import re
 from dataclasses import dataclass
@@ -20,22 +20,27 @@ class ToolPolicyDecision:
 
     @classmethod
     def allow(cls, reason="policy_ok"):
+        """执行 `allow` 的内部逻辑。"""
         return cls("allow", reason)
 
     @classmethod
     def deny(cls, reason, message):
+        """执行 `deny` 的内部逻辑。"""
         return cls("deny", reason, message)
 
     @property
     def allowed(self):
+        """执行 `allowed` 的内部逻辑。"""
         return self.decision == "allow"
 
 
 class ToolPolicyChecker:
     def __init__(self, runtime):
+        """初始化对象状态。"""
         self.runtime = runtime
 
     def check(self, tool, args):
+        """执行 `check` 的内部逻辑。"""
         args = args or {}
         if self.runtime.runtime_mode == "plan":
             return ToolPolicyDecision.allow("plan_mode")
@@ -55,6 +60,7 @@ class ToolPolicyChecker:
         return ToolPolicyDecision.allow()
 
     def _has_fresh_read(self, path):
+        """执行 `_has_fresh_read` 的内部逻辑。"""
         canonical = self.runtime.memory.canonical_path(path)
         summary = self.runtime.memory.to_dict().get("file_summaries", {}).get(canonical, {})
         if summary and summary.get("freshness") == memorylib.file_freshness(canonical, self.runtime.root):
@@ -64,6 +70,7 @@ class ToolPolicyChecker:
 
     @staticmethod
     def _prior_read_required(tool_name, path):
+        """执行 `_prior_read_required` 的内部逻辑。"""
         return ToolPolicyDecision.deny(
             "prior_read_required",
             f"error: {tool_name} requires a fresh read_file of {path} before modifying it",

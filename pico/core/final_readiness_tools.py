@@ -1,4 +1,4 @@
-"""Evidence and tool-state checks for final-readiness decisions."""
+"""Pico 运行时实现模块。"""
 
 from .final_readiness_artifacts import summarize_required_artifacts
 from .final_readiness_context import compact_net_negative
@@ -13,6 +13,7 @@ UNRESOLVED_TODO_STATUS = {"pending", "in_progress"}
 
 
 def readiness_reasons(task_state, workspace_root=None):
+    """执行 `readiness_reasons` 的内部逻辑。"""
     summaries = task_state.evidence_summaries or {}
     reasons = []
     required_artifacts = summarize_required_artifacts(task_state, workspace_root)
@@ -52,6 +53,7 @@ def readiness_reasons(task_state, workspace_root=None):
 
 
 def _has_unresolved_high_priority_todo(task_state):
+    """执行 `_has_unresolved_high_priority_todo` 的内部逻辑。"""
     latest = {}
     for change in task_state.todo_changes or []:
         todo = dict(change.get("todo", {}) or {})
@@ -65,6 +67,7 @@ def _has_unresolved_high_priority_todo(task_state):
 
 
 def _has_partial_success_workspace_change(task_state):
+    """执行 `_has_partial_success_workspace_change` 的内部逻辑。"""
     return any(
         item.get("status") == "partial_success"
         and item.get("workspace_changed") is True

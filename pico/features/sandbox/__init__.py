@@ -1,4 +1,4 @@
-"""Optional run_shell sandbox support."""
+"""Pico 运行时实现模块。"""
 
 from .config import SandboxConfig, resolve_sandbox_config
 from .runner import SandboxRunner

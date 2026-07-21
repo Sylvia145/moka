@@ -1,4 +1,4 @@
-"""Runtime mode tool definitions."""
+"""Pico 运行时实现模块。"""
 
 PLAN_TOOL_SPECS = {
     "enter_plan_mode": {
@@ -21,10 +21,12 @@ PLAN_TOOL_EXAMPLES = {
 
 
 def tool_enter_plan_mode(agent, args):
+    """执行 `tool_enter_plan_mode` 的内部逻辑。"""
     path = agent.enter_plan_mode(args["topic"], path=args.get("path"))
     return f"mode: plan\nplan path: {path}"
 
 
 def tool_exit_plan_mode(agent, args):
+    """执行 `tool_exit_plan_mode` 的内部逻辑。"""
     agent.exit_plan_mode()
     return "mode: default"

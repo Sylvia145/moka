@@ -1,4 +1,4 @@
-"""Terminal-state governance for Pico turns."""
+"""Pico 运行时实现模块。"""
 
 import time
 
@@ -50,6 +50,7 @@ def final_readiness_action(engine, task_state, proposed_final=""):
 
 
 def _record_runtime_notice(agent, task_state, notice):
+    """执行 `_record_runtime_notice` 的内部逻辑。"""
     agent.record({"role": "assistant", "content": notice, "created_at": now()})
     agent.session_event_bus.emit(
         "assistant_message",
@@ -63,6 +64,7 @@ def _record_runtime_notice(agent, task_state, notice):
 
 
 def finish_successful_run(engine, task_state, user_message, final, run_started_at):
+    """执行 `finish_successful_run` 的内部逻辑。"""
     agent = engine.runtime
     agent.record({"role": "assistant", "content": final, "created_at": now()})
     if agent.runtime_mode == "plan":
@@ -88,6 +90,7 @@ def finish_successful_run(engine, task_state, user_message, final, run_started_a
 def finish_stopped_run(
     engine, task_state, user_message, final, stop_reason, run_started_at
 ):
+    """执行 `finish_stopped_run` 的内部逻辑。"""
     agent = engine.runtime
     task_state.stop(stop_reason, final_answer=final)
     agent.abort_requested = False
@@ -112,6 +115,7 @@ def finish_stopped_run(
 
 
 def finish_limited_run(engine, task_state, user_message, final, run_started_at):
+    """执行 `finish_limited_run` 的内部逻辑。"""
     agent = engine.runtime
     agent.record({"role": "assistant", "content": final, "created_at": now()})
     agent.session_event_bus.emit(
@@ -142,6 +146,7 @@ def _emit_terminal_artifacts(
     maintain_memory=True,
     drain_workers=True,
 ):
+    """执行 `_emit_terminal_artifacts` 的内部逻辑。"""
     agent = engine.runtime
     emit_terminal_transition(
         agent,
@@ -201,6 +206,7 @@ def _emit_terminal_artifacts(
 
 
 def maintain_memory_safely(agent, task_state, final_answer):
+    """执行 `maintain_memory_safely` 的内部逻辑。"""
     try:
         agent.maintain_memory_after_turn(final_answer)
     except Exception as exc:
@@ -218,6 +224,7 @@ def maintain_memory_safely(agent, task_state, final_answer):
 
 
 def _turn_finished_event(task_state):
+    """执行 `_turn_finished_event` 的内部逻辑。"""
     return {
         "type": "turn_finished",
         "run_id": task_state.run_id,

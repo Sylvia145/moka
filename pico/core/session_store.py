@@ -1,4 +1,4 @@
-"""Session JSON storage."""
+"""Pico 运行时实现模块。"""
 
 import json
 import os
@@ -15,17 +15,21 @@ WINDOWS_REPLACE_RETRY_DELAY_SECONDS = 0.05
 
 class SessionStore:
     def __init__(self, root):
+        """初始化对象状态。"""
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
 
     def path(self, session_id):
+        """执行 `path` 的内部逻辑。"""
         return self.root / f"{_safe_session_id(session_id)}.json"
 
     def event_path(self, session_id):
+        """执行 `event_path` 的内部逻辑。"""
         return self.root / f"{_safe_session_id(session_id)}.events.jsonl"
 
     def save(self, session):
+        """执行 `save` 的内部逻辑。"""
         path = self.path(session["id"])
         payload = json.dumps(session, indent=2)
         with self._lock:
@@ -47,14 +51,17 @@ class SessionStore:
         return path
 
     def load(self, session_id):
+        """执行 `load` 的内部逻辑。"""
         with self._lock:
             return json.loads(self.path(session_id).read_text(encoding="utf-8"))
 
     def latest(self):
+        """执行 `latest` 的内部逻辑。"""
         files = sorted(self.root.glob("*.json"), key=lambda path: path.stat().st_mtime)
         return files[-1].stem if files else None
 
     def list_sessions(self):
+        """执行 `list_sessions` 的内部逻辑。"""
         rows = []
         for index, path in enumerate(
             sorted(
@@ -90,6 +97,7 @@ class SessionStore:
 
 
 def _last_final_preview(history):
+    """执行 `_last_final_preview` 的内部逻辑。"""
     for item in reversed(history):
         if item.get("role") == "assistant":
             return clip(item.get("content", ""), 80)
@@ -97,6 +105,7 @@ def _last_final_preview(history):
 
 
 def _safe_session_id(session_id):
+    """执行 `_safe_session_id` 的内部逻辑。"""
     value = str(session_id or "").strip()
     if not value or value in {".", ".."} or "/" in value or "\\" in value:
         raise ValueError("invalid session id")

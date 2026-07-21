@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 
 from pico.testing import ScriptedModelClient
@@ -5,6 +6,7 @@ from pico import Pico, SessionStore, WorkspaceContext
 
 
 def build_agent(tmp_path, outputs, **kwargs):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
@@ -18,10 +20,12 @@ def build_agent(tmp_path, outputs, **kwargs):
 
 
 def read_jsonl(path):
+    """执行 `read_jsonl` 的内部逻辑。"""
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def test_runtime_evidence_graph_and_verifier_are_derived_from_real_tool_run(tmp_path):
+    """执行 `test_runtime_evidence_graph_and_verifier_are_derived_from_real_tool_run` 的内部逻辑。"""
     (tmp_path / "package.json").write_text(
         '{"scripts":{"test":"vitest run","build":"vite build"}}\n',
         encoding="utf-8",
@@ -64,6 +68,7 @@ def test_runtime_evidence_graph_and_verifier_are_derived_from_real_tool_run(tmp_
 
 
 def test_runtime_reminder_records_failed_tool_without_breaking_the_turn(tmp_path):
+    """执行 `test_runtime_reminder_records_failed_tool_without_breaking_the_turn` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [

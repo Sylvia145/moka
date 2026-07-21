@@ -1,4 +1,4 @@
-"""Quarantine rules for durable memory notes."""
+"""Pico 运行时实现模块。"""
 
 import re
 
@@ -11,5 +11,6 @@ QUARANTINE_PATTERN = re.compile(
 
 
 def should_quarantine(note_text):
+    """执行 `should_quarantine` 的内部逻辑。"""
     text = str(note_text)
     return bool(QUARANTINE_PATTERN.search(text)) or any(pattern.search(text) for pattern in SECRET_PATTERNS)

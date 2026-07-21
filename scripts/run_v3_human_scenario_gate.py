@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the prioritized Pico v3 human-scenario gate.
+"""Pico 项目运行与验证脚本。
 
 The runner intentionally drives Pico through its public CLI entrypoint. It does
 not import the Pico runtime; verification reads only the files Pico writes.
@@ -56,6 +56,7 @@ class ScenarioResult:
 
 class HumanScenarioRunner:
     def __init__(self, args: argparse.Namespace):
+        """执行 `__init__` 的内部逻辑。"""
         self.args = args
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         self.output_dir = Path(args.output_dir or Path("/tmp") / "pico-v3-human-scenarios" / stamp).resolve()
@@ -72,6 +73,7 @@ class HumanScenarioRunner:
         self.config = Path(args.config).expanduser().resolve()
 
     def run(self) -> dict:
+        """执行 `run` 的内部逻辑。"""
         selected = set(self.args.scenarios or [])
         gate_scenarios = [
             self.r01_student_management,
@@ -148,7 +150,7 @@ class HumanScenarioRunner:
             started = time.monotonic()
             try:
                 result = scenario()
-            except Exception as exc:  # noqa: BLE001 - scenario runner must record failures.
+            except Exception as exc:  # noqa: BLE001 - 场景运行器必须记录失败。
                 workspace = self.workspaces_dir / scenario_id.lower()
                 result = ScenarioResult(
                     id=scenario_id,
@@ -165,6 +167,7 @@ class HumanScenarioRunner:
         return self._write_summary(results)
 
     def r01_student_management(self) -> ScenarioResult:
+        """执行 `r01_student_management` 的内部逻辑。"""
         workspace = self._fresh_workspace("r01")
         prompt = (
             "你在一个空 Python workspace。严格按步骤执行，每次只返回一个 <tool> 或最后一个 <final>："
@@ -184,6 +187,7 @@ class HumanScenarioRunner:
         return self.result("R01", "学生管理系统 CRUD 脚手架", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def r02_order_pricing_bugfix(self) -> ScenarioResult:
+        """执行 `r02_order_pricing_bugfix` 的内部逻辑。"""
         workspace = self._fresh_workspace("r02")
         src = workspace / "src"
         tests = workspace / "tests"
@@ -220,6 +224,7 @@ class HumanScenarioRunner:
         return self.result("R02", "订单价格折扣 bugfix", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def r03_release_readiness_skill(self) -> ScenarioResult:
+        """执行 `r03_release_readiness_skill` 的内部逻辑。"""
         workspace = self._fresh_workspace("r03")
         (workspace / "README.md").write_text("# Billing API\n\nRelease candidate.\n", encoding="utf-8")
         (workspace / ".env.example").write_text("DATABASE_URL=\nSTRIPE_API_KEY=\n", encoding="utf-8")
@@ -255,6 +260,7 @@ allowed-tools: read_file, write_file
         return self.result("R03", "发布就绪审查报告", "REPL project skill / DeepSeek", workspace, [command], checks)
 
     def r04_incident_resume_fix(self) -> ScenarioResult:
+        """执行 `r04_incident_resume_fix` 的内部逻辑。"""
         workspace = self._fresh_workspace("r04")
         src = workspace / "src"
         tests = workspace / "tests"
@@ -313,6 +319,7 @@ allowed-tools: read_file, write_file
         return self.result("R04", "线上事故续接修复", "two one-shot CLI runs / DeepSeek", workspace, [first, second], checks)
 
     def r05_approval_inventory_importer(self) -> ScenarioResult:
+        """执行 `r05_approval_inventory_importer` 的内部逻辑。"""
         workspace = self._fresh_workspace("r05")
         prompt = (
             "写库存 CSV 导入器。严格按步骤执行，每次只返回一个 <tool> 或最后一个 <final>："
@@ -341,6 +348,7 @@ allowed-tools: read_file, write_file
         return self.result("R05", "库存 CSV 导入器审批路径", "one-shot CLI approval prompt / DeepSeek", workspace, [command], checks)
 
     def s07_repl_help(self) -> ScenarioResult:
+        """执行 `s07_repl_help` 的内部逻辑。"""
         workspace = self._fresh_workspace("s07")
         command = self.run_pico("S07", workspace, repl_input="/help\n/exit\n", timeout=120)
         stdout = self.read_log(command.stdout_path)
@@ -353,6 +361,7 @@ allowed-tools: read_file, write_file
         return self.result("S07", "--repl + /help", "PTY-style stdin REPL", workspace, [command], checks)
 
     def s06_tty_default_tui(self) -> ScenarioResult:
+        """执行 `s06_tty_default_tui` 的内部逻辑。"""
         workspace = self._fresh_workspace("s06")
         command = self.run_pico_tty_smoke("S06", workspace, timeout=6)
         stdout = self.read_log(command.stdout_path)
@@ -365,6 +374,7 @@ allowed-tools: read_file, write_file
         return self.result("S06", "TTY 默认进入 TUI", "PTY TUI smoke", workspace, [command], checks)
 
     def s08_prompt_one_shot(self) -> ScenarioResult:
+        """执行 `s08_prompt_one_shot` 的内部逻辑。"""
         workspace = self._fresh_workspace("s08")
         (workspace / "README.md").write_text("# One shot\n\nPico one-shot fixture.\n", encoding="utf-8")
         prompt = "请只读 README 并返回 final。先 read_file README.md start=1 end=20，然后 <final>one-shot ok</final>。"
@@ -378,6 +388,7 @@ allowed-tools: read_file, write_file
         return self.result("S08", "prompt 参数走 one-shot", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def s09_piped_stdin_repl(self) -> ScenarioResult:
+        """执行 `s09_piped_stdin_repl` 的内部逻辑。"""
         workspace = self._fresh_workspace("s09")
         command = self.run_pico("S09", workspace, repl_input="/help\n/exit\n", timeout=120)
         stdout = self.read_log(command.stdout_path)
@@ -389,6 +400,7 @@ allowed-tools: read_file, write_file
         return self.result("S09", "piped stdin 使用 REPL", "piped stdin REPL", workspace, [command], checks)
 
     def s10_slash_suggestion_registry(self) -> ScenarioResult:
+        """执行 `s10_slash_suggestion_registry` 的内部逻辑。"""
         workspace = self._fresh_workspace("s10")
         command = self.run_python(
             "S10",
@@ -405,6 +417,7 @@ allowed-tools: read_file, write_file
         return self.result("S10", "TUI slash suggestion", "slash registry check", workspace, [command], checks)
 
     def s11_session_status(self) -> ScenarioResult:
+        """执行 `s11_session_status` 的内部逻辑。"""
         workspace = self._fresh_workspace("s11")
         command = self.run_pico("S11", workspace, repl_input="/plan refactor-auth\n/session\n/exit\n", timeout=120)
         stdout = self.read_log(command.stdout_path)
@@ -417,6 +430,7 @@ allowed-tools: read_file, write_file
         return self.result("S11", "/session 展示 runtime 状态", "PTY REPL slash command", workspace, [command], checks)
 
     def s12_usage_metadata(self) -> ScenarioResult:
+        """执行 `s12_usage_metadata` 的内部逻辑。"""
         workspace = self._fresh_workspace("s12")
         first = self.run_pico(
             "S12-task",
@@ -437,6 +451,7 @@ allowed-tools: read_file, write_file
         return self.result("S12", "/usage 展示 provider metadata", "one-shot + REPL resume", workspace, [first, second], checks)
 
     def s13_model_runtime_switch(self) -> ScenarioResult:
+        """执行 `s13_model_runtime_switch` 的内部逻辑。"""
         workspace = self._fresh_workspace("s13")
         command = self.run_pico("S13", workspace, repl_input="/model gpt-test-local\n/model\n/exit\n", timeout=120)
         stdout = self.read_log(command.stdout_path)
@@ -448,6 +463,7 @@ allowed-tools: read_file, write_file
         return self.result("S13", "/model 只改当前 runtime", "PTY REPL slash command", workspace, [command], checks)
 
     def s14_clear_new_session(self) -> ScenarioResult:
+        """执行 `s14_clear_new_session` 的内部逻辑。"""
         workspace = self._fresh_workspace("s14")
         command = self.run_pico("S14", workspace, repl_input="/session\n/clear\n/session\n/exit\n", timeout=120)
         stdout = self.read_log(command.stdout_path)
@@ -460,6 +476,7 @@ allowed-tools: read_file, write_file
         return self.result("S14", "/clear 开新 session", "PTY REPL slash command", workspace, [command], checks)
 
     def s15_plan_mode_active_artifact(self) -> ScenarioResult:
+        """执行 `s15_plan_mode_active_artifact` 的内部逻辑。"""
         workspace = self._fresh_workspace("s15")
         prompt = (
             "请验证 plan mode 写保护。你必须先返回这个工具调用，不要解释："
@@ -498,6 +515,7 @@ allowed-tools: read_file, write_file
         return self.result("S15", "plan mode 只能写 active plan", "REPL + resume / DeepSeek", workspace, commands, checks)
 
     def s16_plan_final_gate(self) -> ScenarioResult:
+        """执行 `s16_plan_final_gate` 的内部逻辑。"""
         workspace = self._fresh_workspace("s16")
         prompt = (
             "先只返回 <final>plan verbally complete</final>。如果 runtime 提醒不能 final，"
@@ -514,6 +532,7 @@ allowed-tools: read_file, write_file
         return self.result("S16", "未写计划不能 final", "PTY REPL / DeepSeek", workspace, [command], checks)
 
     def s17_absolute_plan_path(self) -> ScenarioResult:
+        """执行 `s17_absolute_plan_path` 的内部逻辑。"""
         workspace = self._fresh_workspace("s17")
         absolute_plan = workspace / ".pico" / "plans" / "student-plan.md"
         prompt = "write_file .pico/plans/student-plan.md，内容为 # Student Plan，然后 final。"
@@ -534,6 +553,7 @@ allowed-tools: read_file, write_file
         return self.result("S17", "absolute plan path 自动归一", "PTY REPL / DeepSeek", workspace, [command], checks)
 
     def s18_plan_path_escape_rejected(self) -> ScenarioResult:
+        """执行 `s18_plan_path_escape_rejected` 的内部逻辑。"""
         workspace = self._fresh_workspace("s18")
         command = self.run_pico("S18", workspace, repl_input="/plan student .pico/plans/../escape.md\n/exit\n", timeout=120)
         stdout = self.read_log(command.stdout_path)
@@ -545,6 +565,7 @@ allowed-tools: read_file, write_file
         return self.result("S18", "越界 plan path 被拒", "PTY REPL slash command", workspace, [command], checks)
 
     def s19_plan_allows_explore(self) -> ScenarioResult:
+        """执行 `s19_plan_allows_explore` 的内部逻辑。"""
         workspace = self._fresh_workspace("s19")
         (workspace / "README.md").write_text("# Payments\n\nExplore me.\n", encoding="utf-8")
         prompt = (
@@ -563,6 +584,7 @@ allowed-tools: read_file, write_file
         return self.result("S19", "plan mode 允许 Explore 子 agent", "PTY REPL / DeepSeek", workspace, [command], checks)
 
     def s20_plan_rejects_worker_write(self) -> ScenarioResult:
+        """执行 `s20_plan_rejects_worker_write` 的内部逻辑。"""
         workspace = self._fresh_workspace("s20")
         command = self.run_pico(
             "S20",
@@ -579,6 +601,7 @@ allowed-tools: read_file, write_file
         return self.result("S20", "plan mode 禁止 worker 写入", "PTY REPL slash command", workspace, [command], checks)
 
     def s21_prior_read_required(self) -> ScenarioResult:
+        """执行 `s21_prior_read_required` 的内部逻辑。"""
         workspace = self._fresh_workspace("s21")
         (workspace / "README.md").write_text("hello world\n", encoding="utf-8")
         prompt = (
@@ -598,6 +621,7 @@ allowed-tools: read_file, write_file
         return self.result("S21", "改文件前必须先读", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def s22_new_file_then_overwrite_requires_read(self) -> ScenarioResult:
+        """执行 `s22_new_file_then_overwrite_requires_read` 的内部逻辑。"""
         workspace = self._fresh_workspace("s22")
         (workspace / "README.md").write_text("old readme\n", encoding="utf-8")
         prompt = (
@@ -617,6 +641,7 @@ allowed-tools: read_file, write_file
         return self.result("S22", "新文件可直接写，覆盖必须读", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def s23_self_authored_patch(self) -> ScenarioResult:
+        """执行 `s23_self_authored_patch` 的内部逻辑。"""
         workspace = self._fresh_workspace("s23")
         prompt = (
             "严格按步骤执行：1) write_file scripts/check.py 内容 `VALUE = False\\n`。"
@@ -633,6 +658,7 @@ allowed-tools: read_file, write_file
         return self.result("S23", "自己刚写的文件可 patch", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def s24_shell_search_denied(self) -> ScenarioResult:
+        """执行 `s24_shell_search_denied` 的内部逻辑。"""
         workspace = self._fresh_workspace("s24")
         (workspace / "README.md").write_text("TODO: search target\n", encoding="utf-8")
         prompt = "严格先调用 run_shell 命令 `grep -R TODO .`。如果被拒绝，调用 search pattern='TODO' path='.'，然后 final。"
@@ -645,6 +671,7 @@ allowed-tools: read_file, write_file
         return self.result("S24", "shell 搜索类命令被拒", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def s25_pipe_output_management_allowed(self) -> ScenarioResult:
+        """执行 `s25_pipe_output_management_allowed` 的内部逻辑。"""
         workspace = self._fresh_workspace("s25")
         command_text = f"{json.dumps(sys.executable)} --version 2>&1 | head -3"
         prompt = (
@@ -661,6 +688,7 @@ allowed-tools: read_file, write_file
         return self.result("S25", "pipe 后 head/tail/grep 用于输出管理允许", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def s26_long_shell_output_artifact(self) -> ScenarioResult:
+        """执行 `s26_long_shell_output_artifact` 的内部逻辑。"""
         workspace = self._fresh_workspace("s26")
         command_text = f"{json.dumps(sys.executable)} -c \"print('x'*6000)\""
         prompt = (
@@ -678,6 +706,7 @@ allowed-tools: read_file, write_file
         return self.result("S26", "长 shell 输出落 artifact", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def s27_approval_never_rejects_risky_tool(self) -> ScenarioResult:
+        """执行 `s27_approval_never_rejects_risky_tool` 的内部逻辑。"""
         workspace = self._fresh_workspace("s27")
         prompt = "严格调用 write_file denied.txt 内容 no，然后 final。"
         command = self.run_pico("S27", workspace, prompt=prompt, approval="never", max_steps=3, max_new_tokens=768, timeout=240)
@@ -689,6 +718,7 @@ allowed-tools: read_file, write_file
         return self.result("S27", "approval never 拒绝 risky tool", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def s28_sandbox_required_fails_closed(self) -> ScenarioResult:
+        """执行 `s28_sandbox_required_fails_closed` 的内部逻辑。"""
         workspace = self._fresh_workspace("s28")
         prompt = "严格调用 run_shell `echo hi`，然后 final。"
         command = self.run_pico(
@@ -709,6 +739,7 @@ allowed-tools: read_file, write_file
         return self.result("S28", "sandbox required 缺 backend fail closed", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def s29_sandbox_best_effort_degrades(self) -> ScenarioResult:
+        """执行 `s29_sandbox_best_effort_degrades` 的内部逻辑。"""
         workspace = self._fresh_workspace("s29")
         prompt = "严格调用 run_shell `echo hi`，然后 final。"
         command = self.run_pico(
@@ -729,6 +760,7 @@ allowed-tools: read_file, write_file
         return self.result("S29", "sandbox best_effort degrade 可见", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def s30_skills_list_local(self) -> ScenarioResult:
+        """执行 `s30_skills_list_local` 的内部逻辑。"""
         workspace = self._fresh_workspace("s30")
         command = self.run_pico("S30", workspace, repl_input="/skills\n/exit\n", timeout=120)
         stdout = self.read_log(command.stdout_path)
@@ -740,6 +772,7 @@ allowed-tools: read_file, write_file
         return self.result("S30", "/skills 不调用模型", "PTY REPL slash command", workspace, [command], checks)
 
     def s31_builtin_review_with_arguments(self) -> ScenarioResult:
+        """执行 `s31_builtin_review_with_arguments` 的内部逻辑。"""
         workspace = self._fresh_workspace("s31")
         command = self.run_pico(
             "S31",
@@ -758,6 +791,7 @@ allowed-tools: read_file, write_file
         return self.result("S31", "内置 /review 带参数", "PTY REPL builtin skill / DeepSeek", workspace, [command], checks)
 
     def s32_project_skill_arguments(self) -> ScenarioResult:
+        """执行 `s32_project_skill_arguments` 的内部逻辑。"""
         workspace = self._fresh_workspace("s32")
         skill_dir = workspace / ".pico" / "skills" / "deploy"
         skill_dir.mkdir(parents=True)
@@ -782,6 +816,7 @@ argument-hint: target
         return self.result("S32", "项目 skill 参数替换", "REPL slash skill / DeepSeek", workspace, [command], checks)
 
     def s33_skill_allowed_tools_restricts_write(self) -> ScenarioResult:
+        """执行 `s33_skill_allowed_tools_restricts_write` 的内部逻辑。"""
         workspace = self._fresh_workspace("s33")
         skill_dir = workspace / ".pico" / "skills" / "readonly"
         skill_dir.mkdir(parents=True)
@@ -804,6 +839,7 @@ allowed-tools: read_file
         return self.result("S33", "allowed-tools 限制写操作", "PTY REPL project skill / DeepSeek", workspace, [command], checks)
 
     def s34_fork_skill_keeps_parent_history(self) -> ScenarioResult:
+        """执行 `s34_fork_skill_keeps_parent_history` 的内部逻辑。"""
         workspace = self._fresh_workspace("s34")
         skill_dir = workspace / ".pico" / "skills" / "inspect"
         skill_dir.mkdir(parents=True)
@@ -828,6 +864,7 @@ context: fork
         return self.result("S34", "fork skill 不污染主 history", "one-shot + REPL fork skill", workspace, [first, second], checks)
 
     def s35_prompt_only_skill(self) -> ScenarioResult:
+        """执行 `s35_prompt_only_skill` 的内部逻辑。"""
         workspace = self._fresh_workspace("s35")
         skill_dir = workspace / ".pico" / "skills" / "template"
         skill_dir.mkdir(parents=True)
@@ -852,6 +889,7 @@ hello $ARGUMENTS from prompt only
         return self.result("S35", "prompt-only skill 不发模型请求", "PTY REPL prompt-only skill", workspace, [command], checks)
 
     def s36_invalid_skill_frontmatter_diagnostic(self) -> ScenarioResult:
+        """执行 `s36_invalid_skill_frontmatter_diagnostic` 的内部逻辑。"""
         workspace = self._fresh_workspace("s36")
         skill_dir = workspace / ".pico" / "skills" / "bad"
         skill_dir.mkdir(parents=True)
@@ -866,6 +904,7 @@ hello $ARGUMENTS from prompt only
         return self.result("S36", "invalid skill frontmatter 可诊断", "PTY REPL slash command", workspace, [command], checks)
 
     def s37_explore_subagent(self) -> ScenarioResult:
+        """执行 `s37_explore_subagent` 的内部逻辑。"""
         workspace = self._fresh_workspace("s37")
         (workspace / "README.md").write_text("# Demo\n\nSubagent target.\n", encoding="utf-8")
         prompt = (
@@ -885,6 +924,7 @@ hello $ARGUMENTS from prompt only
         return self.result("S37", "Explore 子 agent 只读探索", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def s38_worker_write_scope(self) -> ScenarioResult:
+        """执行 `s38_worker_write_scope` 的内部逻辑。"""
         workspace = self._fresh_workspace("s38")
         prompt = (
             "严格调用 agent 工具：description='Write notes'，subagent_type='worker'，write_scope=['notes']，"
@@ -901,6 +941,7 @@ hello $ARGUMENTS from prompt only
         return self.result("S38", "worker 只能写 scope 内", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def s39_worker_continuation(self) -> ScenarioResult:
+        """执行 `s39_worker_continuation` 的内部逻辑。"""
         workspace = self._fresh_workspace("s39")
         prompt = (
             "严格按步骤执行："
@@ -920,6 +961,7 @@ hello $ARGUMENTS from prompt only
         return self.result("S39", "worker 续接同一个 child context", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def s40_running_worker_send_guard(self) -> ScenarioResult:
+        """执行 `s40_running_worker_send_guard` 的内部逻辑。"""
         workspace = self._fresh_workspace("s40")
         prompt = (
             "严格按步骤执行："
@@ -936,6 +978,7 @@ hello $ARGUMENTS from prompt only
         return self.result("S40", "running worker 不能 send_message", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def s41_task_stop_worker(self) -> ScenarioResult:
+        """执行 `s41_task_stop_worker` 的内部逻辑。"""
         workspace = self._fresh_workspace("s41")
         prompt = (
             "严格按步骤执行："
@@ -954,6 +997,7 @@ hello $ARGUMENTS from prompt only
         return self.result("S41", "task_stop 中止 worker", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def s42_clear_stops_worker(self) -> ScenarioResult:
+        """执行 `s42_clear_stops_worker` 的内部逻辑。"""
         workspace = self._fresh_workspace("s42")
         first = self.run_pico(
             "S42-start",
@@ -976,6 +1020,7 @@ hello $ARGUMENTS from prompt only
         return self.result("S42", "/clear 停掉后台 worker", "one-shot + REPL clear", workspace, [first, second], checks)
 
     def s43_remember_daily_log(self) -> ScenarioResult:
+        """执行 `s43_remember_daily_log` 的内部逻辑。"""
         workspace = self._fresh_workspace("s43")
         command = self.run_pico("S43", workspace, repl_input="/remember 这个项目用 pytest，不用 unittest\n/exit\n", timeout=120)
         logs = list((workspace / ".pico" / "memory" / "logs").rglob("*.md"))
@@ -989,6 +1034,7 @@ hello $ARGUMENTS from prompt only
         return self.result("S43", "/remember 写 daily log", "PTY-style stdin REPL", workspace, [command], checks)
 
     def s44_dream_writes_memory(self) -> ScenarioResult:
+        """执行 `s44_dream_writes_memory` 的内部逻辑。"""
         workspace = self._fresh_workspace("s44")
         repl = (
             "/remember Project convention: use pytest for tests\n"
@@ -1008,6 +1054,7 @@ hello $ARGUMENTS from prompt only
         return self.result("S44", "/dream 写 topic 和 MEMORY.md", "PTY REPL / DeepSeek", workspace, [command], checks)
 
     def s45_secret_memory_rejected(self) -> ScenarioResult:
+        """执行 `s45_secret_memory_rejected` 的内部逻辑。"""
         workspace = self._fresh_workspace("s45")
         prompt = (
             "请记住这些稳定事实到 durable memory，并把下面事实作为最终回答返回，不要调用工具："
@@ -1026,6 +1073,7 @@ hello $ARGUMENTS from prompt only
         return self.result("S45", "secret-shaped 记忆拒绝", "one-shot CLI / DeepSeek", workspace, [command], checks)
 
     def s46_manual_compact(self) -> ScenarioResult:
+        """执行 `s46_manual_compact` 的内部逻辑。"""
         workspace = self._fresh_workspace("s46")
         long_turns = "\n".join(f"第 {i} 轮：{'padding ' * 60}" for i in range(8))
         command = self.run_pico(
@@ -1045,6 +1093,7 @@ hello $ARGUMENTS from prompt only
         return self.result("S46", "/compact 手动压缩历史", "PTY REPL slash command", workspace, [command], checks)
 
     def s47_resume_workspace_mismatch(self) -> ScenarioResult:
+        """执行 `s47_resume_workspace_mismatch` 的内部逻辑。"""
         workspace = self._fresh_workspace("s47")
         first = self.run_pico(
             "S47-first",
@@ -1073,6 +1122,7 @@ hello $ARGUMENTS from prompt only
         return self.result("S47", "resume 检测 workspace mismatch", "one-shot + resume", workspace, [first, second], checks)
 
     def s48_provider_profiles(self) -> ScenarioResult:
+        """执行 `s48_provider_profiles` 的内部逻辑。"""
         workspace = self._fresh_workspace("s48")
         commands = []
         checks = []
@@ -1094,6 +1144,7 @@ hello $ARGUMENTS from prompt only
         return self.result("S48", "provider profile 切换", "one-shot slash /usage", workspace, commands, checks)
 
     def s49_provider_error_metadata(self) -> ScenarioResult:
+        """执行 `s49_provider_error_metadata` 的内部逻辑。"""
         workspace = self._fresh_workspace("s49")
         command = self.run_pico(
             "S49",
@@ -1113,6 +1164,7 @@ hello $ARGUMENTS from prompt only
         return self.result("S49", "provider 错误进入审计", "one-shot CLI bad endpoint", workspace, [command], checks)
 
     def s50_path_traversal_and_redaction(self) -> ScenarioResult:
+        """执行 `s50_path_traversal_and_redaction` 的内部逻辑。"""
         workspace = self._fresh_workspace("s50")
         outside = self.output_dir / "outside-secret.txt"
         outside.write_text("outside\n", encoding="utf-8")
@@ -1159,6 +1211,7 @@ hello $ARGUMENTS from prompt only
         max_new_tokens: int = 1024,
         timeout: int = 300,
     ) -> CommandRecord:
+        """执行 `run_pico` 的内部逻辑。"""
         args = [
             "uv",
             "run",
@@ -1237,6 +1290,7 @@ hello $ARGUMENTS from prompt only
         )
 
     def run_pico_tty_smoke(self, name: str, workspace: Path, *, timeout: int = 6) -> CommandRecord:
+        """执行 `run_pico_tty_smoke` 的内部逻辑。"""
         args = [
             "uv",
             "run",
@@ -1293,7 +1347,7 @@ hello $ARGUMENTS from prompt only
                     os.killpg(proc.pid, signal.SIGTERM)
                     proc.wait(timeout=2)
             returncode = proc.returncode
-        except Exception as exc:  # noqa: BLE001 - smoke runner records startup failures.
+        except Exception as exc:  # noqa: BLE001 - 冒烟运行器记录启动失败。
             stderr = str(exc)
             if proc and proc.poll() is None:
                 proc.kill()
@@ -1335,6 +1389,7 @@ hello $ARGUMENTS from prompt only
         )
 
     def run_python(self, name: str, workspace: Path, code: str, *, timeout: int = 120) -> CommandRecord:
+        """执行 `run_python` 的内部逻辑。"""
         args = ["uv", "run", "python", "-c", code]
         started = time.monotonic()
         proc = subprocess.run(
@@ -1375,6 +1430,7 @@ hello $ARGUMENTS from prompt only
         )
 
     def external_pytest(self, workspace: Path) -> bool:
+        """执行 `external_pytest` 的内部逻辑。"""
         proc = subprocess.run(
             ["uv", "run", "--with", "pytest", "python", "-m", "pytest", "-q"],
             cwd=workspace,
@@ -1389,6 +1445,7 @@ hello $ARGUMENTS from prompt only
         return proc.returncode == 0
 
     def run_artifact_checks(self, workspace: Path, *, require_completed: bool = False, require_changed_paths: bool = False) -> list[dict]:
+        """执行 `run_artifact_checks` 的内部逻辑。"""
         evidence = self.evidence(workspace)
         report = evidence.report
         checks = [
@@ -1405,14 +1462,17 @@ hello $ARGUMENTS from prompt only
         return checks
 
     def trace_has_tools(self, workspace: Path, tools: list[str]) -> list[dict]:
+        """执行 `trace_has_tools` 的内部逻辑。"""
         seen = self.evidence(workspace).tool_names()
         return [check(f"trace_has_{tool}", tool in seen, seen) for tool in tools]
 
     def latest_full_output_artifact(self, workspace: Path) -> str:
+        """执行 `latest_full_output_artifact` 的内部逻辑。"""
         artifacts = self.evidence(workspace).full_output_artifacts()
         return artifacts[-1] if artifacts else ""
 
     def events_have(self, workspace: Path, event_name: str, *, reason: str | None = None) -> list[dict]:
+        """执行 `events_have` 的内部逻辑。"""
         events = self.evidence(workspace).session_events
         matched = [
             event
@@ -1423,10 +1483,12 @@ hello $ARGUMENTS from prompt only
         return [check(label, bool(matched), matched[:3])]
 
     def report_has_runtime_reminder(self, workspace: Path, code: str) -> list[dict]:
+        """执行 `report_has_runtime_reminder` 的内部逻辑。"""
         reminders = self.evidence(workspace).report.get("runtime_reminders") or []
         return [check(f"runtime_reminder_{code}", any(code in json.dumps(item, ensure_ascii=False) for item in reminders), reminders)]
 
     def latest_trace_and_report_text(self, workspace: Path) -> tuple[str, str]:
+        """执行 `latest_trace_and_report_text` 的内部逻辑。"""
         trace_path = self.latest_trace(workspace)
         report_path = self.latest_report_path(workspace)
         return (
@@ -1435,34 +1497,41 @@ hello $ARGUMENTS from prompt only
         )
 
     def latest_report(self, workspace: Path) -> dict | None:
+        """执行 `latest_report` 的内部逻辑。"""
         path = self.latest_report_path(workspace)
         if path is None:
             return None
         return json.loads(path.read_text(encoding="utf-8"))
 
     def latest_report_path(self, workspace: Path) -> Path | None:
+        """执行 `latest_report_path` 的内部逻辑。"""
         run = self.latest_run_dir(workspace)
         path = run / "report.json" if run else None
         return path if path and path.exists() else None
 
     def latest_trace(self, workspace: Path) -> Path | None:
+        """执行 `latest_trace` 的内部逻辑。"""
         run = self.latest_run_dir(workspace)
         path = run / "trace.jsonl" if run else None
         return path if path and path.exists() else None
 
     def latest_trace_jsonl(self, workspace: Path) -> list[dict]:
+        """执行 `latest_trace_jsonl` 的内部逻辑。"""
         path = self.latest_trace(workspace)
         return read_jsonl(path) if path else []
 
     def latest_events_path(self, workspace: Path) -> Path | None:
+        """执行 `latest_events_path` 的内部逻辑。"""
         events = sorted((workspace / ".pico" / "sessions").glob("*.events.jsonl"), key=lambda path: path.stat().st_mtime)
         return events[-1] if events else None
 
     def latest_events_jsonl(self, workspace: Path) -> list[dict]:
+        """执行 `latest_events_jsonl` 的内部逻辑。"""
         path = self.latest_events_path(workspace)
         return read_jsonl(path) if path else []
 
     def latest_run_dir(self, workspace: Path) -> Path | None:
+        """执行 `latest_run_dir` 的内部逻辑。"""
         runs_dir = workspace / ".pico" / "runs"
         if not runs_dir.exists():
             return None
@@ -1472,16 +1541,20 @@ hello $ARGUMENTS from prompt only
         return max(runs, key=lambda path: path.stat().st_mtime)
 
     def evidence(self, workspace: Path) -> RunEvidence:
+        """执行 `evidence` 的内部逻辑。"""
         return RunEvidence.latest(workspace)
 
     def latest_session_id(self, workspace: Path) -> str:
+        """执行 `latest_session_id` 的内部逻辑。"""
         sessions = sorted((workspace / ".pico" / "sessions").glob("*.json"), key=lambda path: path.stat().st_mtime)
         return sessions[-1].stem if sessions else ""
 
     def read_log(self, rel_path: str) -> str:
+        """执行 `read_log` 的内部逻辑。"""
         return (self.output_dir / rel_path).read_text(encoding="utf-8")
 
     def result(self, scenario_id: str, title: str, driver: str, workspace: Path, commands: list[CommandRecord], checks: list[dict]) -> ScenarioResult:
+        """执行 `result` 的内部逻辑。"""
         status = "passed" if all(item["status"] == "passed" for item in checks) else "failed"
         duration_ms = sum(command.duration_ms for command in commands)
         evidence = {
@@ -1502,6 +1575,7 @@ hello $ARGUMENTS from prompt only
         )
 
     def _fresh_workspace(self, name: str) -> Path:
+        """执行 `_fresh_workspace` 的内部逻辑。"""
         workspace = self.workspaces_dir / name
         if workspace.exists():
             shutil.rmtree(workspace)
@@ -1511,9 +1585,11 @@ hello $ARGUMENTS from prompt only
         return workspace
 
     def _write_incremental_summary(self, results: list[ScenarioResult]) -> None:
+        """执行 `_write_incremental_summary` 的内部逻辑。"""
         self._write_summary(results, incremental=True)
 
     def _write_summary(self, results: list[ScenarioResult], incremental: bool = False) -> dict:
+        """执行 `_write_summary` 的内部逻辑。"""
         summary = {
             "status": "passed" if results and all(item.status == "passed" for item in results) else "failed",
             "scenario_count": len(results),
@@ -1532,16 +1608,19 @@ hello $ARGUMENTS from prompt only
         return summary
 
     def _rel(self, path: Path | None) -> str:
+        """执行 `_rel` 的内部逻辑。"""
         if path is None:
             return ""
         return Path(path).resolve().relative_to(self.output_dir).as_posix()
 
 
 def check(name: str, condition: bool, detail="") -> dict:
+    """执行 `check` 的内部逻辑。"""
     return {"name": name, "status": "passed" if condition else "failed", "detail": detail}
 
 
 def read_jsonl(path: Path) -> list[dict]:
+    """执行 `read_jsonl` 的内部逻辑。"""
     rows = []
     for line in path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -1551,6 +1630,7 @@ def read_jsonl(path: Path) -> list[dict]:
 
 
 def _is_relative_to(path: Path, parent: Path) -> bool:
+    """执行 `_is_relative_to` 的内部逻辑。"""
     try:
         path.resolve().relative_to(parent.resolve())
         return True
@@ -1559,6 +1639,7 @@ def _is_relative_to(path: Path, parent: Path) -> bool:
 
 
 def redact_command(command: list[str]) -> list[str]:
+    """执行 `redact_command` 的内部逻辑。"""
     redacted = []
     skip_next = False
     for index, item in enumerate(command):
@@ -1573,6 +1654,7 @@ def redact_command(command: list[str]) -> list[str]:
 
 
 def to_jsonable(result: ScenarioResult) -> dict:
+    """执行 `to_jsonable` 的内部逻辑。"""
     return {
         "id": result.id,
         "title": result.title,
@@ -1588,6 +1670,7 @@ def to_jsonable(result: ScenarioResult) -> dict:
 
 
 def render_markdown(summary: dict) -> str:
+    """执行 `render_markdown` 的内部逻辑。"""
     lines = [
         "# Pico v3 Human Scenario Gate",
         "",
@@ -1612,6 +1695,7 @@ def render_markdown(summary: dict) -> str:
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
+    """执行 `build_arg_parser` 的内部逻辑。"""
     parser = argparse.ArgumentParser(description="Run Pico v3 human-scenario release gate.")
     parser.add_argument("--suite", choices=("gate", "full"), default="gate", help="Run the 12-scenario release gate or all 50 designed scenarios.")
     parser.add_argument("--output-dir", default="", help="Output directory for logs, workspaces, and summary. Must be outside this git repo.")
@@ -1622,6 +1706,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def main(argv=None) -> int:
+    """执行 `main` 的内部逻辑。"""
     args = build_arg_parser().parse_args(argv)
     runner = HumanScenarioRunner(args)
     summary = runner.run()

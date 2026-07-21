@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import importlib.util
 import inspect
 import json
@@ -9,6 +10,7 @@ import pytest
 
 
 def _load_module():
+    """执行 `_load_module` 的内部逻辑。"""
     script_path = Path(__file__).resolve().parents[1] / "scripts" / "run_business_scenario_dogfood.py"
     spec = importlib.util.spec_from_file_location("run_business_scenario_dogfood", script_path)
     module = importlib.util.module_from_spec(spec)
@@ -17,6 +19,7 @@ def _load_module():
 
 
 def test_business_scenario_dogfood_uses_real_provider_only():
+    """执行 `test_business_scenario_dogfood_uses_real_provider_only` 的内部逻辑。"""
     module = _load_module()
     source = inspect.getsource(module)
 
@@ -27,6 +30,7 @@ def test_business_scenario_dogfood_uses_real_provider_only():
 
 
 def test_tool_succeeded_uses_exit_code_not_framework_specific_output():
+    """执行 `test_tool_succeeded_uses_exit_code_not_framework_specific_output` 的内部逻辑。"""
     module = _load_module()
     agent = SimpleNamespace(
         session={
@@ -44,6 +48,7 @@ def test_tool_succeeded_uses_exit_code_not_framework_specific_output():
 
 
 def test_tool_succeeded_rejects_nonzero_exit_code():
+    """执行 `test_tool_succeeded_rejects_nonzero_exit_code` 的内部逻辑。"""
     module = _load_module()
     agent = SimpleNamespace(
         session={
@@ -65,6 +70,7 @@ def test_tool_succeeded_rejects_nonzero_exit_code():
     reason="live provider dogfood is opt-in",
 )
 def test_business_scenario_dogfood_covers_user_workflows_live(tmp_path):
+    """执行 `test_business_scenario_dogfood_covers_user_workflows_live` 的内部逻辑。"""
     module = _load_module()
     output_dir = tmp_path / "business-dogfood"
 

@@ -1,9 +1,11 @@
+"""Pico 自动化测试模块。"""
 import pytest
 
 from pico.features.sandbox.config import SandboxConfig, resolve_sandbox_config
 
 
 def test_sandbox_config_defaults_to_off():
+    """执行 `test_sandbox_config_defaults_to_off` 的内部逻辑。"""
     config = resolve_sandbox_config({})
 
     assert config == SandboxConfig()
@@ -11,6 +13,7 @@ def test_sandbox_config_defaults_to_off():
 
 
 def test_sandbox_config_accepts_required_bubblewrap_mode():
+    """执行 `test_sandbox_config_accepts_required_bubblewrap_mode` 的内部逻辑。"""
     config = resolve_sandbox_config(
         {
             "sandbox": {
@@ -37,5 +40,6 @@ def test_sandbox_config_accepts_required_bubblewrap_mode():
 
 
 def test_sandbox_config_rejects_unknown_mode():
+    """执行 `test_sandbox_config_rejects_unknown_mode` 的内部逻辑。"""
     with pytest.raises(ValueError, match="sandbox.mode"):
         resolve_sandbox_config({"sandbox": {"mode": "strict"}})

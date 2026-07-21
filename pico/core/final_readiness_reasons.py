@@ -1,4 +1,4 @@
-"""Final-readiness reason catalog.
+"""Pico 运行时实现模块。
 
 Reason codes live here so user-facing messages, severities, and tests stay in
 one place. The catalog is intentionally data-only; gate behavior belongs in
@@ -52,8 +52,10 @@ READINESS_REASONS = {
 
 
 def reason_severity(reason):
+    """执行 `reason_severity` 的内部逻辑。"""
     return READINESS_REASONS.get(str(reason), ("soft", str(reason)))[0]
 
 
 def reason_message(reason):
+    """执行 `reason_message` 的内部逻辑。"""
     return READINESS_REASONS.get(str(reason), ("soft", str(reason)))[1]

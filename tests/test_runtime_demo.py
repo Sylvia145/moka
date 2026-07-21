@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 import subprocess
 import sys
@@ -7,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_runtime_demo_connects_mcp_worker_and_trace(tmp_path):
+    """执行 `test_runtime_demo_connects_mcp_worker_and_trace` 的内部逻辑。"""
     output = tmp_path / "runtime-demo.json"
     completed = subprocess.run(
         [sys.executable, "scripts/run_agent_runtime_demo.py", "--output", str(output)],

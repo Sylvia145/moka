@@ -1,3 +1,4 @@
+"""Pico 运行时实现模块。"""
 from __future__ import annotations
 
 import asyncio
@@ -49,6 +50,7 @@ class PicoTuiApp(App):
     ]
 
     def __init__(self, agent, **kwargs) -> None:
+        """初始化对象状态。"""
         super().__init__(**kwargs)
         self.agent = agent
         self._turn_count = 0
@@ -63,6 +65,7 @@ class PicoTuiApp(App):
         self.agent.ask_user_callback = self._ask_user_callback
 
     def compose(self) -> ComposeResult:
+        """执行 `compose` 的内部逻辑。"""
         yield WelcomeBanner(
             model_name=str(getattr(self.agent.model_client, "model", "")),
             cwd=str(getattr(self.agent, "root", "")),
@@ -74,19 +77,23 @@ class PicoTuiApp(App):
         yield InputBar()
 
     def on_mount(self) -> None:
+        """执行 `on_mount` 的内部逻辑。"""
         self.query_one(StatusBar).update_agent(self.agent)
         self.query_one(InputBar).focus_input()
         self.set_interval(0.5, self._drain_idle_worker_notifications)
 
     def on_unmount(self) -> None:
+        """执行 `on_unmount` 的内部逻辑。"""
         if self._previous_approve is not None:
             self.agent.approve = self._previous_approve
         self.agent.ask_user_callback = self._previous_ask_user
 
     def action_clear_screen(self) -> None:
+        """执行 `action_clear_screen` 的内部逻辑。"""
         self.query_one(ChatLog).clear_messages()
 
     def action_submit_input(self) -> None:
+        """执行 `action_submit_input` 的内部逻辑。"""
         if self._ask_user_prompt is not None:
             self._resolve_ask_user(self._ask_user_prompt.selected_choice)
             return
@@ -110,6 +117,7 @@ class PicoTuiApp(App):
         self._run_agent(text)
 
     def on_key(self, event: Key) -> None:
+        """执行 `on_key` 的内部逻辑。"""
         if self._ask_user_prompt is not None:
             if event.key in {"right", "down"}:
                 self._ask_user_prompt.select_next()
@@ -156,6 +164,7 @@ class PicoTuiApp(App):
             event.prevent_default()
 
     def _handle_command(self, text: str) -> None:
+        """执行 `_handle_command` 的内部逻辑。"""
         handled, should_exit, output = handle_repl_command(self.agent, text)
         if should_exit:
             self.exit()
@@ -169,6 +178,7 @@ class PicoTuiApp(App):
         )
 
     def _run_agent(self, text: str) -> None:
+        """执行 `_run_agent` 的内部逻辑。"""
         self.query_one(InputBar).set_busy(True)
         self.query_one(ThinkingIndicator).show()
         self._thinking_timer = self.set_interval(
@@ -177,6 +187,7 @@ class PicoTuiApp(App):
         asyncio.create_task(self._agent_task(text))
 
     def _drain_idle_worker_notifications(self) -> None:
+        """执行 `_drain_idle_worker_notifications` 的内部逻辑。"""
         if self.query_one(InputBar).input.disabled:
             return
         notifications = self.agent.engine.drain_worker_notifications()
@@ -188,6 +199,7 @@ class PicoTuiApp(App):
         self.query_one(StatusBar).update_agent(self.agent)
 
     async def _agent_task(self, text: str) -> None:
+        """执行 `_agent_task` 的内部逻辑。"""
         loop = asyncio.get_running_loop()
         completed = False
         try:
@@ -203,6 +215,7 @@ class PicoTuiApp(App):
             self._finish_agent_task(completed)
 
     def _drive_turn(self, text: str) -> None:
+        """执行 `_drive_turn` 的内部逻辑。"""
         for event in self.agent.engine.run_turn(text):
             try:
                 self.call_from_thread(self._handle_runtime_event, dict(event))
@@ -210,6 +223,7 @@ class PicoTuiApp(App):
                 return
 
     def _handle_runtime_event(self, event: dict) -> None:
+        """执行 `_handle_runtime_event` 的内部逻辑。"""
         event_type = str(event.get("type", ""))
         if event_type == "model_requested":
             attempts = event.get("attempts", 0)
@@ -245,6 +259,7 @@ class PicoTuiApp(App):
             return
 
     def _finish_tool_card(self, event: dict) -> None:
+        """执行 `_finish_tool_card` 的内部逻辑。"""
         name = str(event.get("name", ""))
         card = None
         for candidate in reversed(self._running_tool_cards):
@@ -264,12 +279,14 @@ class PicoTuiApp(App):
             card.set_success(content)
 
     def _hide_welcome_banner(self) -> None:
+        """执行 `_hide_welcome_banner` 的内部逻辑。"""
         try:
             self.query_one(WelcomeBanner).add_class("hidden")
         except NoMatches:
             pass
 
     def _finish_agent_task(self, completed: bool) -> None:
+        """执行 `_finish_agent_task` 的内部逻辑。"""
         if not self.is_running:
             return
         try:
@@ -290,6 +307,7 @@ class PicoTuiApp(App):
             return
 
     def _stop_thinking(self) -> None:
+        """执行 `_stop_thinking` 的内部逻辑。"""
         timer = getattr(self, "_thinking_timer", None)
         if timer is not None:
             timer.stop()
@@ -300,6 +318,7 @@ class PicoTuiApp(App):
             pass
 
     def _approval_callback(self, name: str, args: dict) -> bool:
+        """执行 `_approval_callback` 的内部逻辑。"""
         event = threading.Event()
         decision = {"approved": False}
         try:
@@ -312,6 +331,7 @@ class PicoTuiApp(App):
     def _show_confirm(
         self, name: str, args: dict, event: threading.Event, decision: dict
     ) -> None:
+        """执行 `_show_confirm` 的内部逻辑。"""
         prompt = ConfirmPrompt(name, format_tool_args(name, args))
         self._confirm_prompt = prompt
         self._confirm_decision = (event, decision)
@@ -320,6 +340,7 @@ class PicoTuiApp(App):
         chat.call_after_refresh(chat.scroll_end, animate=False)
 
     def _resolve_confirm(self, approved: bool) -> None:
+        """执行 `_resolve_confirm` 的内部逻辑。"""
         if self._confirm_decision is None:
             return
         event, decision = self._confirm_decision
@@ -331,6 +352,7 @@ class PicoTuiApp(App):
         self._confirm_decision = None
 
     def _ask_user_callback(self, question: str, choices: list[str]) -> str:
+        """执行 `_ask_user_callback` 的内部逻辑。"""
         event = threading.Event()
         decision = {"answer": ""}
         try:
@@ -345,6 +367,7 @@ class PicoTuiApp(App):
     def _show_ask_user(
         self, question: str, choices: list[str], event: threading.Event, decision: dict
     ) -> None:
+        """执行 `_show_ask_user` 的内部逻辑。"""
         prompt = AskUserPrompt(question, choices)
         self._ask_user_prompt = prompt
         self._ask_user_decision = (event, decision)
@@ -353,6 +376,7 @@ class PicoTuiApp(App):
         chat.call_after_refresh(chat.scroll_end, animate=False)
 
     def _resolve_ask_user(self, answer: str) -> None:
+        """执行 `_resolve_ask_user` 的内部逻辑。"""
         if self._ask_user_decision is None:
             return
         event, decision = self._ask_user_decision

@@ -1,8 +1,7 @@
-"""Agent runtime state and composition.
+"""Pico 运行时实现模块。
 
-Pico owns session state, workspace context, memory, checkpoints, and persistence.
-The turn control loop lives in core.engine; tool execution and model-output
-parsing live in focused helper modules.
+Pico 在此统一持有会话、工作区上下文、记忆、检查点和持久化设施；逐轮控制循环
+位于 ``core.engine``，工具执行与模型输出解析则保留在职责更单一的辅助模块中。
 """
 
 import json
@@ -100,6 +99,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         mcp_servers=None,
         max_concurrent_workers=2,
     ):
+        """初始化对象状态。"""
         self.model_client = model_client
         self.model_client_factory = model_client_factory
         self.max_concurrent_workers = max(1, int(max_concurrent_workers))
@@ -143,6 +143,8 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         self.dream_min_sessions = int(dream_min_sessions)
         self.allowed_tools = self._normalize_allowed_tools(allowed_tools)
         create_mcp_client = __import__("pico.tools.mcp", fromlist=["create_mcp_client"]).create_mcp_client
+        # MCP 客户端在运行时初始化一次并按配置名复用，避免每次工具调用都重新
+        # 建立外部连接，同时保证工具注册能引用同一份连接状态。
         self.mcp_clients = {
             config.name: create_mcp_client(config) for config in (mcp_servers or ())
         }
@@ -151,6 +153,8 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         self.run_store = run_store or RunStore(
             Path(workspace.repo_root) / ".pico" / "runs"
         )
+        # 恢复旧会话时必须保留其历史与记忆；只有未传入会话才创建全新的最小形状，
+        # 随后统一由 _ensure_session_shape 补齐兼容字段。
         self.session = session or {
             "id": datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:6],
             "created_at": now(),
@@ -182,6 +186,8 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         self.todo_ledger = TodoLedger(self)
         self.worker_manager = WorkerManager(self)
         self.skills = skillslib.discover_skills(self.root)
+        # 先构建完整工具集，再套用允许列表。这样 allowlist 是纯过滤层，不会让
+        # 不同运行模式走出两套难以维护的注册逻辑。
         self.tools = self._apply_tool_allowlist(self.build_tools())
         self.tool_profiles = build_tool_profiles(self.tools)
         self._active_tool_profile_name = (
@@ -231,6 +237,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
 
     @classmethod
     def from_session(cls, model_client, workspace, session_store, session_id, **kwargs):
+        """执行 `from_session` 的内部逻辑。"""
         return cls(
             model_client=model_client,
             workspace=workspace,
@@ -240,6 +247,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         )
 
     def _resolve_memory_dir(self, memory_dir):
+        """执行 `_resolve_memory_dir` 的内部逻辑。"""
         if memory_dir:
             path = Path(memory_dir).expanduser()
             path = path if path.is_absolute() else self.root / path
@@ -251,6 +259,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         return resolved
 
     def _ensure_session_shape(self):
+        """执行 `_ensure_session_shape` 的内部逻辑。"""
         self.session.setdefault("history", [])
         self.session.setdefault("memory", memorylib.default_memory_state())
         checkpoints = self.session.setdefault("checkpoints", {})
@@ -274,6 +283,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
 
     @staticmethod
     def remember(bucket, item, limit):
+        """执行 `remember` 的内部逻辑。"""
         if not item:
             return
         if item in bucket:
@@ -282,6 +292,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         del bucket[:-limit]
 
     def build_tools(self):
+        """执行 `build_tools` 的内部逻辑。"""
         tools = toolkit.build_tool_registry(self)
         from ..tools.mcp import build_mcp_tools
 
@@ -290,6 +301,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
 
     @staticmethod
     def _normalize_allowed_tools(allowed_tools):
+        """执行 `_normalize_allowed_tools` 的内部逻辑。"""
         if allowed_tools is None:
             return None
         normalized = tuple(str(name).strip() for name in allowed_tools)
@@ -298,6 +310,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         return normalized
 
     def _apply_tool_allowlist(self, tools):
+        """执行 `_apply_tool_allowlist` 的内部逻辑。"""
         if self.allowed_tools is None:
             return tools
         unknown = [name for name in self.allowed_tools if name not in tools]
@@ -308,15 +321,18 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
 
     @property
     def active_tool_profile(self):
+        """执行 `active_tool_profile` 的内部逻辑。"""
         return self.tool_profiles[self._active_tool_profile_name]
 
     def set_tool_profile(self, name):
+        """执行 `set_tool_profile` 的内部逻辑。"""
         if name not in self.tool_profiles:
             raise ValueError(f"unknown tool profile: {name}")
         self._active_tool_profile_name = name
 
     @property
     def delegation_guard_active(self):
+        """执行 `delegation_guard_active` 的内部逻辑。"""
         return bool(self.session.get("delegation_guard", {}).get("active", False))
 
     def activate_delegated_review_mode(self, worker_id):
@@ -336,10 +352,12 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         self.session_path = self.session_store.save(self.session)
 
     def available_tools(self):
+        """执行 `available_tools` 的内部逻辑。"""
         profile = self.active_tool_profile
         return {name: tool for name, tool in self.tools.items() if profile.allows(name)}
 
     def tool_signature(self):
+        """执行 `tool_signature` 的内部逻辑。"""
         payload = []
         for name in sorted(self.available_tools()):
             tool = self.available_tools()[name]
@@ -356,6 +374,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         ).hexdigest()
 
     def build_prefix(self):
+        """执行 `build_prefix` 的内部逻辑。"""
         tool_lines = []
         for name, tool in self.available_tools().items():
             fields = ", ".join(
@@ -422,10 +441,12 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         )
 
     def _apply_prefix_state(self, prefix_state):
+        """执行 `_apply_prefix_state` 的内部逻辑。"""
         self.prefix_state = prefix_state
         self.prefix = prefix_state.text
 
     def refresh_prefix(self, force=False):
+        """执行 `refresh_prefix` 的内部逻辑。"""
         previous_hash = getattr(getattr(self, "prefix_state", None), "hash", None)
         previous_workspace_fingerprint = getattr(
             getattr(self, "prefix_state", None), "workspace_fingerprint", None
@@ -457,15 +478,18 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         return dict(self._last_prefix_refresh)
 
     def memory_text(self):
+        """执行 `memory_text` 的内部逻辑。"""
         return self.memory.render_memory_text()
 
     @property
     def runtime_mode(self):
+        """执行 `runtime_mode` 的内部逻辑。"""
         return str(
             self.session.get("runtime_mode", {}).get("mode", "default") or "default"
         )
 
     def runtime_mode_text(self):
+        """执行 `runtime_mode_text` 的内部逻辑。"""
         if self.delegation_guard_active:
             return (
                 "Delegated review mode is active: a scoped write worker owns the change. "
@@ -475,12 +499,15 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         return self.plan_mode.prompt_text()
 
     def enter_plan_mode(self, topic, path=None):
+        """执行 `enter_plan_mode` 的内部逻辑。"""
         return self.plan_mode.enter(topic, path=path)
 
     def exit_plan_mode(self):
+        """执行 `exit_plan_mode` 的内部逻辑。"""
         return self.plan_mode.exit()
 
     def history_text(self):
+        """执行 `history_text` 的内部逻辑。"""
         history = self.session["history"]
         if not history:
             return "- empty"
@@ -509,21 +536,26 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         return clip("\n".join(lines), MAX_HISTORY)
 
     def feature_enabled(self, name):
+        """执行 `feature_enabled` 的内部逻辑。"""
         return bool(self.feature_flags.get(str(name), False))
 
     def prompt(self, user_message):
+        """执行 `prompt` 的内部逻辑。"""
         prompt, _ = self._build_prompt_and_metadata(user_message)
         return prompt
 
     def record(self, item):
+        """执行 `record` 的内部逻辑。"""
         self.session["history"].append(self.turn_history.enrich(item))
         self.session_path = self.session_store.save(self.session)
 
     def prompt_metadata(self, user_message, prompt):
+        """执行 `prompt_metadata` 的内部逻辑。"""
         _, metadata = self._build_prompt_and_metadata(user_message)
         return metadata
 
     def _build_prompt_and_metadata(self, user_message):
+        """执行 `_build_prompt_and_metadata` 的内部逻辑。"""
         refresh = self.refresh_prefix()
         self.resume_state = self.evaluate_resume_state()
         snapshot = self.context_orchestrator.snapshot(user_message, prefix_refresh=refresh)
@@ -531,14 +563,17 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         return result.prompt, result.metadata
 
     def compact_history(self, trigger="manual", keep_recent_turns=2, summary_mode="deterministic"):
+        """执行 `compact_history` 的内部逻辑。"""
         return self.compact_manager.compact(
             trigger=trigger, keep_recent_turns=keep_recent_turns, summary_mode=summary_mode
         )
 
     def durable_memory_index_text(self):
+        """执行 `durable_memory_index_text` 的内部逻辑。"""
         return memorylib.load_memory_index_text(self.memory_dir)
 
     def remember_durable_note(self, text):
+        """执行 `remember_durable_note` 的内部逻辑。"""
         path = memorylib.append_to_daily_log(self.memory_dir, text)
         if path:
             self.session_event_bus.emit(
@@ -552,18 +587,22 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         return path
 
     def memory_command_text(self):
+        """执行 `memory_command_text` 的内部逻辑。"""
         index = self.durable_memory_index_text()
         if index:
             return index
         return "No durable memories yet. Use /remember <text> and /dream to consolidate daily logs."
 
     def run_dream(self, quiet=False, session_ids=None):
+        """执行 `run_dream` 的内部逻辑。"""
         return memorylib.run_dream(self, quiet=quiet, session_ids=session_ids)
 
     def maintain_memory_after_turn(self, final_answer):
+        """执行 `maintain_memory_after_turn` 的内部逻辑。"""
         return memorylib.maintain_memory_after_turn(self, final_answer)
 
     def wait_for_memory_maintenance(self, timeout=None):
+        """执行 `wait_for_memory_maintenance` 的内部逻辑。"""
         thread = self._memory_maintenance_thread
         if thread is None:
             return True
@@ -571,6 +610,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         return not thread.is_alive()
 
     def emit_trace(self, task_state, event, payload=None):
+        """执行 `emit_trace` 的内部逻辑。"""
         payload = self.redact_artifact(payload or {})
         for path in payload.get("affected_paths", []) or []:
             if path not in task_state.changed_paths:
@@ -594,6 +634,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         self.run_store.write_task_state(task_state)
         return payload
     def infer_next_step(self, task_state):
+        """执行 `infer_next_step` 的内部逻辑。"""
         if task_state.status == "completed":
             return "No next step recorded."
         if task_state.stop_reason == "step_limit_reached":
@@ -645,9 +686,11 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
             self.memory.invalidate_file_summary(canonical_path)
 
     def note_tool(self, name, args, result):
+        """执行 `note_tool` 的内部逻辑。"""
         self.update_memory_after_tool(name, args, result)
 
     def record_process_note_for_tool(self, name, metadata):
+        """执行 `record_process_note_for_tool` 的内部逻辑。"""
         status = str(metadata.get("tool_status", "")).strip()
         if status not in {"partial_success", "error", "rejected"}:
             return
@@ -668,20 +711,25 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         self.session["memory"] = self.memory.to_dict()
 
     def reject_durable_reason(self, note_text):
+        """执行 `reject_durable_reason` 的内部逻辑。"""
         return memorylib.reject_durable_reason(note_text, redacted_value=REDACTED_VALUE)
 
     def extract_durable_promotions(self, user_message, final_answer):
+        """执行 `extract_durable_promotions` 的内部逻辑。"""
         return memorylib.extract_durable_promotions(
             user_message, final_answer, redacted_value=REDACTED_VALUE
         )
 
     def promote_durable_memory(self, user_message, final_answer):
+        """执行 `promote_durable_memory` 的内部逻辑。"""
         return memorylib.promote_durable_memory(self, user_message, final_answer)
 
     def ask(self, user_message):
+        """执行 `ask` 的内部逻辑。"""
         return self.engine.ask(user_message)
 
     def abort_current_turn(self):
+        """执行 `abort_current_turn` 的内部逻辑。"""
         self.abort_requested = True
         abort = getattr(self.model_client, "abort", None)
         if callable(abort):
@@ -691,25 +739,31 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
                 pass
 
     def ask_user(self, question, choices=None):
+        """执行 `ask_user` 的内部逻辑。"""
         if self.ask_user_callback is None:
             return "error: ask_user requires interactive mode"
         choices = [str(choice) for choice in (choices or [])]
         return str(self.ask_user_callback(str(question), choices))
 
     def resume_session(self, session_id):
+        """执行 `resume_session` 的内部逻辑。"""
         return resume_runtime_session(self, session_id)
 
     def clear_session(self):
+        """执行 `clear_session` 的内部逻辑。"""
         return clear_runtime_session(self)
 
     def run_tool(self, name, args):
+        """执行 `run_tool` 的内部逻辑。"""
         return tool_executor.run_tool(self, name, args)
 
     def repeated_tool_call(self, name, args):
+        """执行 `repeated_tool_call` 的内部逻辑。"""
         return is_repeated_tool_call(self.session["history"], name, args)
 
     @staticmethod
     def new_task_id():
+        """执行 `new_task_id` 的内部逻辑。"""
         return (
             "task_"
             + datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -719,6 +773,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
 
     @staticmethod
     def new_run_id():
+        """执行 `new_run_id` 的内部逻辑。"""
         return (
             "run_"
             + datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -728,6 +783,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
 
     def build_report(self, task_state):
         # report 是一次运行的最终摘要；
+        """执行 `build_report` 的内部逻辑。"""
         return {
             "run_id": task_state.run_id,
             "task_id": task_state.task_id,
@@ -756,6 +812,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         }
 
     def tool_example(self, name):
+        """执行 `tool_example` 的内部逻辑。"""
         return toolkit.tool_example(name)
 
     def validate_tool(self, name, args):
@@ -763,9 +820,11 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         toolkit.validate_tool(self, name, args)
 
     def tool_run_shell(self, args):
+        """执行 `tool_run_shell` 的内部逻辑。"""
         return toolkit.tool_run_shell(self, args)
 
     def approve(self, name, args):
+        """执行 `approve` 的内部逻辑。"""
         if self.read_only:
             return False
         if self.approval_policy == "auto":
@@ -788,6 +847,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
     extract_raw = staticmethod(model_output.extract_raw)
 
     def reset(self):
+        """执行 `reset` 的内部逻辑。"""
         self.session["history"] = []
         self.session["memory"].clear()
         self.session["memory"].update(memorylib.default_memory_state())
@@ -798,6 +858,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         self.session_store.save(self.session)
 
     def path(self, raw_path):
+        """执行 `path` 的内部逻辑。"""
         path = Path(raw_path)
         path = path if path.is_absolute() else self.root / path
         resolved = path.resolve()

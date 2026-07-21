@@ -1,4 +1,4 @@
-"""Rule-based deterministic compact summary extraction."""
+"""Pico 运行时实现模块。"""
 
 import re
 
@@ -21,6 +21,7 @@ REJECTED_PATTERNS = (
 
 
 def summarize_compact_items(items, prior_text=""):
+    """执行 `summarize_compact_items` 的内部逻辑。"""
     evidence = _collect_evidence(items)
     summary = "\n".join(
         [
@@ -43,6 +44,7 @@ def summarize_compact_items(items, prior_text=""):
 
 
 def _collect_evidence(items):
+    """执行 `_collect_evidence` 的内部逻辑。"""
     evidence = {
         "goal": "-",
         "user_constraints": [],
@@ -71,18 +73,21 @@ def _collect_evidence(items):
 
 
 def _collect_artifact(item, evidence):
+    """执行 `_collect_artifact` 的内部逻辑。"""
     artifact_ref = str(item.get("artifact_ref", "")).strip()
     if artifact_ref and artifact_ref not in evidence["critical_artifacts"]:
         evidence["critical_artifacts"].append(artifact_ref)
 
 
 def _collect_user_constraints(item, evidence):
+    """执行 `_collect_user_constraints` 的内部逻辑。"""
     for sentence in _sentences(item.get("content", "")):
         if _matches(sentence, CONSTRAINT_PATTERNS):
             _add_unique(evidence["user_constraints"], sentence, 5)
 
 
 def _collect_assistant_evidence(item, evidence):
+    """执行 `_collect_assistant_evidence` 的内部逻辑。"""
     for sentence in _sentences(item.get("content", "")):
         if _matches(sentence, DECISION_PATTERNS):
             _add_unique(evidence["key_decisions"], sentence, 3)
@@ -92,6 +97,7 @@ def _collect_assistant_evidence(item, evidence):
 
 
 def _collect_tool_evidence(item, evidence):
+    """执行 `_collect_tool_evidence` 的内部逻辑。"""
     path = str(item.get("args", {}).get("path", "")).strip()
     if item.get("name") == "read_file" and path:
         evidence["files_read"].append(path)
@@ -100,20 +106,24 @@ def _collect_tool_evidence(item, evidence):
 
 
 def _sentences(text):
+    """执行 `_sentences` 的内部逻辑。"""
     parts = re.split(r"[。！？!?]+|\n+|\.(?:\s+|$)", str(text))
     return [part.strip(" \t\r\n:;,.，；、") for part in parts if part.strip()]
 
 
 def _matches(text, patterns):
+    """执行 `_matches` 的内部逻辑。"""
     lowered = text.lower()
     return any(str(pattern).lower() in lowered for pattern in patterns)
 
 
 def _add_unique(values, value, limit):
+    """执行 `_add_unique` 的内部逻辑。"""
     value = value.strip()
     if value and value not in values and len(values) < limit:
         values.append(value)
 
 
 def _joined(values):
+    """执行 `_joined` 的内部逻辑。"""
     return "; ".join(values) if values else "-"

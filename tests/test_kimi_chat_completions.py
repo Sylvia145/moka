@@ -1,4 +1,4 @@
-"""Kimi/Moonshot 集成测试。
+"""Pico 自动化测试模块。
 
 覆盖两件事：
 1. `kimi` 作为一等 provider 的配置解析（别名、协议、显式 toml 与通用环境变量）；
@@ -12,11 +12,13 @@ from pico.providers.clients import ChatCompletionsModelClient
 
 
 def test_moonshot_alias_normalizes_to_kimi():
+    """执行 `test_moonshot_alias_normalizes_to_kimi` 的内部逻辑。"""
     assert normalize_provider_name("moonshot") == "kimi"
     assert normalize_provider_name("KIMI") == "kimi"
 
 
 def test_kimi_config_resolves_openai_chat_protocol(tmp_path):
+    """执行 `test_kimi_config_resolves_openai_chat_protocol` 的内部逻辑。"""
     (tmp_path / ".pico.toml").write_text(
         '[providers.kimi]\n'
         'protocol = "openai_chat"\n'
@@ -37,6 +39,7 @@ def test_kimi_config_resolves_openai_chat_protocol(tmp_path):
 
 
 def test_kimi_generic_env_used_without_toml(tmp_path, monkeypatch):
+    """执行 `test_kimi_generic_env_used_without_toml` 的内部逻辑。"""
     monkeypatch.setenv("KIMI_API_KEY", "sk-generic")
 
     config = resolve_provider_config("kimi", start=tmp_path)
@@ -46,9 +49,11 @@ def test_kimi_generic_env_used_without_toml(tmp_path, monkeypatch):
 
 
 def test_chat_completions_client_sends_messages_payload(monkeypatch):
+    """执行 `test_chat_completions_client_sends_messages_payload` 的内部逻辑。"""
     captured = {}
 
     def fake_request_with_retries(provider, model, base_url, request, timeout, retry_budget=2):
+        """执行 `fake_request_with_retries` 的内部逻辑。"""
         del retry_budget
         captured["provider"] = provider
         captured["model"] = model

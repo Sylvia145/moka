@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 
 from pico import Pico, SessionStore, WorkspaceContext
@@ -16,6 +17,7 @@ Continue the task.
 
 
 def build_agent(tmp_path, outputs=None):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     return Pico(
         model_client=ScriptedModelClient(outputs or []),
@@ -26,11 +28,13 @@ def build_agent(tmp_path, outputs=None):
 
 
 def add_turn(agent, index):
+    """执行 `add_turn` 的内部逻辑。"""
     agent.record({"role": "user", "content": f"request {index} " + ("x" * 80)})
     agent.record({"role": "assistant", "content": f"answer {index} " + ("y" * 80)})
 
 
 def compact_output(agent, command):
+    """执行 `compact_output` 的内部逻辑。"""
     from pico.cli import handle_repl_command
 
     handled, should_exit, output = handle_repl_command(agent, command)
@@ -41,6 +45,7 @@ def compact_output(agent, command):
 
 
 def test_compact_cli_defaults_to_deterministic(tmp_path):
+    """执行 `test_compact_cli_defaults_to_deterministic` 的内部逻辑。"""
     agent = build_agent(tmp_path)
     for index in range(5):
         add_turn(agent, index)
@@ -53,6 +58,7 @@ def test_compact_cli_defaults_to_deterministic(tmp_path):
 
 
 def test_compact_cli_llm_uses_handoff_mode(tmp_path):
+    """执行 `test_compact_cli_llm_uses_handoff_mode` 的内部逻辑。"""
     agent = build_agent(tmp_path, [VALID_HANDOFF])
     agent.model_client.last_completion_metadata = {
         "input_tokens": 40,
@@ -70,6 +76,7 @@ def test_compact_cli_llm_uses_handoff_mode(tmp_path):
 
 
 def test_compact_cli_auto_low_pressure_uses_deterministic(tmp_path):
+    """执行 `test_compact_cli_auto_low_pressure_uses_deterministic` 的内部逻辑。"""
     agent = build_agent(tmp_path, [VALID_HANDOFF])
     agent.last_prompt_metadata = {
         "context_usage": {"pressure_tier": "tier1_warn"},
@@ -84,6 +91,7 @@ def test_compact_cli_auto_low_pressure_uses_deterministic(tmp_path):
 
 
 def test_compact_cli_auto_tier3_uses_llm(tmp_path):
+    """执行 `test_compact_cli_auto_tier3_uses_llm` 的内部逻辑。"""
     agent = build_agent(tmp_path, [VALID_HANDOFF])
     agent.last_prompt_metadata = {
         "context_usage": {"pressure_tier": "tier3_summary"},
@@ -98,6 +106,7 @@ def test_compact_cli_auto_tier3_uses_llm(tmp_path):
 
 
 def test_context_command_reports_llm_handoff_status(tmp_path):
+    """执行 `test_context_command_reports_llm_handoff_status` 的内部逻辑。"""
     from pico.cli import handle_repl_command
 
     agent = build_agent(tmp_path)

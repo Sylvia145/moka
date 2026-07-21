@@ -1,3 +1,4 @@
+"""Pico 运行时实现模块。"""
 import hashlib
 import json
 import locale as locale_module
@@ -114,6 +115,7 @@ SCRIPTED_MODEL_OUTPUTS = {
 
 
 def _git_value(args, fallback="", cwd=None):
+    """执行 `_git_value` 的内部逻辑。"""
     try:
         result = subprocess.run(
             ["git", *args],
@@ -131,27 +133,29 @@ def _git_value(args, fallback="", cwd=None):
 
 
 def _current_locale():
-    # Benchmark fixture and verifier I/O are explicitly UTF-8. Record that
-    # deterministic harness contract instead of the host locale, which differs
-    # between Windows and Unix and would make identical runs look incomparable.
+    # 基准夹具和校验器的 I/O 明确采用 UTF-8。这里记录这一确定性运行约定，
+    # 而非宿主区域设置；Windows 与 Unix 的默认区域设置不同，否则相同运行结果
+    # 会变得无法比较。
+    """执行 `_current_locale` 的内部逻辑。"""
     return "C.UTF-8"
 
 
 def _now_in_timezone(timezone_name):
+    """执行 `_now_in_timezone` 的内部逻辑。"""
     try:
         tz = ZoneInfo(timezone_name)
     except ZoneInfoNotFoundError:
         if timezone_name != DEFAULT_TIMEZONE:
             raise
-        # Windows installations may not ship IANA zoneinfo data and this project
-        # deliberately keeps dependencies minimal. Shanghai has a fixed UTC+08:00
-        # offset for the current benchmark timestamps, so retain reproducible
-        # output without requiring an environment-specific tzdata package.
+        # Windows 环境可能未附带 IANA 时区数据，且项目刻意保持最小依赖。当前
+        # 基准时间戳中的上海时区固定为 UTC+08:00，因此无需依赖环境特定的
+        # tzdata 包，也能保持输出可复现。
         tz = timezone(timedelta(hours=8), name=timezone_name)
     return datetime.now(tz).strftime("%Y-%m-%dT%H:%M:%S%z")
 
 
 def _platform_verifier_command(command):
+    """执行 `_platform_verifier_command` 的内部逻辑。"""
     command = str(command or "").strip()
     if os.name == "nt" and command.startswith("python3 "):
         return f'"{sys.executable}" {command[len("python3 "): ]}'
@@ -159,6 +163,7 @@ def _platform_verifier_command(command):
 
 
 def _artifact_path_for_task(task):
+    """执行 `_artifact_path_for_task` 的内部逻辑。"""
     fixture_repo_name = Path(str(task["fixture_repo"])).name
     if fixture_repo_name not in TASK_FIXTURE_ARTIFACTS:
         raise ValueError(f"unsupported fixture repo for artifact lookup: {fixture_repo_name}")
@@ -166,10 +171,12 @@ def _artifact_path_for_task(task):
 
 
 def _workspace_relative(path, workspace_root):
+    """执行 `_workspace_relative` 的内部逻辑。"""
     return str(Path(path).resolve().relative_to(Path(workspace_root).resolve()))
 
 
 def _scripted_outputs_for_task(task):
+    """执行 `_scripted_outputs_for_task` 的内部逻辑。"""
     outputs = SCRIPTED_MODEL_OUTPUTS.get(task["id"])
     if outputs is None:
         raise ValueError(f"no scripted model outputs for benchmark task: {task['id']}")
@@ -177,6 +184,7 @@ def _scripted_outputs_for_task(task):
 
 
 def _fixture_snapshot_id(fixture_paths):
+    """执行 `_fixture_snapshot_id` 的内部逻辑。"""
     sha = hashlib.sha256()
     for fixture_path in sorted({Path(path).resolve() for path in fixture_paths}, key=lambda path: str(path)):
         for path in sorted((item for item in fixture_path.rglob("*") if item.is_file()), key=lambda item: str(item.relative_to(fixture_path))):
@@ -190,6 +198,7 @@ def _fixture_snapshot_id(fixture_paths):
 
 
 def validate_benchmark(data, repo_root=None):
+    """执行 `validate_benchmark` 的内部逻辑。"""
     if not isinstance(data, dict):
         raise ValueError("benchmark must be a mapping")
 
@@ -260,6 +269,7 @@ def validate_benchmark(data, repo_root=None):
 
 
 def load_benchmark(path=DEFAULT_BENCHMARK_PATH, repo_root=None):
+    """执行 `load_benchmark` 的内部逻辑。"""
     path = Path(path)
     data = json.loads(path.read_text(encoding="utf-8"))
     if repo_root is None:
@@ -268,6 +278,7 @@ def load_benchmark(path=DEFAULT_BENCHMARK_PATH, repo_root=None):
 
 
 def summarize_rows(rows):
+    """执行 `summarize_rows` 的内部逻辑。"""
     rows = list(rows)
     passed = sum(1 for row in rows if row.get("passed") or row.get("status") == "pass")
     failed = len(rows) - passed
@@ -298,6 +309,7 @@ def summarize_rows(rows):
 
 
 def _trajectory_contract(task):
+    """执行 `_trajectory_contract` 的内部逻辑。"""
     trajectory = dict(task.get("trajectory", {}) or {})
     return {
         "required_tools": list(trajectory.get("required_tools", [])),
@@ -307,6 +319,7 @@ def _trajectory_contract(task):
 
 
 def _score_trajectory(trace_path, task, tool_steps):
+    """执行 `_score_trajectory` 的内部逻辑。"""
     events = [json.loads(line) for line in Path(trace_path).read_text(encoding="utf-8").splitlines() if line.strip()]
     tools = [str(event.get("name", "")) for event in events if event.get("event") == "tool_executed"]
     contract = _trajectory_contract(task)
@@ -335,6 +348,7 @@ def _checkpoint_payload(
     freshness=None,
     summary="",
 ):
+    """执行 `_checkpoint_payload` 的内部逻辑。"""
     return {
         "checkpoint_id": checkpoint_id,
         "parent_checkpoint_id": "",
@@ -353,6 +367,7 @@ def _checkpoint_payload(
 
 
 def _apply_task_setup(agent, task, fixture_copy_root):
+    """执行 `_apply_task_setup` 的内部逻辑。"""
     setup = dict(task.get("setup", {}) or {})
     if not setup:
         return
@@ -441,6 +456,7 @@ class BenchmarkEvaluator:
         timezone_name=DEFAULT_TIMEZONE,
         model_client_factory=None,
     ):
+        """初始化对象状态。"""
         self.benchmark_path = Path(benchmark_path)
         self.artifact_path = Path(artifact_path)
         self.workspace_root = Path(workspace_root) if workspace_root is not None else Path(
@@ -456,9 +472,11 @@ class BenchmarkEvaluator:
         self.repo_root = self.benchmark_path.resolve().parent.parent
 
     def load(self):
+        """执行 `load` 的内部逻辑。"""
         return load_benchmark(self.benchmark_path, repo_root=self.repo_root)
 
     def run(self):
+        """执行 `run` 的内部逻辑。"""
         benchmark = self.load()
         rows = [self.run_task(task) for task in benchmark["tasks"]]
         summary = summarize_rows(rows)
@@ -495,6 +513,7 @@ class BenchmarkEvaluator:
         return artifact
 
     def run_task(self, task):
+        """执行 `run_task` 的内部逻辑。"""
         task = dict(task)
         fixture_source = self.repo_root / task["fixture_repo"]
         fixture_copy_root = self.workspace_root / task["id"] / fixture_source.name
@@ -615,6 +634,7 @@ class BenchmarkEvaluator:
         expected_artifact_exists,
         non_failure_stop_reason,
     ):
+        """执行 `_failure_category` 的内部逻辑。"""
         if not expected_artifact_exists:
             return "missing_artifact"
         if not within_budget:
@@ -626,11 +646,13 @@ class BenchmarkEvaluator:
         return "unknown"
 
     def _write_artifact(self, artifact):
+        """执行 `_write_artifact` 的内部逻辑。"""
         self.artifact_path.parent.mkdir(parents=True, exist_ok=True)
         self.artifact_path.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def _digest_file(path):
+    """执行 `_digest_file` 的内部逻辑。"""
     return "sha256:" + hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
@@ -646,6 +668,7 @@ def run_fixed_benchmark(
     timezone_name=DEFAULT_TIMEZONE,
     model_client_factory=None,
 ):
+    """执行 `run_fixed_benchmark` 的内部逻辑。"""
     evaluator = BenchmarkEvaluator(
         benchmark_path=benchmark_path,
         artifact_path=artifact_path,
@@ -673,6 +696,7 @@ def run_harness_regression_v2(
     timezone_name=DEFAULT_TIMEZONE,
     model_client_factory=None,
 ):
+    """执行 `run_harness_regression_v2` 的内部逻辑。"""
     return run_fixed_benchmark(
         benchmark_path=benchmark_path,
         artifact_path=artifact_path,

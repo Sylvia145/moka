@@ -1,4 +1,4 @@
-"""Optional shell sandbox runner."""
+"""Pico 运行时实现模块。"""
 
 import subprocess
 from pathlib import Path
@@ -11,12 +11,14 @@ from .config import SandboxConfig
 
 class SandboxRunner:
     def __init__(self, config=None, *, which=None, run=None, emit_event=None):
+        """初始化对象状态。"""
         self.config = config or SandboxConfig()
         self.which = which or default_which
         self.run_process = run
         self.emit_event = emit_event or (lambda event, payload: None)
 
     def run(self, command, *, cwd, env, timeout):
+        """执行 `run` 的内部逻辑。"""
         config = self.config
         if config.mode == "off" or (
             config.mode != "required"
@@ -52,6 +54,7 @@ class SandboxRunner:
         )
 
     def _plain(self, command, *, cwd, env, timeout):
+        """执行 `_plain` 的内部逻辑。"""
         run_process = self.run_process or subprocess.run
         return run_process(
             command,
@@ -66,6 +69,7 @@ class SandboxRunner:
         )
 
     def _bubblewrap_argv(self, backend_path, command, cwd, config):
+        """执行 `_bubblewrap_argv` 的内部逻辑。"""
         argv = [
             backend_path,
             "--die-with-parent",

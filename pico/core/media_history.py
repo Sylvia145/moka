@@ -1,7 +1,8 @@
-"""Prompt-safe rendering for media references in session history."""
+"""Pico 运行时实现模块。"""
 
 
 def render_media_refs(item):
+    """执行 `render_media_refs` 的内部逻辑。"""
     lines = []
     for ref in item.get("media_refs", []) or []:
         path = str(ref.get("path", "")).strip() or "-"

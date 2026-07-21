@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 
 from pico.evaluation.memory_agent_eval import run_memory_agent_eval_v1
@@ -5,11 +6,13 @@ from pico.evaluation.metrics import main as metrics_main, write_benchmark_core_r
 
 
 def _write_json(path, payload):
+    """执行 `_write_json` 的内部逻辑。"""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload), encoding="utf-8")
 
 
 def _write_input_artifacts(tmp_path):
+    """执行 `_write_input_artifacts` 的内部逻辑。"""
     artifacts = tmp_path / "_local" / "benchmark" / "artifacts"
     _write_json(
         artifacts / "memory-ablation-v2.json",
@@ -99,6 +102,7 @@ def _write_input_artifacts(tmp_path):
 
 
 def test_memory_agent_eval_separates_contract_from_challenge(tmp_path):
+    """执行 `test_memory_agent_eval_separates_contract_from_challenge` 的内部逻辑。"""
     artifacts = _write_input_artifacts(tmp_path)
     artifact = run_memory_agent_eval_v1(
         artifact_path=artifacts / "memory-agent-eval-v1.json",
@@ -119,6 +123,7 @@ def test_memory_agent_eval_separates_contract_from_challenge(tmp_path):
 
 
 def test_memory_challenge_covers_longmemeval_abilities(tmp_path):
+    """执行 `test_memory_challenge_covers_longmemeval_abilities` 的内部逻辑。"""
     artifact = run_memory_agent_eval_v1(
         artifact_path=tmp_path / "memory-agent-eval-v1.json",
         report_path=tmp_path / "report.md",
@@ -138,6 +143,7 @@ def test_memory_challenge_covers_longmemeval_abilities(tmp_path):
 
 
 def test_memory_challenge_reports_comparative_metrics(tmp_path):
+    """执行 `test_memory_challenge_reports_comparative_metrics` 的内部逻辑。"""
     artifact = run_memory_agent_eval_v1(
         artifact_path=tmp_path / "memory-agent-eval-v1.json",
         report_path=tmp_path / "report.md",
@@ -163,6 +169,7 @@ def test_memory_challenge_reports_comparative_metrics(tmp_path):
 
 
 def test_memory_report_does_not_present_contract_as_benchmark(tmp_path):
+    """执行 `test_memory_report_does_not_present_contract_as_benchmark` 的内部逻辑。"""
     report_path = tmp_path / "report.md"
     run_memory_agent_eval_v1(
         artifact_path=tmp_path / "memory-agent-eval-v1.json",
@@ -180,6 +187,7 @@ def test_memory_report_does_not_present_contract_as_benchmark(tmp_path):
 
 
 def test_metrics_cli_memory_challenge_and_core_report(tmp_path, monkeypatch):
+    """执行 `test_metrics_cli_memory_challenge_and_core_report` 的内部逻辑。"""
     _write_input_artifacts(tmp_path)
     monkeypatch.chdir(tmp_path)
 

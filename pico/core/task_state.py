@@ -1,4 +1,4 @@
-"""TaskState snapshot for one ask() run.
+"""Pico 运行时实现模块。
 
 TaskState tracks where a user request is in the runtime, how much work it has
 done, what evidence was collected, and why it stopped. It is persisted during
@@ -47,12 +47,14 @@ class TaskState:
 
     @classmethod
     def create(cls, task_id, user_request, run_id=""):
+        """执行 `create` 的内部逻辑。"""
         if not run_id:
             run_id = "run_" + datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid4().hex[:6]
         return cls(run_id=run_id, task_id=task_id, user_request=user_request)
 
     @classmethod
     def from_dict(cls, data):
+        """执行 `from_dict` 的内部逻辑。"""
         return cls(
             run_id=str(data.get("run_id", "")),
             task_id=str(data.get("task_id", "")),
@@ -75,17 +77,20 @@ class TaskState:
 
     def record_attempt(self):
         # attempt 统计的是“模型被调用了几轮”，不等于 tool_steps。
+        """执行 `record_attempt` 的内部逻辑。"""
         self.attempts += 1
         return self
 
     def record_tool(self, name):
         # tool_steps 只统计真正进入执行阶段的工具调用次数。
+        """执行 `record_tool` 的内部逻辑。"""
         self.tool_steps += 1
         self.last_tool = str(name or "")
         return self
 
     def stop(self, stop_reason, status=STATUS_STOPPED, final_answer=""):
         # stop_reason 和 status 分开存，是为了区分“怎么停的”和“停下时是什么状态”。
+        """执行 `stop` 的内部逻辑。"""
         self.status = status
         self.stop_reason = stop_reason
         if final_answer != "":
@@ -93,21 +98,26 @@ class TaskState:
         return self
 
     def stop_step_limit(self, final_answer=""):
+        """执行 `stop_step_limit` 的内部逻辑。"""
         return self.stop(STOP_REASON_STEP_LIMIT_REACHED, final_answer=final_answer)
 
     def stop_retry_limit(self, final_answer=""):
+        """执行 `stop_retry_limit` 的内部逻辑。"""
         return self.stop(STOP_REASON_RETRY_LIMIT_REACHED, final_answer=final_answer)
 
     def stop_model_error(self, final_answer=""):
+        """执行 `stop_model_error` 的内部逻辑。"""
         return self.stop(STOP_REASON_MODEL_ERROR, status=STATUS_FAILED, final_answer=final_answer)
 
     def finish_success(self, final_answer):
+        """执行 `finish_success` 的内部逻辑。"""
         self.status = STATUS_COMPLETED
         self.stop_reason = STOP_REASON_FINAL_ANSWER_RETURNED
         self.final_answer = str(final_answer)
         return self
 
     def to_dict(self):
+        """执行 `to_dict` 的内部逻辑。"""
         return {
             "run_id": self.run_id,
             "task_id": self.task_id,

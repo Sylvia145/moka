@@ -1,10 +1,11 @@
-"""Parser for Pico's text model protocol."""
+"""Pico 运行时实现模块。"""
 
 import json
 import re
 
 
 def parse(raw):
+    """执行 `parse` 的内部逻辑。"""
     raw = str(raw)
     if "<tool" in raw and (
         "<final>" not in raw or raw.find("<tool") < raw.find("<final>")
@@ -24,6 +25,7 @@ def parse(raw):
 
 
 def retry_notice(problem=None):
+    """执行 `retry_notice` 的内部逻辑。"""
     detail = f" Problem: {problem}." if problem else ""
     return (
         "Your previous response could not be executed."
@@ -32,6 +34,7 @@ def retry_notice(problem=None):
 
 
 def normalize_tool_payload(payload):
+    """执行 `normalize_tool_payload` 的内部逻辑。"""
     if isinstance(payload, list):
         if not payload:
             return "tool JSON list must not be empty"
@@ -51,6 +54,7 @@ def normalize_tool_payload(payload):
 
 
 def parse_tool_blocks(raw):
+    """执行 `parse_tool_blocks` 的内部逻辑。"""
     tools = []
     errors = []
     for match in re.finditer(
@@ -81,12 +85,14 @@ def parse_tool_blocks(raw):
 
 
 def _tool_kind(tools):
+    """执行 `_tool_kind` 的内部逻辑。"""
     if len(tools) == 1:
         return "tool", tools[0]
     return "tools", tools
 
 
 def parse_xml_tools(raw):
+    """执行 `parse_xml_tools` 的内部逻辑。"""
     tools = []
     for match in re.finditer(
         r"<tool\b(?P<attrs>[^>]*)>(?P<body>.*?)</tool>", str(raw), flags=re.DOTALL
@@ -98,6 +104,7 @@ def parse_xml_tools(raw):
 
 
 def parse_xml_tool(raw):
+    """执行 `parse_xml_tool` 的内部逻辑。"""
     match = re.search(
         r"<tool\b(?P<attrs>[^>]*)>(?P<body>.*?)</tool>", str(raw), flags=re.DOTALL
     )
@@ -107,6 +114,7 @@ def parse_xml_tool(raw):
 
 
 def parse_xml_tool_match(match):
+    """执行 `parse_xml_tool_match` 的内部逻辑。"""
     attrs = parse_attrs(match.group("attrs"))
     body = match.group("body")
     name = attrs.get("name", "").strip()
@@ -123,6 +131,7 @@ def parse_xml_tool_match(match):
 
 
 def parse_attrs(text):
+    """执行 `parse_attrs` 的内部逻辑。"""
     attrs = {}
     for key, value in re.findall(
         r'([A-Za-z_][A-Za-z0-9_-]*)="(.*?)"', text, flags=re.DOTALL
@@ -132,6 +141,7 @@ def parse_attrs(text):
 
 
 def extract(text, tag):
+    """执行 `extract` 的内部逻辑。"""
     match = re.search(rf"<{tag}>(.*?)</{tag}>", text, flags=re.DOTALL)
     if not match:
         return text.strip()
@@ -139,6 +149,7 @@ def extract(text, tag):
 
 
 def extract_raw(text, tag):
+    """执行 `extract_raw` 的内部逻辑。"""
     match = re.search(rf"<{tag}>(.*?)</{tag}>", text, flags=re.DOTALL)
     if not match:
         return None

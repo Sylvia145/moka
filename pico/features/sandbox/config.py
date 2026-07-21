@@ -1,4 +1,4 @@
-"""Sandbox configuration for shell execution."""
+"""Pico 运行时实现模块。"""
 
 from dataclasses import dataclass
 
@@ -18,10 +18,12 @@ class SandboxConfig:
 
     @property
     def enabled(self):
+        """执行 `enabled` 的内部逻辑。"""
         return self.mode != "off"
 
 
 def resolve_sandbox_config(values):
+    """执行 `resolve_sandbox_config` 的内部逻辑。"""
     sandbox = dict((values or {}).get("sandbox", {}) or {})
     filesystem = dict(sandbox.get("filesystem", {}) or {})
     mode = str(sandbox.get("mode", "off") or "off")

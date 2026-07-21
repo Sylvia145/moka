@@ -1,4 +1,4 @@
-"""Unit tests for final-readiness gate decisions and notices."""
+"""Pico 自动化测试模块。"""
 
 from pico.core.final_readiness import (
     evaluate_final_readiness,
@@ -9,10 +9,12 @@ from pico.core.task_state import TaskState
 
 
 def task_state():
+    """执行 `task_state` 的内部逻辑。"""
     return TaskState.create(task_id="task_1", run_id="run_1", user_request="demo")
 
 
 def test_final_readiness_detects_unresolved_current_run_high_priority_todo():
+    """执行 `test_final_readiness_detects_unresolved_current_run_high_priority_todo` 的内部逻辑。"""
     state = task_state()
     state.todo_changes = [
         {
@@ -33,6 +35,7 @@ def test_final_readiness_detects_unresolved_current_run_high_priority_todo():
 
 
 def test_final_readiness_uses_latest_current_run_todo_state():
+    """执行 `test_final_readiness_uses_latest_current_run_todo_state` 的内部逻辑。"""
     state = task_state()
     state.todo_changes = [
         {
@@ -52,6 +55,7 @@ def test_final_readiness_uses_latest_current_run_todo_state():
 
 
 def test_final_readiness_detects_unreduced_context_pressure():
+    """执行 `test_final_readiness_detects_unreduced_context_pressure` 的内部逻辑。"""
     state = task_state()
     state.evidence_summaries = {
         "context_budget_summary": {
@@ -68,6 +72,7 @@ def test_final_readiness_detects_unreduced_context_pressure():
 
 
 def test_final_readiness_allows_context_pressure_after_successful_reduction():
+    """执行 `test_final_readiness_allows_context_pressure_after_successful_reduction` 的内部逻辑。"""
     state = task_state()
     state.evidence_summaries = {
         "context_budget_summary": {
@@ -83,6 +88,7 @@ def test_final_readiness_allows_context_pressure_after_successful_reduction():
 
 
 def test_final_readiness_reports_context_observability_gaps():
+    """执行 `test_final_readiness_reports_context_observability_gaps` 的内部逻辑。"""
     state = task_state()
     state.evidence_summaries = {
         "context_budget_summary": {
@@ -107,6 +113,7 @@ def test_final_readiness_reports_context_observability_gaps():
 
 
 def test_final_readiness_allows_missing_provider_usage_at_low_pressure():
+    """执行 `test_final_readiness_allows_missing_provider_usage_at_low_pressure` 的内部逻辑。"""
     state = task_state()
     state.evidence_summaries = {
         "context_budget_summary": {
@@ -123,6 +130,7 @@ def test_final_readiness_allows_missing_provider_usage_at_low_pressure():
 
 
 def test_final_readiness_warns_on_negative_llm_compact_net_benefit():
+    """执行 `test_final_readiness_warns_on_negative_llm_compact_net_benefit` 的内部逻辑。"""
     state = task_state()
     state.evidence_summaries = {
         "context_budget_summary": {
@@ -138,6 +146,7 @@ def test_final_readiness_warns_on_negative_llm_compact_net_benefit():
 
 
 def test_final_readiness_allows_non_negative_or_unknown_compact_net_benefit():
+    """执行 `test_final_readiness_allows_non_negative_or_unknown_compact_net_benefit` 的内部逻辑。"""
     for net in (0, 50, None):
         state = task_state()
         state.evidence_summaries = {
@@ -154,6 +163,7 @@ def test_final_readiness_allows_non_negative_or_unknown_compact_net_benefit():
 
 
 def test_final_readiness_warns_on_low_quality_llm_compact_summary():
+    """执行 `test_final_readiness_warns_on_low_quality_llm_compact_summary` 的内部逻辑。"""
     state = task_state()
     state.evidence_summaries = {
         "context_budget_summary": {
@@ -170,6 +180,7 @@ def test_final_readiness_warns_on_low_quality_llm_compact_summary():
 
 
 def test_final_readiness_ignores_deterministic_compact_summary_quality():
+    """执行 `test_final_readiness_ignores_deterministic_compact_summary_quality` 的内部逻辑。"""
     state = task_state()
     state.evidence_summaries = {
         "context_budget_summary": {
@@ -186,6 +197,7 @@ def test_final_readiness_ignores_deterministic_compact_summary_quality():
 
 
 def test_final_readiness_blocks_tier3_compaction_without_token_savings():
+    """执行 `test_final_readiness_blocks_tier3_compaction_without_token_savings` 的内部逻辑。"""
     state = task_state()
     state.evidence_summaries = {
         "context_budget_summary": {
@@ -205,6 +217,7 @@ def test_final_readiness_blocks_tier3_compaction_without_token_savings():
 
 
 def test_final_readiness_blocks_partial_success_workspace_change():
+    """执行 `test_final_readiness_blocks_partial_success_workspace_change` 的内部逻辑。"""
     state = task_state()
     state.runtime_reminders = [
         {
@@ -224,6 +237,7 @@ def test_final_readiness_blocks_partial_success_workspace_change():
 
 
 def test_required_artifact_extraction_tracks_output_directory(tmp_path):
+    """执行 `test_required_artifact_extraction_tracks_output_directory` 的内部逻辑。"""
     prompt = f"""
 输入文件：
 - `provider_capabilities.json`
@@ -247,6 +261,7 @@ def test_required_artifact_extraction_tracks_output_directory(tmp_path):
 
 
 def test_required_artifact_extraction_ignores_negated_output_requests(tmp_path):
+    """执行 `test_required_artifact_extraction_ignores_negated_output_requests` 的内部逻辑。"""
     prompt = "Do not create `forbidden.py`.\n请生成 `final_report.md`。"
 
     paths = extract_required_artifact_paths(prompt, tmp_path)
@@ -255,6 +270,7 @@ def test_required_artifact_extraction_ignores_negated_output_requests(tmp_path):
 
 
 def test_required_artifact_extraction_keeps_mixed_input_output_line_scoped(tmp_path):
+    """执行 `test_required_artifact_extraction_keeps_mixed_input_output_line_scoped` 的内部逻辑。"""
     prompt = "Use input file `source.json` and produce `result.json`."
 
     paths = extract_required_artifact_paths(prompt, tmp_path)
@@ -263,6 +279,7 @@ def test_required_artifact_extraction_keeps_mixed_input_output_line_scoped(tmp_p
 
 
 def test_required_artifact_extraction_clears_output_context_at_plain_constraints(tmp_path):
+    """执行 `test_required_artifact_extraction_clears_output_context_at_plain_constraints` 的内部逻辑。"""
     prompt = f"""
 Create `final_report.md` under `{tmp_path}/out/`.
 
@@ -276,6 +293,7 @@ Constraints:
 
 
 def test_required_artifact_extraction_ignores_do_not_modify_after_output(tmp_path):
+    """执行 `test_required_artifact_extraction_ignores_do_not_modify_after_output` 的内部逻辑。"""
     prompt = "Please create `final_report.md`.\nDo not modify `test_config.py`."
 
     paths = extract_required_artifact_paths(prompt, tmp_path)
@@ -284,6 +302,7 @@ def test_required_artifact_extraction_ignores_do_not_modify_after_output(tmp_pat
 
 
 def test_final_readiness_detects_missing_required_artifacts(tmp_path):
+    """执行 `test_final_readiness_detects_missing_required_artifacts` 的内部逻辑。"""
     state = task_state()
     state.user_request = "请生成 `final_report.md` 和 `progress.md`。"
     (tmp_path / "progress.md").write_text("done\n", encoding="utf-8")
@@ -299,6 +318,7 @@ def test_final_readiness_detects_missing_required_artifacts(tmp_path):
 
 
 def test_readiness_notice_uses_catalog_messages_not_raw_codes():
+    """执行 `test_readiness_notice_uses_catalog_messages_not_raw_codes` 的内部逻辑。"""
     notice = readiness_notice(
         {
             "action": "runtime_notice",
@@ -312,6 +332,7 @@ def test_readiness_notice_uses_catalog_messages_not_raw_codes():
 
 
 def test_final_readiness_summary_has_schema_version():
+    """执行 `test_final_readiness_summary_has_schema_version` 的内部逻辑。"""
     from pico.core.final_readiness import reduce_final_readiness_summary
 
     summary = reduce_final_readiness_summary({}, {"decision": "warn", "reasons": []})

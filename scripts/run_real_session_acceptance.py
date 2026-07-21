@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run deterministic real-session acceptance scenarios for Pico."""
+"""Pico 项目运行与验证脚本。"""
 
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ LIVE_ENV_FLAG = "PICO_ACCEPTANCE_LIVE"
 
 
 def run_acceptance(output_dir, include_live=None):
+    """执行 `run_acceptance` 的内部逻辑。"""
     output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     scenarios = [
@@ -57,6 +58,7 @@ def run_acceptance(output_dir, include_live=None):
 
 
 def render_markdown(summary):
+    """执行 `render_markdown` 的内部逻辑。"""
     lines = [
         "# Gate8 Real Session Acceptance",
         "",
@@ -81,6 +83,7 @@ def render_markdown(summary):
 
 
 def _run_scenario(output_dir, scenario_id, runner, optional=False, include_live=None):
+    """执行 `_run_scenario` 的内部逻辑。"""
     workspace = output_dir / "workspaces" / scenario_id
     if workspace.exists():
         _remove_tree(workspace)
@@ -106,6 +109,7 @@ def _run_scenario(output_dir, scenario_id, runner, optional=False, include_live=
 
 
 def _scenario_bugfix_pytest(output_dir, workspace):
+    """执行 `_scenario_bugfix_pytest` 的内部逻辑。"""
     src_dir = workspace / "src"
     tests_dir = workspace / "tests"
     src_dir.mkdir()
@@ -151,6 +155,7 @@ def _scenario_bugfix_pytest(output_dir, workspace):
 
 
 def _scenario_plan_todo_explore(output_dir, workspace):
+    """执行 `_scenario_plan_todo_explore` 的内部逻辑。"""
     _write_readme(workspace, "Gate8 plan fixture.\n")
     agent = _build_agent(
         workspace,
@@ -182,6 +187,7 @@ def _scenario_plan_todo_explore(output_dir, workspace):
 
 
 def _scenario_skill_inline(output_dir, workspace):
+    """执行 `_scenario_skill_inline` 的内部逻辑。"""
     _write_readme(workspace, "Gate8 skill fixture.\n")
     skill_dir = workspace / ".pico" / "skills" / "evidence"
     skill_dir.mkdir(parents=True, exist_ok=True)
@@ -219,6 +225,7 @@ Inspect $ARGUMENTS and report the evidence path.
 
 
 def _scenario_worker_write_scope(output_dir, workspace):
+    """执行 `_scenario_worker_write_scope` 的内部逻辑。"""
     _write_readme(workspace, "Gate8 worker fixture.\n")
     agent = _build_agent(
         workspace,
@@ -249,6 +256,7 @@ def _scenario_worker_write_scope(output_dir, workspace):
 
 
 def _scenario_resume_continuation(output_dir, workspace):
+    """执行 `_scenario_resume_continuation` 的内部逻辑。"""
     _write_readme(workspace, "Gate8 resume fixture.\n")
     store = SessionStore(workspace / ".pico" / "sessions")
     first = Pico(
@@ -296,6 +304,7 @@ def _scenario_resume_continuation(output_dir, workspace):
 
 
 def _scenario_security_rejection(output_dir, workspace):
+    """执行 `_scenario_security_rejection` 的内部逻辑。"""
     _write_readme(workspace, "Gate8 security fixture.\n")
     old_secret = os.environ.get("PICO_ACCEPTANCE_SECRET")
     os.environ["PICO_ACCEPTANCE_SECRET"] = "pico-secret-value-123"
@@ -338,6 +347,7 @@ def _scenario_security_rejection(output_dir, workspace):
 
 
 def _scenario_context_pressure(output_dir, workspace):
+    """执行 `_scenario_context_pressure` 的内部逻辑。"""
     src_dir = workspace / "src"
     src_dir.mkdir()
     (workspace / "README.md").write_text(("Context pressure fixture.\n" + "noise " * 900) + "\n", encoding="utf-8")
@@ -374,6 +384,7 @@ def _scenario_context_pressure(output_dir, workspace):
 
 
 def _scenario_provider_error_recovery(output_dir, workspace):
+    """执行 `_scenario_provider_error_recovery` 的内部逻辑。"""
     _write_readme(workspace, "Gate9 provider reliability fixture.\n")
     agent = Pico(
         model_client=ScriptedModelClient(
@@ -416,6 +427,7 @@ def _scenario_provider_error_recovery(output_dir, workspace):
 
 
 def _scenario_live_provider_smoke(output_dir, workspace, include_live=None):
+    """执行 `_scenario_live_provider_smoke` 的内部逻辑。"""
     live_enabled = include_live is True or os.environ.get(LIVE_ENV_FLAG, "").strip().lower() in {"1", "true", "yes"}
     if not live_enabled:
         return _skipped_record(output_dir, workspace, "live_provider_smoke", f"set {LIVE_ENV_FLAG}=1 to enable live provider smoke")
@@ -464,6 +476,7 @@ def _scenario_live_provider_smoke(output_dir, workspace, include_live=None):
 
 
 def _build_agent(workspace, outputs, max_steps=6):
+    """执行 `_build_agent` 的内部逻辑。"""
     workspace_context = _scenario_workspace(workspace)
     return Pico(
         model_client=ScriptedModelClient(outputs),
@@ -475,10 +488,12 @@ def _build_agent(workspace, outputs, max_steps=6):
 
 
 def _scenario_workspace(workspace):
+    """执行 `_scenario_workspace` 的内部逻辑。"""
     return WorkspaceContext.build(workspace, repo_root_override=workspace)
 
 
 def _finalize(output_dir, workspace, agent, scenario_id, checks):
+    """执行 `_finalize` 的内部逻辑。"""
     run_dir = agent.current_run_dir
     report_path = run_dir / "report.json"
     trace_path = run_dir / "trace.jsonl"
@@ -506,10 +521,12 @@ def _finalize(output_dir, workspace, agent, scenario_id, checks):
 
 
 def _write_readme(workspace, text):
+    """执行 `_write_readme` 的内部逻辑。"""
     (workspace / "README.md").write_text(text, encoding="utf-8")
 
 
 def _read_events(agent):
+    """执行 `_read_events` 的内部逻辑。"""
     return [
         json.loads(line)
         for line in agent.session_event_bus.path.read_text(encoding="utf-8").splitlines()
@@ -518,10 +535,12 @@ def _read_events(agent):
 
 
 def _check(name, condition, detail=""):
+    """执行 `_check` 的内部逻辑。"""
     return {"name": name, "status": "passed" if condition else "failed", "detail": str(detail)}
 
 
 def _skipped_record(output_dir, workspace, scenario_id, reason):
+    """执行 `_skipped_record` 的内部逻辑。"""
     return {
         "id": scenario_id,
         "status": "skipped",
@@ -533,10 +552,12 @@ def _skipped_record(output_dir, workspace, scenario_id, reason):
 
 
 def _relpath(path, root):
+    """执行 `_relpath` 的内部逻辑。"""
     return Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
 
 
 def _remove_tree(path):
+    """执行 `_remove_tree` 的内部逻辑。"""
     for child in sorted(path.rglob("*"), key=lambda item: len(item.parts), reverse=True):
         if child.is_dir():
             child.rmdir()
@@ -546,6 +567,7 @@ def _remove_tree(path):
 
 
 def build_arg_parser():
+    """执行 `build_arg_parser` 的内部逻辑。"""
     parser = argparse.ArgumentParser(description="Run Pico Gate8 deterministic real-session acceptance scenarios.")
     parser.add_argument("--output-dir", default="artifacts/gate8-real-session-acceptance", help="Directory for workspaces and summary artifacts.")
     parser.add_argument("--live-provider", action="store_true", help=f"Enable optional live provider smoke. Also enabled by {LIVE_ENV_FLAG}=1.")
@@ -553,6 +575,7 @@ def build_arg_parser():
 
 
 def main(argv=None):
+    """执行 `main` 的内部逻辑。"""
     args = build_arg_parser().parse_args(argv)
     summary = run_acceptance(Path(args.output_dir), include_live=True if args.live_provider else None)
     print(json.dumps({"status": summary["status"], "scenario_count": summary["scenario_count"]}, sort_keys=True))

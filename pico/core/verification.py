@@ -1,4 +1,4 @@
-"""Verification evidence reducer for shell-command tool traces."""
+"""Pico 运行时实现模块。"""
 
 import shlex
 import sys
@@ -6,6 +6,7 @@ import sys
 VERIFICATION_SIGNAL_SCHEMA = "pico.verification_signal.v1"
 
 def reduce_verification_signal(previous, event, changed_paths):
+    """执行 `reduce_verification_signal` 的内部逻辑。"""
     signal = dict(previous or {})
     if event.get("event") != "tool_executed":
         return signal
@@ -37,6 +38,7 @@ def reduce_verification_signal(previous, event, changed_paths):
     )
     return signal
 def classify_verification_command(command):
+    """执行 `classify_verification_command` 的内部逻辑。"""
     text = str(command).strip()
     if sys.platform == "win32":  # shlex 把 C:\path 的反斜杠当转义，win32 退回引号剥离
         tokens = [t for t in text.replace('"', " ").split() if t]
@@ -67,6 +69,7 @@ def classify_verification_command(command):
         return "test"
     return ""
 def _js_command_class(tokens):
+    """执行 `_js_command_class` 的内部逻辑。"""
     if len(tokens) < 2:
         return ""
     if tokens[1] == "test":
@@ -75,6 +78,7 @@ def _js_command_class(tokens):
         return "test" if tokens[2] == "test" else "build"
     return "build" if tokens[1] == "build" else ""
 def _is_python_command(command):
+    """执行 `_is_python_command` 的内部逻辑。"""
     command = command[:-4] if command.endswith(".exe") else command
     suffix = command.removeprefix("python3.")
     return command in {"python", "python3"} or (suffix != command and suffix.replace(".", "").isdigit())

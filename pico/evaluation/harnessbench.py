@@ -1,4 +1,4 @@
-"""Harness-Bench evidence metadata helpers.
+"""Pico 运行时实现模块。
 
 Pico already persists run trace, report, task state, session JSON, and session
 events under `.pico/`. Harness-Bench adapters need a stable manifest that points
@@ -19,6 +19,7 @@ def build_adapter_metadata(
     session_id: str = "",
     returncode: int = 0,
 ) -> dict[str, Any]:
+    """执行 `build_adapter_metadata` 的内部逻辑。"""
     workspace = Path(workspace).resolve()
     latest_run = _latest_dir(workspace / ".pico" / "runs")
     sessions_root = workspace / ".pico" / "sessions"
@@ -68,6 +69,7 @@ def write_adapter_metadata(
     session_id: str = "",
     returncode: int = 0,
 ) -> dict[str, Any]:
+    """执行 `write_adapter_metadata` 的内部逻辑。"""
     metadata = build_adapter_metadata(
         workspace, session_id=session_id, returncode=returncode
     )
@@ -81,6 +83,7 @@ def write_adapter_metadata(
 
 
 def main(argv: list[str] | None = None) -> int:
+    """执行 `main` 的内部逻辑。"""
     parser = argparse.ArgumentParser(description="Emit Pico Harness-Bench adapter metadata.")
     parser.add_argument("--workspace", required=True)
     parser.add_argument("--session-id", default="")
@@ -103,11 +106,13 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _add_path(metadata: dict[str, Any], key: str, path: Path | None) -> None:
+    """执行 `_add_path` 的内部逻辑。"""
     if path and path.exists():
         metadata[key] = str(path)
 
 
 def _latest_dir(root: Path) -> Path | None:
+    """执行 `_latest_dir` 的内部逻辑。"""
     if not root.exists():
         return None
     dirs = [path for path in root.iterdir() if path.is_dir()]
@@ -115,6 +120,7 @@ def _latest_dir(root: Path) -> Path | None:
 
 
 def _latest_file(root: Path, pattern: str) -> Path | None:
+    """执行 `_latest_file` 的内部逻辑。"""
     if not root.exists():
         return None
     files = sorted(root.glob(pattern), key=lambda path: path.stat().st_mtime)
@@ -122,6 +128,7 @@ def _latest_file(root: Path, pattern: str) -> Path | None:
 
 
 def _write_process_transcript(session_path: Path | None) -> Path | None:
+    """执行 `_write_process_transcript` 的内部逻辑。"""
     if not session_path or not session_path.is_file():
         return None
     try:

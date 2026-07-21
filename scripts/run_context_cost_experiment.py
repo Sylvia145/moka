@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Pico 项目运行与验证脚本。"""
 import sys
 from pathlib import Path
 

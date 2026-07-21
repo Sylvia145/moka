@@ -1,8 +1,10 @@
+"""Pico 自动化测试模块。"""
 from pico.testing import ScriptedModelClient
 from pico import Pico, SessionStore, WorkspaceContext
 
 
 def build_agent(tmp_path, outputs, **kwargs):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     return Pico(
@@ -15,6 +17,7 @@ def build_agent(tmp_path, outputs, **kwargs):
 
 
 def test_ask_user_tool_returns_callback_choice(tmp_path):
+    """执行 `test_ask_user_tool_returns_callback_choice` 的内部逻辑。"""
     agent = build_agent(
         tmp_path, [], ask_user_callback=lambda question, choices: choices[1]
     )
@@ -25,6 +28,7 @@ def test_ask_user_tool_returns_callback_choice(tmp_path):
 
 
 def test_ask_user_tool_fails_closed_without_interactive_callback(tmp_path):
+    """执行 `test_ask_user_tool_fails_closed_without_interactive_callback` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
 
     result = agent.run_tool("ask_user", {"question": "Ship?", "choices": ["yes"]})
@@ -33,6 +37,7 @@ def test_ask_user_tool_fails_closed_without_interactive_callback(tmp_path):
 
 
 def test_plan_mode_allows_ask_user_tool(tmp_path):
+    """执行 `test_plan_mode_allows_ask_user_tool` 的内部逻辑。"""
     agent = build_agent(
         tmp_path, [], ask_user_callback=lambda question, choices: choices[0]
     )

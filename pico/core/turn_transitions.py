@@ -1,4 +1,4 @@
-"""Loop transition contracts and summary reduction.
+"""Pico 运行时实现模块。
 
 Engine records real control-flow transitions here as trace events, then report
 consumers reduce them into a compact summary. These contracts describe the loop;
@@ -22,6 +22,7 @@ TRANSITION_SUMMARY_SCHEMA = "pico.transition_summary.v1"
 
 
 def build_transition(*, kind, reason, attempt_index, tool_call_count=0, tool_requested_count=0, tool_executed_count=0, stop_reason=""):
+    """执行 `build_transition` 的内部逻辑。"""
     payload = {
         "kind": str(kind),
         "reason": str(reason),
@@ -40,6 +41,7 @@ def build_transition(*, kind, reason, attempt_index, tool_call_count=0, tool_req
 
 
 def reduce_transition_summary(summary, transition):
+    """执行 `reduce_transition_summary` 的内部逻辑。"""
     summary = dict(summary or {})
     summary.setdefault("schema_version", TRANSITION_SUMMARY_SCHEMA)
     kind = str(transition.get("kind", ""))
@@ -68,6 +70,7 @@ def reduce_transition_summary(summary, transition):
 
 
 def emit_transition(agent, task_state, *, kind, reason, tool_call_count=0, tool_requested_count=0, tool_executed_count=0, stop_reason=""):
+    """执行 `emit_transition` 的内部逻辑。"""
     payload = build_transition(
         kind=kind,
         reason=reason,
@@ -80,7 +83,9 @@ def emit_transition(agent, task_state, *, kind, reason, tool_call_count=0, tool_
     return agent.emit_trace(task_state, "loop_transition", payload)
 
 def emit_continue_transition(agent, task_state, reason, **evidence):
+    """执行 `emit_continue_transition` 的内部逻辑。"""
     return emit_transition(agent, task_state, kind=CONTINUE_KIND, reason=reason, **evidence)
 
 def emit_terminal_transition(agent, task_state, reason, **evidence):
+    """执行 `emit_terminal_transition` 的内部逻辑。"""
     return emit_transition(agent, task_state, kind=TERMINAL_KIND, reason=reason, **evidence)

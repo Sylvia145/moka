@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 import os
 import subprocess
@@ -16,6 +17,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_prompt_file_reads_prompt_and_runs_one_shot(tmp_path, capsys):
+    """执行 `test_prompt_file_reads_prompt_and_runs_one_shot` 的内部逻辑。"""
     prompt = tmp_path / "prompt.txt"
     prompt.write_text("Return final.", encoding="utf-8")
 
@@ -43,6 +45,7 @@ def test_prompt_file_reads_prompt_and_runs_one_shot(tmp_path, capsys):
 
 
 def test_prompt_file_with_positional_prompt_returns_2(tmp_path, capsys):
+    """执行 `test_prompt_file_with_positional_prompt_returns_2` 的内部逻辑。"""
     prompt = tmp_path / "prompt.txt"
     prompt.write_text("Return final.", encoding="utf-8")
 
@@ -54,6 +57,7 @@ def test_prompt_file_with_positional_prompt_returns_2(tmp_path, capsys):
 
 
 def test_session_id_creates_and_reuses_fixed_session(tmp_path):
+    """执行 `test_session_id_creates_and_reuses_fixed_session` 的内部逻辑。"""
     prompt = tmp_path / "prompt.txt"
     prompt.write_text("Return final.", encoding="utf-8")
     clients = [
@@ -87,6 +91,7 @@ def test_session_id_creates_and_reuses_fixed_session(tmp_path):
 
 
 def test_invalid_session_ids_and_resume_conflict_return_2(tmp_path, capsys):
+    """执行 `test_invalid_session_ids_and_resume_conflict_return_2` 的内部逻辑。"""
     prompt = tmp_path / "prompt.txt"
     prompt.write_text("Return final.", encoding="utf-8")
     for session_id in ("../x", "a/b", ".", ".."):
@@ -125,6 +130,7 @@ def test_invalid_session_ids_and_resume_conflict_return_2(tmp_path, capsys):
 
 
 def test_non_interactive_requires_non_ask_approval_and_prompt(tmp_path, capsys):
+    """执行 `test_non_interactive_requires_non_ask_approval_and_prompt` 的内部逻辑。"""
     prompt = tmp_path / "prompt.txt"
     prompt.write_text("Return final.", encoding="utf-8")
 
@@ -146,6 +152,7 @@ def test_non_interactive_requires_non_ask_approval_and_prompt(tmp_path, capsys):
 
 
 def test_harnessbench_metadata_points_to_pico_evidence(tmp_path):
+    """执行 `test_harnessbench_metadata_points_to_pico_evidence` 的内部逻辑。"""
     workspace = tmp_path
     run_dir = workspace / ".pico" / "runs" / "run_1"
     session_dir = workspace / ".pico" / "sessions"
@@ -195,6 +202,7 @@ def test_harnessbench_metadata_points_to_pico_evidence(tmp_path):
 
 
 def test_harnessbench_metadata_writer_creates_manifest(tmp_path):
+    """执行 `test_harnessbench_metadata_writer_creates_manifest` 的内部逻辑。"""
     output = tmp_path / "sandbox" / "pico-adapter-metadata.json"
 
     metadata = write_adapter_metadata(tmp_path, output, session_id="missing")
@@ -210,6 +218,7 @@ def test_harnessbench_metadata_writer_creates_manifest(tmp_path):
     reason="fixture writes a POSIX bash script; not portable to Windows",
 )
 def test_bench_script_env_max_steps_overrides_yaml_arg(tmp_path):
+    """执行 `test_bench_script_env_max_steps_overrides_yaml_arg` 的内部逻辑。"""
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
     fake_uv = fake_bin / "uv"

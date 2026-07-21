@@ -1,9 +1,10 @@
-"""Child runtime construction for worker tasks."""
+"""Pico 运行时实现模块。"""
 
 from .workspace import WorkspaceContext
 
 
 def build_child_runtime(parent, subagent_type, write_scope, workspace_root=None):
+    """执行 `build_child_runtime` 的内部逻辑。"""
     from .runtime import Pico
 
     child = Pico(
@@ -32,6 +33,7 @@ def build_child_runtime(parent, subagent_type, write_scope, workspace_root=None)
 
 
 def new_model_client(parent):
+    """执行 `new_model_client` 的内部逻辑。"""
     factory = getattr(parent, "model_client_factory", None)
     if factory is not None:
         return factory()

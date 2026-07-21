@@ -1,4 +1,4 @@
-"""Acceptance tests for final-readiness behavior inside real engine turns."""
+"""Pico 自动化测试模块。"""
 
 import json
 import shlex
@@ -9,6 +9,7 @@ from pico.testing import ScriptedModelClient
 
 
 def build_agent(tmp_path, outputs, **kwargs):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
@@ -22,6 +23,7 @@ def build_agent(tmp_path, outputs, **kwargs):
 
 
 def read_jsonl(path):
+    """执行 `read_jsonl` 的内部逻辑。"""
     return [
         json.loads(line)
         for line in path.read_text(encoding="utf-8").splitlines()
@@ -30,6 +32,7 @@ def read_jsonl(path):
 
 
 def test_soft_final_readiness_does_not_warn_for_low_pressure_missing_provider_usage(tmp_path):
+    """执行 `test_soft_final_readiness_does_not_warn_for_low_pressure_missing_provider_usage` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         ["<final>done</final>"],
@@ -48,6 +51,7 @@ def test_soft_final_readiness_does_not_warn_for_low_pressure_missing_provider_us
 
 
 def test_soft_final_readiness_reminds_once_then_allows_unchanged_final(tmp_path):
+    """执行 `test_soft_final_readiness_reminds_once_then_allows_unchanged_final` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -85,6 +89,7 @@ def test_soft_final_readiness_reminds_once_then_allows_unchanged_final(tmp_path)
 
 
 def test_strict_final_readiness_blocks_unverified_workspace_changes(tmp_path):
+    """执行 `test_strict_final_readiness_blocks_unverified_workspace_changes` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -116,6 +121,7 @@ def test_strict_final_readiness_blocks_unverified_workspace_changes(tmp_path):
 
 
 def test_strict_final_readiness_blocks_partial_success_workspace_changes(tmp_path):
+    """执行 `test_strict_final_readiness_blocks_partial_success_workspace_changes` 的内部逻辑。"""
     script = (
         "from pathlib import Path; Path('notes/result.txt').parent.mkdir(exist_ok=True); "
         "Path('notes/result.txt').write_text('partial\\n'); raise SystemExit(1)"
@@ -154,6 +160,7 @@ def test_strict_final_readiness_blocks_partial_success_workspace_changes(tmp_pat
 
 
 def test_soft_final_readiness_warns_for_net_negative_llm_compaction(tmp_path):
+    """执行 `test_soft_final_readiness_warns_for_net_negative_llm_compaction` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [

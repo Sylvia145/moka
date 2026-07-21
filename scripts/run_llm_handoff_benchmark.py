@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Paired benchmark: deterministic vs LLM handoff context compaction."""
+"""Pico 项目运行与验证脚本。"""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from pico.evaluation.context_cost import generate_report, run_paired_experiment 
 
 
 def main(argv=None):
+    """执行 `main` 的内部逻辑。"""
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["scripted", "live"], default="scripted")
     parser.add_argument("--provider", default="deepseek")

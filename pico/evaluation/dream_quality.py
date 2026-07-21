@@ -1,4 +1,4 @@
-"""Offline dream consolidation quality suite."""
+"""Pico 运行时实现模块。"""
 
 import argparse
 import json
@@ -49,6 +49,7 @@ CONSOLIDATED_NOTES = {
 
 
 def _topic_content(notes):
+    """执行 `_topic_content` 的内部逻辑。"""
     lines = [
         "# Test Topic",
         "",
@@ -64,6 +65,7 @@ def _topic_content(notes):
 
 
 def _scripted_outputs(fixture_name):
+    """执行 `_scripted_outputs` 的内部逻辑。"""
     content = json.dumps(_topic_content(CONSOLIDATED_NOTES[fixture_name]))
     return [
         '<tool>{"name":"read_file","args":{"path":".pico/memory/topics/test-topic.md","start":1,"end":120}}</tool>',
@@ -73,6 +75,7 @@ def _scripted_outputs(fixture_name):
 
 
 def _latest_report(memory_dir):
+    """执行 `_latest_report` 的内部逻辑。"""
     reports = sorted((Path(memory_dir) / "dream_reports").glob("*.json"))
     if not reports:
         raise FileNotFoundError("dream report was not written")
@@ -80,6 +83,7 @@ def _latest_report(memory_dir):
 
 
 def _run_fixture(fixture_path):
+    """执行 `_run_fixture` 的内部逻辑。"""
     fixture_path = Path(fixture_path)
     with tempfile.TemporaryDirectory(prefix="pico-dream-quality-") as tmp:
         root = Path(tmp)
@@ -114,6 +118,7 @@ def _run_fixture(fixture_path):
 
 
 def _rate(rows, report_key, expected_key):
+    """执行 `_rate` 的内部逻辑。"""
     denominator = sum(row["expected"][expected_key] for row in rows)
     if denominator == 0:
         return 1.0
@@ -121,6 +126,7 @@ def _rate(rows, report_key, expected_key):
 
 
 def run_dream_quality_v1(fixtures_dir, artifact_path=DEFAULT_ARTIFACT_PATH):
+    """执行 `run_dream_quality_v1` 的内部逻辑。"""
     fixtures_dir = Path(fixtures_dir)
     rows = [_run_fixture(path) for path in sorted(fixtures_dir.iterdir()) if path.is_dir()]
     summary = {
@@ -149,6 +155,7 @@ def run_dream_quality_v1(fixtures_dir, artifact_path=DEFAULT_ARTIFACT_PATH):
 
 
 def main(argv=None):
+    """执行 `main` 的内部逻辑。"""
     parser = argparse.ArgumentParser(description="Run Pico dream quality fixtures.")
     parser.add_argument("--fixtures", required=True, help="Directory containing dream input fixtures.")
     parser.add_argument("--artifact", default=str(DEFAULT_ARTIFACT_PATH), help="Path for dream-quality-v1 artifact.")

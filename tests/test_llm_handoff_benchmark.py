@@ -1,3 +1,4 @@
+"""Pico 自动化测试模块。"""
 import json
 import subprocess
 import sys
@@ -13,10 +14,12 @@ TASKS_PATH = ROOT / "benchmarks" / "long_session_tasks.json"
 
 
 def _load_long_session_tasks():
+    """执行 `_load_long_session_tasks` 的内部逻辑。"""
     return json.loads(TASKS_PATH.read_text(encoding="utf-8"))["tasks"]
 
 
 def test_long_session_tasks_define_five_fixture_backed_tasks():
+    """执行 `test_long_session_tasks_define_five_fixture_backed_tasks` 的内部逻辑。"""
     tasks = _load_long_session_tasks()
     expected_scripted_counts = {
         "multi-file-refactor": 10,
@@ -42,6 +45,7 @@ def test_long_session_tasks_define_five_fixture_backed_tasks():
 
 
 def test_run_paired_experiment_scripted_populates_llm_handoff_metrics(tmp_path):
+    """执行 `test_run_paired_experiment_scripted_populates_llm_handoff_metrics` 的内部逻辑。"""
     tasks = _load_long_session_tasks()[:1]
 
     payload = run_paired_experiment(
@@ -78,10 +82,12 @@ def test_run_paired_experiment_scripted_populates_llm_handoff_metrics(tmp_path):
 
 
 def test_live_mode_routes_through_provider_client_factory(tmp_path):
+    """执行 `test_live_mode_routes_through_provider_client_factory` 的内部逻辑。"""
     tasks = _load_long_session_tasks()[:1]
     calls = []
 
     def provider_client_factory(*, provider, task, variant, repeat):
+        """执行 `provider_client_factory` 的内部逻辑。"""
         calls.append((provider, task["id"], variant, repeat))
         from pico.evaluation.context_cost import _LongSessionScriptedClient
 
@@ -104,6 +110,7 @@ def test_live_mode_routes_through_provider_client_factory(tmp_path):
 
 
 def test_live_mode_without_provider_config_reports_clear_blocked_error(monkeypatch, tmp_path):
+    """执行 `test_live_mode_without_provider_config_reports_clear_blocked_error` 的内部逻辑。"""
     import pico.evaluation.context_cost as context_cost
 
     monkeypatch.setattr(
@@ -134,6 +141,7 @@ def test_live_mode_without_provider_config_reports_clear_blocked_error(monkeypat
 
 
 def test_long_session_benchmark_verifier_can_downgrade_runtime_pass(tmp_path):
+    """执行 `test_long_session_benchmark_verifier_can_downgrade_runtime_pass` 的内部逻辑。"""
     task = dict(_load_long_session_tasks()[1])
     task["verifier"] = "python3 -c \"raise SystemExit(1)\""
 
@@ -152,6 +160,7 @@ def test_long_session_benchmark_verifier_can_downgrade_runtime_pass(tmp_path):
 
 
 def test_generate_report_includes_llm_handoff_comparison():
+    """执行 `test_generate_report_includes_llm_handoff_comparison` 的内部逻辑。"""
     payload = {
         "summary": {},
         "pricing": {},
@@ -182,6 +191,7 @@ def test_generate_report_includes_llm_handoff_comparison():
 
 
 def test_generate_report_includes_all_repeats_in_llm_handoff_comparison():
+    """执行 `test_generate_report_includes_all_repeats_in_llm_handoff_comparison` 的内部逻辑。"""
     payload = {
         "summary": {},
         "pricing": {},
@@ -237,6 +247,7 @@ def test_generate_report_includes_all_repeats_in_llm_handoff_comparison():
     reason="fixture tasks shell out with POSIX-only commands",
 )
 def test_fixture_verifiers_pass_after_scripted_correct_state(tmp_path):
+    """执行 `test_fixture_verifiers_pass_after_scripted_correct_state` 的内部逻辑。"""
     tasks = _load_long_session_tasks()
     payload = run_paired_experiment(
         tasks=tasks,
@@ -256,6 +267,7 @@ def test_fixture_verifiers_pass_after_scripted_correct_state(tmp_path):
     reason="fixture tasks shell out with POSIX-only commands",
 )
 def test_llm_handoff_benchmark_cli_scripted_smoke(tmp_path):
+    """执行 `test_llm_handoff_benchmark_cli_scripted_smoke` 的内部逻辑。"""
     output_dir = tmp_path / "artifacts"
     result = subprocess.run(
         [

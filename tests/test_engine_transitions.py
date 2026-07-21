@@ -1,4 +1,4 @@
-"""Engine acceptance tests for loop transition trace evidence."""
+"""Pico 自动化测试模块。"""
 
 import json
 
@@ -10,6 +10,7 @@ from pico.testing import ScriptedModelClient
 
 
 def build_agent(tmp_path, outputs, **kwargs):
+    """执行 `build_agent` 的内部逻辑。"""
     (tmp_path / "README.md").write_text("demo\n", encoding="utf-8")
     workspace = WorkspaceContext.build(tmp_path)
     store = SessionStore(tmp_path / ".pico" / "sessions")
@@ -23,6 +24,7 @@ def build_agent(tmp_path, outputs, **kwargs):
 
 
 def read_jsonl(path):
+    """执行 `read_jsonl` 的内部逻辑。"""
     return [
         json.loads(line)
         for line in path.read_text(encoding="utf-8").splitlines()
@@ -31,6 +33,7 @@ def read_jsonl(path):
 
 
 def test_engine_records_loop_transitions_without_changing_stream(tmp_path):
+    """执行 `test_engine_records_loop_transitions_without_changing_stream` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -78,6 +81,7 @@ def test_engine_records_loop_transitions_without_changing_stream(tmp_path):
 
 
 def test_runtime_consumer_errors_are_visible_in_task_state(tmp_path):
+    """执行 `test_runtime_consumer_errors_are_visible_in_task_state` 的内部逻辑。"""
     agent = build_agent(tmp_path, [])
     task_state = TaskState.create(
         task_id=agent.new_task_id(),
@@ -107,8 +111,10 @@ def test_runtime_consumer_errors_are_visible_in_task_state(tmp_path):
 
 
 def test_noncritical_runtime_consumer_errors_are_separated(tmp_path):
+    """执行 `test_noncritical_runtime_consumer_errors_are_separated` 的内部逻辑。"""
     class NonCriticalConsumer:
         def handle(self, runtime, task_state, event):
+            """执行 `handle` 的内部逻辑。"""
             raise RuntimeError("optional projection failed")
 
     agent = build_agent(tmp_path, [])
@@ -129,6 +135,7 @@ def test_noncritical_runtime_consumer_errors_are_separated(tmp_path):
 
 
 def test_engine_executes_multiple_tool_calls_from_one_model_response(tmp_path):
+    """执行 `test_engine_executes_multiple_tool_calls_from_one_model_response` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -162,6 +169,7 @@ def test_engine_executes_multiple_tool_calls_from_one_model_response(tmp_path):
 
 
 def test_multi_tool_transition_distinguishes_requested_and_executed_counts(tmp_path):
+    """执行 `test_multi_tool_transition_distinguishes_requested_and_executed_counts` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -192,6 +200,7 @@ def test_multi_tool_transition_distinguishes_requested_and_executed_counts(tmp_p
 
 
 def test_empty_response_provider_error_is_retried_once_before_failing(tmp_path):
+    """执行 `test_empty_response_provider_error_is_retried_once_before_failing` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -232,6 +241,7 @@ def test_empty_response_provider_error_is_retried_once_before_failing(tmp_path):
 
 
 def test_parse_retry_transition_preserves_stream_order(tmp_path):
+    """执行 `test_parse_retry_transition_preserves_stream_order` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -261,6 +271,7 @@ def test_parse_retry_transition_preserves_stream_order(tmp_path):
 
 
 def test_retry_limit_transition_is_terminal(tmp_path):
+    """执行 `test_retry_limit_transition_is_terminal` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         ["malformed 1", "malformed 2", "malformed 3"],
@@ -282,6 +293,7 @@ def test_retry_limit_transition_is_terminal(tmp_path):
 
 
 def test_plan_notice_transition_preserves_runtime_notice_stream_order(tmp_path):
+    """执行 `test_plan_notice_transition_preserves_runtime_notice_stream_order` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -319,6 +331,7 @@ def test_plan_notice_transition_preserves_runtime_notice_stream_order(tmp_path):
 
 
 def test_step_limit_triggers_graceful_summary_when_model_complies(tmp_path):
+    """执行 `test_step_limit_triggers_graceful_summary_when_model_complies` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
@@ -337,6 +350,7 @@ def test_step_limit_triggers_graceful_summary_when_model_complies(tmp_path):
 
 
 def test_step_limit_falls_back_to_cold_message_when_summary_fails(tmp_path):
+    """执行 `test_step_limit_falls_back_to_cold_message_when_summary_fails` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [

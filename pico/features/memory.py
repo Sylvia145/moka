@@ -1,4 +1,4 @@
-"""多步 agent 运行时使用的轻量工作记忆。
+"""Pico 运行时实现模块。
 
 session history 负责保存完整事件流；这个模块只保存更小的一层工作集：
 当前任务摘要、最近接触的文件、文件短摘要，以及少量跨轮笔记。
@@ -76,6 +76,7 @@ DURABLE_TOPIC_DEFAULTS = {
 
 
 def ensure_memory_dir(memory_dir):
+    """执行 `ensure_memory_dir` 的内部逻辑。"""
     memory_dir = Path(memory_dir)
     memory_dir.mkdir(parents=True, exist_ok=True)
     (memory_dir / "logs").mkdir(parents=True, exist_ok=True)
@@ -92,6 +93,7 @@ def ensure_memory_dir(memory_dir):
 
 
 def daily_log_path(memory_dir, today=None):
+    """执行 `daily_log_path` 的内部逻辑。"""
     today = today or date.today()
     memory_dir = ensure_memory_dir(memory_dir)
     path = memory_dir / "logs" / str(today.year) / f"{today.month:02d}" / f"{today.isoformat()}.md"
@@ -100,6 +102,7 @@ def daily_log_path(memory_dir, today=None):
 
 
 def append_to_daily_log(memory_dir, entry, today=None):
+    """执行 `append_to_daily_log` 的内部逻辑。"""
     entry = str(entry).strip()
     if not entry:
         return None
@@ -111,6 +114,7 @@ def append_to_daily_log(memory_dir, entry, today=None):
 
 
 def default_memory_maintenance_audit(auto_dream=True):
+    """执行 `default_memory_maintenance_audit` 的内部逻辑。"""
     return {
         "memory_tags_appended": [],
         "auto_dream": {
@@ -126,6 +130,7 @@ def default_memory_maintenance_audit(auto_dream=True):
 
 
 def _agent_relative_path(agent, path):
+    """执行 `_agent_relative_path` 的内部逻辑。"""
     try:
         return Path(path).resolve().relative_to(agent.root).as_posix()
     except ValueError:
@@ -133,6 +138,7 @@ def _agent_relative_path(agent, path):
 
 
 def memory_file_read_payloads(memory_dir, workspace_root=None, reason="retrieval"):
+    """执行 `memory_file_read_payloads` 的内部逻辑。"""
     memory_dir = Path(memory_dir)
     index_path = memory_dir / ENTRYPOINT_NAME
     paths = ([index_path] if index_path.exists() else []) + sorted((memory_dir / "topics").glob("*.md"))
@@ -151,6 +157,7 @@ def memory_file_read_payloads(memory_dir, workspace_root=None, reason="retrieval
 
 
 def _memory_file_snapshot(agent):
+    """执行 `_memory_file_snapshot` 的内部逻辑。"""
     memory_dir = Path(agent.memory_dir)
     if not memory_dir.exists():
         return {}
@@ -169,10 +176,12 @@ def _memory_file_snapshot(agent):
 
 
 def _changed_memory_files(before, after):
+    """执行 `_changed_memory_files` 的内部逻辑。"""
     return sorted(path for path in set(before) | set(after) if before.get(path) != after.get(path))
 
 
 def _dream_topic_notes(memory_dir):
+    """执行 `_dream_topic_notes` 的内部逻辑。"""
     store = DurableMemoryStore(memory_dir)
     topics_dir = Path(memory_dir) / "topics"
     if not topics_dir.exists():
@@ -206,21 +215,25 @@ def _dream_topic_notes(memory_dir):
 
 
 def _dream_note_active(note):
+    """执行 `_dream_note_active` 的内部逻辑。"""
     return str(note.get("status", "active") or "active") == "active"
 
 
 def _dream_note_secret(note):
+    """执行 `_dream_note_secret` 的内部逻辑。"""
     text = str(note.get("text", ""))
     return any(pattern.search(text) for pattern in SECRET_PATTERNS)
 
 
 def _dream_note_noise(note):
+    """执行 `_dream_note_noise` 的内部逻辑。"""
     evidence = note.get("evidence") if isinstance(note.get("evidence"), dict) else {}
     session_id = str(evidence.get("session_id", "")).strip().lower()
     return session_id == "noise" or bool(DREAM_NOISE_PATTERN.search(str(note.get("text", ""))))
 
 
 def build_dream_report(before_notes, after_notes):
+    """执行 `build_dream_report` 的内部逻辑。"""
     active_after = [note for note in after_notes if _dream_note_active(note)]
     active_after_texts = [note["text"] for note in active_after]
     active_after_text_set = set(active_after_texts)
@@ -260,6 +273,7 @@ def build_dream_report(before_notes, after_notes):
 
 
 def write_dream_report(memory_dir, report, iso_ts=None):
+    """执行 `write_dream_report` 的内部逻辑。"""
     iso_ts = iso_ts or datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     # ISO 时间戳里的 ":" 在 Windows 文件名中是非法字符，替换成连字符以保持
     # 跨平台可写，同时保留时间戳的可读性与排序性。
@@ -272,6 +286,7 @@ def write_dream_report(memory_dir, report, iso_ts=None):
 
 
 def _emit_memory_trace(agent, event, payload):
+    """执行 `_emit_memory_trace` 的内部逻辑。"""
     task_state = getattr(agent, "current_task_state", None)
     if task_state is None:
         return None
@@ -279,6 +294,7 @@ def _emit_memory_trace(agent, event, payload):
 
 
 def _write_memory_maintenance_report(agent, task_state, audit):
+    """执行 `_write_memory_maintenance_report` 的内部逻辑。"""
     try:
         if agent.run_store.report_path(task_state).exists():
             report = agent.run_store.load_report(task_state)
@@ -291,6 +307,7 @@ def _write_memory_maintenance_report(agent, task_state, audit):
 
 
 def load_memory_index_text(memory_dir):
+    """执行 `load_memory_index_text` 的内部逻辑。"""
     path = Path(memory_dir) / ENTRYPOINT_NAME
     if not path.exists():
         return ""
@@ -306,14 +323,17 @@ def load_memory_index_text(memory_dir):
 
 
 def extract_memory_tags(text):
+    """执行 `extract_memory_tags` 的内部逻辑。"""
     return [match.strip() for match in re.findall(r"<memory>(.*?)</memory>", str(text), re.DOTALL) if match.strip()]
 
 
 def _lock_path(memory_dir):
+    """执行 `_lock_path` 的内部逻辑。"""
     return Path(memory_dir) / LOCK_FILE_NAME
 
 
 def read_last_consolidated_at(memory_dir):
+    """执行 `read_last_consolidated_at` 的内部逻辑。"""
     try:
         return _lock_path(memory_dir).stat().st_mtime
     except OSError:
@@ -321,6 +341,7 @@ def read_last_consolidated_at(memory_dir):
 
 
 def try_acquire_lock(memory_dir):
+    """执行 `try_acquire_lock` 的内部逻辑。"""
     ensure_memory_dir(memory_dir)
     lock_path = _lock_path(memory_dir)
     current_pid = os.getpid()
@@ -341,6 +362,7 @@ def try_acquire_lock(memory_dir):
 
 
 def release_lock(memory_dir):
+    """执行 `release_lock` 的内部逻辑。"""
     lock_path = _lock_path(memory_dir)
     try:
         timestamp = datetime.now().timestamp()
@@ -351,6 +373,7 @@ def release_lock(memory_dir):
 
 
 def record_consolidation(memory_dir):
+    """执行 `record_consolidation` 的内部逻辑。"""
     ensure_memory_dir(memory_dir)
     lock_path = _lock_path(memory_dir)
     lock_path.write_text(str(os.getpid()), encoding="utf-8")
@@ -359,6 +382,7 @@ def record_consolidation(memory_dir):
 
 
 def list_sessions_since(since_ts, sessions_dir=None, current_session_id=""):
+    """执行 `list_sessions_since` 的内部逻辑。"""
     scan_dir = Path(sessions_dir) if sessions_dir is not None else None
     if scan_dir is None or not scan_dir.exists():
         return []
@@ -375,10 +399,12 @@ def list_sessions_since(since_ts, sessions_dir=None, current_session_id=""):
 
 
 def should_auto_dream(memory_dir, min_hours, min_sessions, current_session_id, sessions_dir=None):
+    """执行 `should_auto_dream` 的内部逻辑。"""
     return evaluate_auto_dream_gate(memory_dir, min_hours, min_sessions, current_session_id, sessions_dir=sessions_dir)["should_run"]
 
 
 def evaluate_auto_dream_gate(memory_dir, min_hours, min_sessions, current_session_id, sessions_dir=None):
+    """执行 `evaluate_auto_dream_gate` 的内部逻辑。"""
     last = read_last_consolidated_at(memory_dir)
     current = datetime.now().timestamp()
     hours_since = (current - last) / 3600 if last > 0 else float("inf")
@@ -400,6 +426,7 @@ def evaluate_auto_dream_gate(memory_dir, min_hours, min_sessions, current_sessio
 
 
 def build_memory_system_section(memory_dir):
+    """执行 `build_memory_system_section` 的内部逻辑。"""
     index = load_memory_index_text(memory_dir)
     if index:
         index_section = f"## Current Memory Index ({ENTRYPOINT_NAME})\n{index}\n"
@@ -488,6 +515,7 @@ Then add a pointer to that file in `{Path(memory_dir)}/{ENTRYPOINT_NAME}`. MEMOR
 
 
 def build_dream_prompt(memory_dir, transcript_dir="", session_ids=None):
+    """执行 `build_dream_prompt` 的内部逻辑。"""
     session_ids = list(session_ids or [])
     total = len(session_ids)
     truncated = False
@@ -563,6 +591,7 @@ Return a brief summary of what you consolidated, updated, or pruned. If nothing 
 
 
 def reject_durable_reason(note_text, redacted_value="<redacted>"):
+    """执行 `reject_durable_reason` 的内部逻辑。"""
     text = str(note_text or "").strip()
     lowered = text.lower()
     if not text:
@@ -592,6 +621,7 @@ def reject_durable_reason(note_text, redacted_value="<redacted>"):
 
 
 def extract_durable_promotions(user_message, final_answer, redacted_value="<redacted>"):
+    """执行 `extract_durable_promotions` 的内部逻辑。"""
     user_text = str(user_message or "")
     if not (DURABLE_MEMORY_INTENT_PATTERN.search(user_text) or DURABLE_MEMORY_INTENT_ZH_PATTERN.search(user_text)):
         return [], []
@@ -617,6 +647,7 @@ def extract_durable_promotions(user_message, final_answer, redacted_value="<reda
 
 
 def promote_durable_memory(agent, user_message, final_answer):
+    """执行 `promote_durable_memory` 的内部逻辑。"""
     promotions, rejections = extract_durable_promotions(user_message, final_answer)
     promoted, superseded = agent.memory.promote_durable(promotions)
     agent.session["memory"] = agent.memory.to_dict()
@@ -627,6 +658,7 @@ def promote_durable_memory(agent, user_message, final_answer):
 
 
 def run_dream(agent, quiet=False, session_ids=None):
+    """执行 `run_dream` 的内部逻辑。"""
     from ..core.runtime import Pico
 
     ensure_memory_dir(agent.memory_dir)
@@ -677,6 +709,7 @@ def run_dream(agent, quiet=False, session_ids=None):
 
 
 def maintain_memory_after_turn(agent, final_answer):
+    """执行 `maintain_memory_after_turn` 的内部逻辑。"""
     audit = default_memory_maintenance_audit(auto_dream=agent.auto_dream)
     agent.last_memory_maintenance = audit
     for entry in extract_memory_tags(final_answer):
@@ -715,6 +748,7 @@ def maintain_memory_after_turn(agent, final_answer):
     _emit_memory_trace(agent, "memory_auto_dream_started", started_payload)
 
     def _background_dream():
+        """执行 `_background_dream` 的内部逻辑。"""
         try:
             run_dream(agent, quiet=True, session_ids=session_ids)
             audit["auto_dream"]["status"] = "finished"
@@ -746,6 +780,7 @@ def maintain_memory_after_turn(agent, final_answer):
 
 def default_memory_state():
     # 用一个小而结构化的状态，而不是一大段自由文本摘要。
+    """执行 `default_memory_state` 的内部逻辑。"""
     return {
         "working": {
             "task_summary": "",
@@ -762,20 +797,25 @@ def default_memory_state():
 
 class DurableMemoryStore:
     def __init__(self, root):
+        """初始化对象状态。"""
         self.root = Path(root)
         self.index_path = self.root / "MEMORY.md"
         self.topics_dir = self.root / "topics"
 
     def _topic_path(self, topic):
+        """执行 `_topic_path` 的内部逻辑。"""
         return self.topics_dir / f"{topic}.md"
 
     def _metadata_path(self, topic):
+        """执行 `_metadata_path` 的内部逻辑。"""
         return self.topics_dir / f"{topic}.metadata.jsonl"
 
     def topic_slugs(self):
+        """执行 `topic_slugs` 的内部逻辑。"""
         return [topic["topic"] for topic in self.load_index()]
 
     def load_index(self):
+        """执行 `load_index` 的内部逻辑。"""
         if not self.index_path.exists():
             return []
         lines = self.index_path.read_text(encoding="utf-8").splitlines()
@@ -805,6 +845,7 @@ class DurableMemoryStore:
         return topics
 
     def _load_topic_metadata(self, topic):
+        """执行 `_load_topic_metadata` 的内部逻辑。"""
         path = self._metadata_path(topic)
         if not path.exists():
             return {}
@@ -822,6 +863,7 @@ class DurableMemoryStore:
         return rows
 
     def _write_topic_metadata(self, topic, rows):
+        """执行 `_write_topic_metadata` 的内部逻辑。"""
         path = self._metadata_path(topic)
         self.topics_dir.mkdir(parents=True, exist_ok=True)
         ordered = sorted(rows.values(), key=lambda row: str(row.get("note_id", "")))
@@ -829,6 +871,7 @@ class DurableMemoryStore:
         path.write_text("\n".join(lines).rstrip() + ("\n" if lines else ""), encoding="utf-8")
 
     def _default_note_metadata(self, topic, note_text, topic_path=None):
+        """执行 `_default_note_metadata` 的内部逻辑。"""
         topic_path = Path(topic_path) if topic_path is not None else self._topic_path(topic)
         created_at = datetime.fromtimestamp(topic_path.stat().st_mtime).astimezone().isoformat() if topic_path.exists() else now()
         return {
@@ -845,6 +888,7 @@ class DurableMemoryStore:
         }
 
     def _metadata_for_note(self, topic, note_text, metadata, topic_path=None):
+        """执行 `_metadata_for_note` 的内部逻辑。"""
         note_id = _note_id_for(topic, note_text)
         row = dict(metadata.get(note_id) or self._default_note_metadata(topic, note_text, topic_path=topic_path))
         row["note_id"] = note_id
@@ -863,6 +907,7 @@ class DurableMemoryStore:
         return row
 
     def load_topic_notes(self, topic):
+        """执行 `load_topic_notes` 的内部逻辑。"""
         path = self._topic_path(topic)
         if not path.exists():
             return []
@@ -904,6 +949,7 @@ class DurableMemoryStore:
 
     @staticmethod
     def _subject_key(text):
+        """执行 `_subject_key` 的内部逻辑。"""
         text = str(text).strip()
         patterns = (
             r"^(.+?)\s+is\s+.+$",
@@ -921,6 +967,7 @@ class DurableMemoryStore:
         return None
 
     def retrieval_candidates(self, query, limit=3):
+        """执行 `retrieval_candidates` 的内部逻辑。"""
         query_tokens = _tokenize(query)
         ranked = []
         for topic in self.load_index():
@@ -938,6 +985,7 @@ class DurableMemoryStore:
         return [note for _, note in ranked[:limit]]
 
     def _write_index(self, topics):
+        """执行 `_write_index` 的内部逻辑。"""
         self.root.mkdir(parents=True, exist_ok=True)
         self.topics_dir.mkdir(parents=True, exist_ok=True)
         lines = ["# Durable Memory Index", ""]
@@ -948,6 +996,7 @@ class DurableMemoryStore:
         self.index_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
     def _write_topic(self, topic, notes, metadata=None):
+        """执行 `_write_topic` 的内部逻辑。"""
         self.topics_dir.mkdir(parents=True, exist_ok=True)
         meta = DURABLE_TOPIC_DEFAULTS[topic]
         lines = [
@@ -971,6 +1020,7 @@ class DurableMemoryStore:
         self._write_topic_metadata(topic, metadata)
 
     def promote(self, promotions):
+        """执行 `promote` 的内部逻辑。"""
         if not promotions:
             return [], []
         topics = {topic["topic"]: topic for topic in self.load_index()}
@@ -1024,6 +1074,7 @@ class DurableMemoryStore:
 
 
 def _ensure_list(value):
+    """执行 `_ensure_list` 的内部逻辑。"""
     if isinstance(value, list):
         return value
     if isinstance(value, tuple):
@@ -1036,6 +1087,7 @@ def _ensure_list(value):
 
 
 def _dedupe_preserve_order(items):
+    """执行 `_dedupe_preserve_order` 的内部逻辑。"""
     seen = set()
     result = []
     for item in items:
@@ -1047,6 +1099,7 @@ def _dedupe_preserve_order(items):
 
 
 def resolve_workspace_path(raw_path, workspace_root=None):
+    """执行 `resolve_workspace_path` 的内部逻辑。"""
     path = Path(str(raw_path))
     if workspace_root is None:
         return path
@@ -1062,6 +1115,7 @@ def resolve_workspace_path(raw_path, workspace_root=None):
 
 
 def canonicalize_path(raw_path, workspace_root=None):
+    """执行 `canonicalize_path` 的内部逻辑。"""
     resolved = resolve_workspace_path(raw_path, workspace_root)
     if resolved is None:
         return Path(str(raw_path)).as_posix()
@@ -1072,6 +1126,7 @@ def canonicalize_path(raw_path, workspace_root=None):
 
 
 def file_freshness(raw_path, workspace_root=None):
+    """执行 `file_freshness` 的内部逻辑。"""
     resolved = resolve_workspace_path(raw_path, workspace_root)
     if resolved is None or not resolved.exists() or not resolved.is_file():
         return None
@@ -1079,6 +1134,7 @@ def file_freshness(raw_path, workspace_root=None):
 
 
 def compute_anchor_hash(path):
+    """执行 `compute_anchor_hash` 的内部逻辑。"""
     path = Path(path)
     if not path.exists() or not path.is_file():
         return None
@@ -1088,6 +1144,7 @@ def compute_anchor_hash(path):
 
 
 def workspace_fingerprint(workspace_root):
+    """执行 `workspace_fingerprint` 的内部逻辑。"""
     root = str(Path(workspace_root).resolve())
     cached = _WORKSPACE_FINGERPRINT_CACHE.get(root)
     if cached:
@@ -1105,10 +1162,12 @@ def workspace_fingerprint(workspace_root):
 
 
 def _tokenize(text):
+    """执行 `_tokenize` 的内部逻辑。"""
     return {token.lower() for token in re.findall(r"[A-Za-z0-9_]+", str(text))}
 
 
 def _parse_timestamp(value):
+    """执行 `_parse_timestamp` 的内部逻辑。"""
     if not value:
         return 0.0
     try:
@@ -1118,14 +1177,17 @@ def _parse_timestamp(value):
 
 
 def _query_hash(query):
+    """执行 `_query_hash` 的内部逻辑。"""
     return hashlib.sha256(str(query).encode("utf-8")).hexdigest()[:12]
 
 
 def _note_id_for(topic_slug, note_text):
+    """执行 `_note_id_for` 的内部逻辑。"""
     return hashlib.sha256(f"{topic_slug}\n{note_text}".encode("utf-8")).hexdigest()[:12]
 
 
 def _note_layer(note):
+    """执行 `_note_layer` 的内部逻辑。"""
     kind = str(note.get("kind", "")).strip()
     if kind == "durable":
         return "durable"
@@ -1135,6 +1197,7 @@ def _note_layer(note):
 
 
 def _retrieval_note_id(note):
+    """执行 `_retrieval_note_id` 的内部逻辑。"""
     explicit = str(note.get("note_id", "")).strip()
     if explicit:
         return explicit
@@ -1143,6 +1206,7 @@ def _retrieval_note_id(note):
 
 
 def _retrieval_reject_reason(note, workspace_root=None):
+    """执行 `_retrieval_reject_reason` 的内部逻辑。"""
     status = str(note.get("status", "active")).strip() or "active"
     if status == "quarantined":
         return "quarantined"
@@ -1159,6 +1223,7 @@ def _retrieval_reject_reason(note, workspace_root=None):
 
 
 def _retrieval_record(note, score, reject_reason=""):
+    """执行 `_retrieval_record` 的内部逻辑。"""
     enriched = dict(note)
     enriched["note_id"] = _retrieval_note_id(enriched)
     enriched["layer"] = _note_layer(enriched)
@@ -1169,6 +1234,7 @@ def _retrieval_record(note, score, reject_reason=""):
 
 
 def _source_path_for_evidence(workspace_root, source_path):
+    """执行 `_source_path_for_evidence` 的内部逻辑。"""
     source_path = str(source_path or "").strip()
     if not source_path:
         return None
@@ -1181,6 +1247,7 @@ def _source_path_for_evidence(workspace_root, source_path):
 
 
 def _apply_evidence_staleness(note, workspace_root):
+    """执行 `_apply_evidence_staleness` 的内部逻辑。"""
     evidence = note.get("evidence") if isinstance(note.get("evidence"), dict) else {}
     stored_hash = str(evidence.get("evidence_anchor_hash", "") or "").strip()
     source_path = evidence.get("source_path")
@@ -1194,6 +1261,7 @@ def _apply_evidence_staleness(note, workspace_root):
 
 
 def _normalize_note(note, index):
+    """执行 `_normalize_note` 的内部逻辑。"""
     if isinstance(note, str):
         text = clip(note.strip(), 500)
         return {
@@ -1237,6 +1305,7 @@ def _normalize_note(note, index):
 
 
 def normalize_memory_state(state, workspace_root=None):
+    """执行 `normalize_memory_state` 的内部逻辑。"""
     if state is None:
         state = default_memory_state()
     elif not isinstance(state, dict):
@@ -1330,6 +1399,7 @@ def normalize_memory_state(state, workspace_root=None):
 
 
 def set_task_summary(state, summary, workspace_root=None):
+    """执行 `set_task_summary` 的内部逻辑。"""
     state = normalize_memory_state(state, workspace_root)
     state["working"]["task_summary"] = clip(str(summary).strip(), 300)
     state["task"] = state["working"]["task_summary"]
@@ -1337,6 +1407,7 @@ def set_task_summary(state, summary, workspace_root=None):
 
 
 def remember_file(state, path, workspace_root=None):
+    """执行 `remember_file` 的内部逻辑。"""
     state = normalize_memory_state(state, workspace_root)
     path = canonicalize_path(path, workspace_root).strip()
     if not path:
@@ -1349,6 +1420,7 @@ def remember_file(state, path, workspace_root=None):
 
 
 def append_note(state, text, tags=(), source="", created_at=None, workspace_root=None, kind="episodic"):
+    """执行 `append_note` 的内部逻辑。"""
     state = normalize_memory_state(state, workspace_root)
     text = clip(str(text).strip(), 500)
     if not text:
@@ -1373,6 +1445,7 @@ def append_note(state, text, tags=(), source="", created_at=None, workspace_root
     state["notes"] = [item["text"] for item in state["episodic_notes"]]
     return state
 def set_file_summary(state, path, summary, workspace_root=None):
+    """执行 `set_file_summary` 的内部逻辑。"""
     state = normalize_memory_state(state, workspace_root)
     path = canonicalize_path(path, workspace_root).strip()
     summary = clip(str(summary).strip(), 500)
@@ -1387,6 +1460,7 @@ def set_file_summary(state, path, summary, workspace_root=None):
 
 
 def invalidate_file_summary(state, path, workspace_root=None):
+    """执行 `invalidate_file_summary` 的内部逻辑。"""
     state = normalize_memory_state(state, workspace_root)
     path = canonicalize_path(path, workspace_root).strip()
     if not path:
@@ -1396,6 +1470,7 @@ def invalidate_file_summary(state, path, workspace_root=None):
 
 
 def invalidate_stale_file_summaries(state, workspace_root=None):
+    """执行 `invalidate_stale_file_summaries` 的内部逻辑。"""
     state = normalize_memory_state(state, workspace_root)
     invalidated = []
     for path, summary in list(state["file_summaries"].items()):
@@ -1410,6 +1485,7 @@ def invalidate_stale_file_summaries(state, workspace_root=None):
 def summarize_read_result(result, limit=180):
     # 我们不会把完整文件内容塞进记忆层，
     # 这里只保留足够提醒下一轮“刚刚读到了什么”的短摘要。
+    """执行 `summarize_read_result` 的内部逻辑。"""
     lines = [line.strip() for line in str(result).splitlines() if line.strip()]
     if not lines:
         return "(empty)"
@@ -1422,6 +1498,7 @@ def summarize_read_result(result, limit=180):
 
 
 def _iter_retrieval_notes(state, workspace_root=None):
+    """执行 `_iter_retrieval_notes` 的内部逻辑。"""
     for note in state["episodic_notes"]:
         yield dict(note)
     if workspace_root is not None:
@@ -1432,6 +1509,7 @@ def _iter_retrieval_notes(state, workspace_root=None):
 
 
 def _ranked_retrieval_notes(state, query, workspace_root=None):
+    """执行 `_ranked_retrieval_notes` 的内部逻辑。"""
     state = normalize_memory_state(state, workspace_root)
     query_tokens = _tokenize(query)
     ranked = []
@@ -1454,6 +1532,7 @@ def _ranked_retrieval_notes(state, query, workspace_root=None):
 
 
 def retrieval_view_structured(state, query, limit=3, workspace_root=None):
+    """执行 `retrieval_view_structured` 的内部逻辑。"""
     selected = []
     rejected = []
     for _, score, note in _ranked_retrieval_notes(state, query, workspace_root):
@@ -1469,11 +1548,13 @@ def retrieval_view_structured(state, query, limit=3, workspace_root=None):
 
 
 def retrieval_candidates(state, query, limit=3, workspace_root=None):
+    """执行 `retrieval_candidates` 的内部逻辑。"""
     structured = retrieval_view_structured(state, query, limit=limit, workspace_root=workspace_root)
     return structured["selected"]
 
 
 def retrieval_view(state, query, limit=3, workspace_root=None):
+    """执行 `retrieval_view` 的内部逻辑。"""
     structured = retrieval_view_structured(state, query, limit=limit, workspace_root=workspace_root)
     candidates = structured["selected"]
     lines = ["Relevant memory:"]
@@ -1486,6 +1567,7 @@ def retrieval_view(state, query, limit=3, workspace_root=None):
 
 
 def render_memory_text(state, workspace_root=None):
+    """执行 `render_memory_text` 的内部逻辑。"""
     state = normalize_memory_state(state, workspace_root)
     # 这里渲染的是给模型看的紧凑“仪表盘”，不是完整回放。
     # 笔记正文默认不展开，只有在相关召回时才按需拿出来。
@@ -1514,6 +1596,7 @@ def render_memory_text(state, workspace_root=None):
 
 
 def is_effectively_empty(state, workspace_root=None):
+    """执行 `is_effectively_empty` 的内部逻辑。"""
     state = normalize_memory_state(state, workspace_root)
     return (
         not str(state["working"]["task_summary"]).strip()
@@ -1525,27 +1608,33 @@ def is_effectively_empty(state, workspace_root=None):
 
 class LayeredMemory:
     def __init__(self, state=None, workspace_root=None):
+        """初始化对象状态。"""
         self.workspace_root = workspace_root
         self.state = normalize_memory_state(state, workspace_root)
         self.durable_store = DurableMemoryStore(Path(workspace_root) / ".pico" / "memory") if workspace_root is not None else None
         self.last_retrieval = None
 
     def to_dict(self):
+        """执行 `to_dict` 的内部逻辑。"""
         self.state = normalize_memory_state(self.state, self.workspace_root)
         return self.state
 
     def canonical_path(self, path):
+        """执行 `canonical_path` 的内部逻辑。"""
         return canonicalize_path(path, self.workspace_root)
 
     def set_task_summary(self, summary):
+        """执行 `set_task_summary` 的内部逻辑。"""
         self.state = set_task_summary(self.state, summary, self.workspace_root)
         return self
 
     def remember_file(self, path):
+        """执行 `remember_file` 的内部逻辑。"""
         self.state = remember_file(self.state, path, self.workspace_root)
         return self
 
     def append_note(self, text, tags=(), source="", created_at=None, kind="episodic"):
+        """执行 `append_note` 的内部逻辑。"""
         self.state = append_note(
             self.state,
             text,
@@ -1558,32 +1647,40 @@ class LayeredMemory:
         return self
 
     def set_file_summary(self, path, summary):
+        """执行 `set_file_summary` 的内部逻辑。"""
         self.state = set_file_summary(self.state, path, summary, self.workspace_root)
         return self
 
     def invalidate_file_summary(self, path):
+        """执行 `invalidate_file_summary` 的内部逻辑。"""
         self.state = invalidate_file_summary(self.state, path, self.workspace_root)
         return self
 
     def invalidate_stale_file_summaries(self):
+        """执行 `invalidate_stale_file_summaries` 的内部逻辑。"""
         self.state, invalidated = invalidate_stale_file_summaries(self.state, self.workspace_root)
         return invalidated
 
     def retrieval_candidates(self, query, limit=3):
+        """执行 `retrieval_candidates` 的内部逻辑。"""
         self.last_retrieval = retrieval_view_structured(self.state, query, limit=limit, workspace_root=self.workspace_root)
         return self.last_retrieval["selected"]
 
     def retrieval_view_structured(self, query, limit=3):
+        """执行 `retrieval_view_structured` 的内部逻辑。"""
         self.last_retrieval = retrieval_view_structured(self.state, query, limit=limit, workspace_root=self.workspace_root)
         return self.last_retrieval
 
     def retrieval_view(self, query, limit=3):
+        """执行 `retrieval_view` 的内部逻辑。"""
         return retrieval_view(self.state, query, limit=limit, workspace_root=self.workspace_root)
 
     def render_memory_text(self):
+        """执行 `render_memory_text` 的内部逻辑。"""
         return render_memory_text(self.state, self.workspace_root)
 
     def promote_durable(self, promotions):
+        """执行 `promote_durable` 的内部逻辑。"""
         if self.durable_store is None:
             return [], []
         self.state = normalize_memory_state(self.state, self.workspace_root)
