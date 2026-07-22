@@ -35,7 +35,6 @@ class Skill:
     prompt_fn: Callable[[str], str] | None = None
 
     def render(self, arguments=""):
-        """执行 `render` 的内部逻辑。"""
         text = self.prompt_fn(str(arguments)) if self.prompt_fn else self.prompt
         replacements = {
             "$ARGUMENTS": str(arguments),
@@ -49,7 +48,6 @@ class Skill:
         return text.strip()
 
     def metadata(self):
-        """执行 `metadata` 的内部逻辑。"""
         return {
             "name": self.name,
             "description": self.description,
@@ -64,7 +62,6 @@ class Skill:
 
 
 def discover_skills(root, home=None):
-    """执行 `discover_skills` 的内部逻辑。"""
     from .skills_bundled import bundled_skills
 
     skills = {skill.name: skill for skill in bundled_skills()}
@@ -91,7 +88,6 @@ def discover_skills(root, home=None):
 
 
 def load_skills_from_dir(skills_dir, source):
-    """执行 `load_skills_from_dir` 的内部逻辑。"""
     skills_dir = Path(skills_dir).expanduser()
     if not skills_dir.exists():
         return []

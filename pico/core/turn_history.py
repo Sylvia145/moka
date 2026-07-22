@@ -22,7 +22,6 @@ PRESSURE_LIMITS = {
 
 
 def tail_clip(text, limit):
-    """执行 `tail_clip` 的内部逻辑。"""
     text = str(text)
     if limit <= 0:
         return ""
@@ -39,7 +38,6 @@ class TurnHistoryBuilder:
         self.agent = agent
 
     def enrich(self, item):
-        """执行 `enrich` 的内部逻辑。"""
         item = dict(item)
         if not item.get("turn_id"):
             current_turn = str(getattr(self.agent, "current_turn_id", "") or "")
@@ -58,13 +56,11 @@ class TurnHistoryBuilder:
         return item
 
     def raw_text(self, history):
-        """执行 `raw_text` 的内部逻辑。"""
         if not history:
             return "Transcript:\n- empty"
         return "\n".join(["Transcript:", *self._render_turn_lines(history, line_limit=2000)])
 
     def render_section(self, budget, pressure=None):
-        """执行 `render_section` 的内部逻辑。"""
         history = list(getattr(self.agent, "session", {}).get("history", []))
         raw = self.raw_text(history)
         if not history:
@@ -102,7 +98,6 @@ class TurnHistoryBuilder:
         return rendered, details
 
     def _group_turns(self, history):
-        """执行 `_group_turns` 的内部逻辑。"""
         turns = OrderedDict()
         for item in history:
             turn_id = str(item.get("turn_id") or "legacy")
@@ -110,7 +105,6 @@ class TurnHistoryBuilder:
         return turns
 
     def _compressed_turn_entries(self, turns, recent_turns, old_turn_line_limit=80):
-        """执行 `_compressed_turn_entries` 的内部逻辑。"""
         entries = []
         seen_older_reads = set()
         history_items = [item for items in turns.values() for item in items]
@@ -185,7 +179,6 @@ class TurnHistoryBuilder:
         return entries, details
 
     def _pressure_limits(self, pressure):
-        """执行 `_pressure_limits` 的内部逻辑。"""
         tier = (
             str(getattr(pressure, "tier", "") or "")
             or str(getattr(pressure, "pressure_tier", "") or "tier0_observe")
@@ -193,7 +186,6 @@ class TurnHistoryBuilder:
         return PRESSURE_LIMITS.get(tier, (3, 80))
 
     def _render_turn_lines(self, history, line_limit):
-        """执行 `_render_turn_lines` 的内部逻辑。"""
         lines = []
         for turn_id, items in self._group_turns(history).items():
             lines.append(f"Turn {turn_id}:")
@@ -202,7 +194,6 @@ class TurnHistoryBuilder:
         return lines
 
     def _render_item(self, item, line_limit):
-        """执行 `_render_item` 的内部逻辑。"""
         if item.get("kind") == "compact_summary":
             return str(item.get("content", "")).splitlines()
         if item.get("role") == "tool":
@@ -215,7 +206,6 @@ class TurnHistoryBuilder:
         return [f"[{item.get('role', '')}] {tail_clip(item.get('content', ''), line_limit)}"]
 
     def _reusable_file_summary(self, path):
-        """执行 `_reusable_file_summary` 的内部逻辑。"""
         memory = getattr(self.agent, "memory", None)
         if memory is None or not hasattr(memory, "to_dict"):
             return ""
@@ -223,7 +213,6 @@ class TurnHistoryBuilder:
         return str(summary.get("summary", "")).strip()
 
     def _summarize_old_tool_item(self, item):
-        """执行 `_summarize_old_tool_item` 的内部逻辑。"""
         artifact_ref = str(item.get("artifact_ref", "")).strip()
         if item.get("media_refs"):
             refs = render_media_refs(item)

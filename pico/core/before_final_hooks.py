@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Literal
 
+from .before_final_hook_summary import reduce_before_final_hook_summary as _reduce_hook_summary
+
 HOOK_SUMMARY_SCHEMA = "pico.before_final_hook_summary.v1"
 HOOK_ACTIONS = {"allow", "warn", "runtime_notice", "block"}
 
@@ -77,16 +79,7 @@ def run_before_final_hooks(agent, task_state, proposed_final):
 
 def reduce_before_final_hook_summary(summary, event):
     """执行 `reduce_before_final_hook_summary` 的内部逻辑。"""
-    summary = dict(summary or {})
-    summary.setdefault("schema_version", HOOK_SUMMARY_SCHEMA)
-    action = str(event.get("action", "allow"))
-    summary[f"{action}_count"] = int(summary.get(f"{action}_count", 0) or 0) + 1
-    for key in ("allow_count", "warn_count", "runtime_notice_count", "block_count"):
-        summary.setdefault(key, 0)
-    summary["last_action"] = action
-    summary["last_reason"] = str(event.get("reason", ""))
-    summary["last_hook"] = str(event.get("hook", ""))
-    return summary
+    return _reduce_hook_summary(summary, event, HOOK_SUMMARY_SCHEMA)
 
 def _call_hook(hook, context):
     """执行 `_call_hook` 的内部逻辑。"""

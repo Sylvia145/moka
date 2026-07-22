@@ -219,7 +219,6 @@ def render_delta_for_handoff(delta_items, *, max_chars=20_000):
 
 
 def _append_section(lines, title, items):
-    """执行 `_append_section` 的内部逻辑。"""
     if not items:
         return
     lines.extend(["", f"## {title}"])
@@ -227,7 +226,6 @@ def _append_section(lines, title, items):
 
 
 def _truncate(text, limit):
-    """执行 `_truncate` 的内部逻辑。"""
     text = str(text or "")
     if len(text) <= limit:
         return text

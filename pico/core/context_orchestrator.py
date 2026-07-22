@@ -201,7 +201,6 @@ class ContextOrchestrator:
             self.agent.emit_trace(task_state, "context_orchestrator_decision", payload)
 
     def _emit_usage(self, metadata):
-        """执行 `_emit_usage` 的内部逻辑。"""
         self.agent.session_event_bus.emit(
             "context_usage_recorded",
             {

@@ -52,10 +52,8 @@ READINESS_REASONS = {
 
 
 def reason_severity(reason):
-    """执行 `reason_severity` 的内部逻辑。"""
     return READINESS_REASONS.get(str(reason), ("soft", str(reason)))[0]
 
 
 def reason_message(reason):
-    """执行 `reason_message` 的内部逻辑。"""
     return READINESS_REASONS.get(str(reason), ("soft", str(reason)))[1]

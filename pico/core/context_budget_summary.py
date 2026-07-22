@@ -1,5 +1,7 @@
 """Pico 运行时实现模块。"""
 
+from .context_budget_fields import compact_fields
+
 CONTEXT_BUDGET_SCHEMA = "pico.context_budget_summary.v1"
 
 
@@ -28,26 +30,11 @@ def context_budget_summary(metadata):
         if effective_window
         else 0,
         "reductions": reductions,
-        "pressure_tier": orchestrator.get("pressure_tier") or usage.get("pressure_tier", ""),
-        "usage_source": orchestrator.get("usage_source") or usage.get("usage_source", ""),
-        "provider_usage_available": usage.get("actual_input_tokens") is not None,
         "snip_count": sum(1 for item in reductions if item.get("source") == "section_reduction"),
         "prune_count": sum(1 for item in reductions if item.get("source") == "microcompact"),
-        "summary_called": bool(orchestrator.get("summary_called", False)),
-        "summary_mode": str(orchestrator.get("summary_mode", "")),
-        "summary_delta_event_count": int(orchestrator.get("summary_delta_event_count", 0) or 0),
-        "compact_call_usage": compact_call_usage,
-        "compact_net_benefit_tokens": _compact_net_benefit(orchestrator, compact_call_usage),
-        "compact_summary_has_next_steps": orchestrator.get("compact_summary_has_next_steps"),
-        "compact_summary_has_file_references": orchestrator.get("compact_summary_has_file_references"),
-        "pre_compact_estimated_tokens": int(orchestrator.get("pre_compact_estimated_tokens", 0) or 0),
-        "post_compact_estimated_tokens": int(orchestrator.get("post_compact_estimated_tokens", 0) or 0),
-        "replacement_cache_hits": int(orchestrator.get("replacement_cache_hits", 0) or 0),
-        "replacement_records_created": int(orchestrator.get("replacement_records_created", 0) or 0),
-        "replacement_ledger_enabled": bool(orchestrator.get("replacement_ledger_enabled", False)),
         "saved_chars": _saved_chars(metadata, history, orchestrator),
-        "cached_tokens": int(usage.get("cached_tokens", 0) or 0),
         "prompt_changed_by_phase_3": False,
+        **compact_fields(orchestrator, usage, compact_call_usage, _compact_net_benefit(orchestrator, compact_call_usage)),
     }
 
 
@@ -57,26 +44,7 @@ def update_from_orchestrator(summary, event):
     orchestrator = dict(event.get("context_orchestrator", {}) or {})
     usage = dict(event.get("context_usage", {}) or {})
     compact_call_usage = _compact_call_usage(orchestrator)
-    summary.update(
-        {
-            "pressure_tier": orchestrator.get("pressure_tier") or usage.get("pressure_tier", ""),
-            "usage_source": orchestrator.get("usage_source") or usage.get("usage_source", ""),
-            "provider_usage_available": usage.get("actual_input_tokens") is not None,
-            "summary_called": bool(orchestrator.get("summary_called", False)),
-            "summary_mode": str(orchestrator.get("summary_mode", "")),
-            "summary_delta_event_count": int(orchestrator.get("summary_delta_event_count", 0) or 0),
-            "compact_call_usage": compact_call_usage,
-            "compact_net_benefit_tokens": _compact_net_benefit(orchestrator, compact_call_usage),
-            "compact_summary_has_next_steps": orchestrator.get("compact_summary_has_next_steps"),
-            "compact_summary_has_file_references": orchestrator.get("compact_summary_has_file_references"),
-            "pre_compact_estimated_tokens": int(orchestrator.get("pre_compact_estimated_tokens", 0) or 0),
-            "post_compact_estimated_tokens": int(orchestrator.get("post_compact_estimated_tokens", 0) or 0),
-            "replacement_cache_hits": int(orchestrator.get("replacement_cache_hits", 0) or 0),
-            "replacement_records_created": int(orchestrator.get("replacement_records_created", 0) or 0),
-            "replacement_ledger_enabled": bool(orchestrator.get("replacement_ledger_enabled", False)),
-            "cached_tokens": int(usage.get("cached_tokens", 0) or 0),
-        }
-    )
+    summary.update(compact_fields(orchestrator, usage, compact_call_usage, _compact_net_benefit(orchestrator, compact_call_usage)))
     return summary
 
 
