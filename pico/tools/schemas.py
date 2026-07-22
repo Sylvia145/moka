@@ -155,7 +155,7 @@ class AgentArgs(BaseModel):
     prompt: str
     subagent_type: str = "worker"
     write_scope: Union[List[str], str, None] = None
-    timeout_seconds: int = 60
+    timeout_seconds: Optional[int] = None
 
     @field_validator("description")
     @classmethod
@@ -191,9 +191,9 @@ class AgentArgs(BaseModel):
 
     @field_validator("timeout_seconds")
     @classmethod
-    def timeout_in_range(cls, v: int) -> int:
+    def timeout_in_range(cls, v: Optional[int]) -> Optional[int]:
         """执行 `timeout_in_range` 的内部逻辑。"""
-        if v < 1 or v > 600:
+        if v is not None and (v < 1 or v > 600):
             raise ValueError("timeout_seconds must be in [1, 600]")
         return v
 

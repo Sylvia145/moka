@@ -103,7 +103,10 @@ def test_async_worker_notification_is_drained_by_coordinator_only(tmp_path):
     release.set()
     deadline = time.monotonic() + 3
     while time.monotonic() < deadline:
-        if agent.worker_manager.to_dict()["items"][0]["status"] == "completed":
+        if (
+            agent.worker_manager.to_dict()["items"][0]["status"] == "completed"
+            and not agent.worker_manager._notifications.empty()
+        ):
             break
         time.sleep(0.01)
 
@@ -259,14 +262,14 @@ def test_task_stop_requests_child_runtime_abort(tmp_path):
 
     payload = json.loads(agent.run_tool("task_stop", {"task_id": "agent_1"}))
 
-    assert payload["status"] == "stopping"
+    assert payload["status"] == "canceled"
     assert child_client.abort_count == 1
     deadline = time.monotonic() + 3
     while time.monotonic() < deadline:
-        if agent.worker_manager.to_dict()["items"][0]["status"] == "stopped":
+        if agent.worker_manager.to_dict()["items"][0]["status"] == "canceled":
             break
         time.sleep(0.01)
-    assert agent.worker_manager.to_dict()["items"][0]["status"] == "stopped"
+    assert agent.worker_manager.to_dict()["items"][0]["status"] == "canceled"
 
 
 def test_worker_timeout_requests_abort_and_keeps_timeout_terminal_state(tmp_path):
@@ -298,6 +301,35 @@ def test_worker_timeout_requests_abort_and_keeps_timeout_terminal_state(tmp_path
 
     assert child_client.abort_count == 1
     assert agent.worker_manager.to_dict()["items"][0]["status"] == "timed_out"
+
+
+def test_terminal_race_commits_once_and_notification_is_idempotent(tmp_path):
+    """执行 `test_terminal_race_commits_once_and_notification_is_idempotent` 的内部逻辑。"""
+    started = threading.Event()
+    release = threading.Event()
+    agent = build_agent(
+        tmp_path, [],
+        model_client_factory=lambda: BlockingModelClient(["<final>done</final>"], started, release),
+    )
+    agent.worker_manager.spawn("race", "wait", subagent_type="Explore")
+    assert started.wait(timeout=1)
+    outcomes = []
+
+    def transition(status, actor):
+        outcomes.append(agent.worker_manager.transition_worker_state(
+            "agent_1", {"running"}, status, reason="race", actor=actor
+        ))
+
+    first = threading.Thread(target=transition, args=("timed_out", "watcher"))
+    second = threading.Thread(target=transition, args=("canceled", "stop"))
+    first.start(); second.start(); first.join(); second.join()
+    item = agent.worker_manager.to_dict()["items"][0]
+    assert item["status"] in {"timed_out", "canceled"}
+    committed = next(value for value in outcomes if value is not None)
+    assert agent.worker_manager.publish_terminal_notification(committed) is True
+    assert agent.worker_manager.publish_terminal_notification(committed) is False
+    assert agent.worker_manager.to_dict()["metrics"]["duplicate_terminal_transition"] == 1
+    release.set()
 
 
 def test_write_worker_uses_isolated_git_worktree(tmp_path):
@@ -339,6 +371,8 @@ def test_write_worker_uses_isolated_git_worktree(tmp_path):
     assert "notes/worker.txt" in handoff["diff_stat"]
     assert ".pico" not in handoff["diff_stat"]
     assert handoff["diff_check_exit_code"] == 0
+    # handoff 使用稳定幂等键（worker + 执行轮次），跨重复通知/恢复可去重。
+    assert handoff["idempotency_key"] == "agent_1:1:handoff"
 
 
 def test_clear_session_stops_running_background_workers(tmp_path):
@@ -397,6 +431,36 @@ def test_watch_timeout_ignores_worker_cleared_by_session_reset(tmp_path):
     # 旧会话的 timeout watcher 线程仍在 ~1s 后触发；它必须静默退出（条目已被
     # clear_session 丢弃），而不是对新会话抛 `ValueError: unknown worker`。
     time.sleep(1.5)
+
+
+def test_resume_requeues_pending_worker_and_marks_orphaned_running_worker_failed(tmp_path):
+    """执行 `test_resume_requeues_pending_worker_and_marks_orphaned_running_worker_failed` 的内部逻辑。"""
+    first_started = threading.Event()
+    first_release = threading.Event()
+    first = build_agent(
+        tmp_path, [],
+        model_client_factory=lambda: BlockingModelClient(["<final>blocked</final>"], first_started, first_release),
+        max_concurrent_workers=1,
+    )
+    first.worker_manager.spawn("running", "wait", subagent_type="Explore")
+    assert first_started.wait(timeout=1)
+    first.worker_manager.spawn("queued", "finish", subagent_type="Explore")
+    session_id = first.session["id"]
+
+    resumed = build_agent(
+        tmp_path, [],
+        model_client_factory=lambda: ScriptedModelClient(["<final>resumed</final>"]),
+        max_concurrent_workers=1,
+    )
+    resumed.resume_session(session_id)
+
+    deadline = time.monotonic() + 3
+    while time.monotonic() < deadline:
+        statuses = [item["status"] for item in resumed.worker_manager.to_dict()["items"]]
+        if statuses == ["failed", "completed"]:
+            break
+        time.sleep(0.01)
+    assert [item["status"] for item in resumed.worker_manager.to_dict()["items"]] == ["failed", "completed"]
 
 
 def test_explore_agent_runs_real_readonly_child_session_and_records_notification(
@@ -580,3 +644,263 @@ def test_plan_mode_allows_only_explore_agents(tmp_path):
     assert "plan mode only allows Explore agents" in rejected
     assert agent.ask("plan with explore") == "Plan ready."
     assert agent.active_tool_profile.name == "default"
+
+
+def test_cancel_queued_worker_frees_slot_and_never_starts(tmp_path):
+    """执行 `test_cancel_queued_worker_frees_slot_and_never_starts` 的内部逻辑。"""
+    first_started = threading.Event()
+    first_release = threading.Event()
+    second_started = threading.Event()
+    second_release = threading.Event()
+    second_client = BlockingModelClient(["<final>Second done.</final>"], second_started, second_release)
+    clients = iter(
+        [
+            BlockingModelClient(["<final>First done.</final>"], first_started, first_release),
+            second_client,
+        ]
+    )
+    agent = build_agent(
+        tmp_path,
+        [],
+        model_client_factory=lambda: next(clients),
+        max_concurrent_workers=1,
+    )
+
+    first = agent.worker_manager.spawn("First", "wait", subagent_type="Explore")
+    assert first["status"] == "started"
+    assert first_started.wait(timeout=1)
+
+    second = agent.worker_manager.spawn("Second", "wait", subagent_type="Explore")
+    assert second["status"] == "queued"
+    assert agent.worker_manager.to_dict()["metrics"]["pending"] == 1
+
+    canceled = agent.worker_manager.stop_task("agent_2")
+
+    assert canceled["status"] == "canceled"
+    assert not second_started.wait(timeout=0.1)
+    assert second_client.prompts == []
+    assert agent.worker_manager.to_dict()["metrics"]["pending"] == 0
+
+    # 释放 First 后没有可启动的 queued 任务；Second 保持 canceled，不被重启。
+    first_release.set()
+    time.sleep(0.3)
+    items = agent.worker_manager.to_dict()["items"]
+    assert items[0]["status"] == "completed"
+    assert items[1]["status"] == "canceled"
+    assert not second_started.is_set()
+
+
+def test_timeout_releases_capacity_and_starts_next_queued(tmp_path):
+    """执行 `test_timeout_releases_capacity_and_starts_next_queued` 的内部逻辑。"""
+    first_started = threading.Event()
+    first_release = threading.Event()
+    second_started = threading.Event()
+    second_release = threading.Event()
+    clients = iter(
+        [
+            BlockingModelClient(["<final>First done.</final>"], first_started, first_release),
+            BlockingModelClient(["<final>Second done.</final>"], second_started, second_release),
+        ]
+    )
+    agent = build_agent(
+        tmp_path,
+        [],
+        model_client_factory=lambda: next(clients),
+        max_concurrent_workers=1,
+    )
+
+    first = agent.worker_manager.spawn(
+        "First", "wait", subagent_type="Explore", timeout_seconds=1
+    )
+    assert first["status"] == "started"
+    assert first_started.wait(timeout=1)
+
+    second = agent.worker_manager.spawn("Second", "wait", subagent_type="Explore")
+    assert second["status"] == "queued"
+
+    deadline = time.monotonic() + 3
+    while time.monotonic() < deadline:
+        statuses = [item["status"] for item in agent.worker_manager.to_dict()["items"]]
+        if statuses[0] == "timed_out" and statuses[1] == "running":
+            break
+        time.sleep(0.01)
+
+    assert agent.worker_manager.to_dict()["items"][0]["status"] == "timed_out"
+    assert agent.worker_manager.to_dict()["items"][1]["status"] in {"starting", "running"}
+    assert second_started.wait(timeout=1)
+    assert agent.worker_manager.to_dict()["metrics"]["queue_wait_samples"] == 1
+    second_release.set()
+
+
+def test_cancel_keeps_canceled_terminal_after_late_worker_return(tmp_path):
+    """执行 `test_cancel_keeps_canceled_terminal_after_late_worker_return` 的内部逻辑。"""
+    started = threading.Event()
+    release = threading.Event()
+    child_client = BlockingModelClient(["<final>Late done.</final>"], started, release)
+    agent = build_agent(tmp_path, [], model_client_factory=lambda: child_client)
+
+    agent.run_tool(
+        "agent",
+        {
+            "description": "Cancel me",
+            "prompt": "Wait until stopped",
+            "subagent_type": "Explore",
+        },
+    )
+    assert started.wait(timeout=1)
+
+    payload = json.loads(agent.run_tool("task_stop", {"task_id": "agent_1"}))
+    assert payload["status"] == "canceled"
+
+    # worker 线程随后返回（abort 释放了 release），不得把 canceled 终态覆盖成
+    # completed/stopped，也不得回写 result。
+    deadline = time.monotonic() + 3
+    while time.monotonic() < deadline:
+        if not agent.worker_manager._tasks["agent_1"].thread.is_alive():
+            break
+        time.sleep(0.01)
+
+    item = agent.worker_manager.to_dict()["items"][0]
+    assert item["status"] == "canceled"
+    assert item["result"] == ""
+    metrics = agent.worker_manager.to_dict()["metrics"]
+    assert metrics["canceled"] == 1
+    assert metrics["completed"] == 0
+
+
+def test_rejected_write_worker_does_not_activate_delegated_review(tmp_path):
+    """执行 `test_rejected_write_worker_does_not_activate_delegated_review` 的内部逻辑。"""
+    started = threading.Event()
+    release = threading.Event()
+    agent = build_agent(
+        tmp_path,
+        [],
+        model_client_factory=lambda: BlockingModelClient(
+            ["<final>Blocked.</final>"], started, release
+        ),
+        max_concurrent_workers=1,
+        max_pending_workers=0,
+    )
+
+    first = agent.worker_manager.spawn("Occupier", "wait", subagent_type="Explore")
+    assert first["status"] == "started"
+    assert started.wait(timeout=1)
+    assert agent.delegation_guard_active is False
+
+    rejected = agent.worker_manager.spawn(
+        "Rejected write",
+        "write something",
+        subagent_type="worker",
+        write_scope=["notes"],
+    )
+
+    assert rejected["status"] == "rejected"
+    assert rejected["error"]["code"] == "worker_queue_full"
+    # 委派从未被接受，父 Agent 不得进入 delegated_review。
+    assert agent.delegation_guard_active is False
+    assert agent.active_tool_profile.name == "default"
+    release.set()
+
+
+def test_rejected_write_worker_cleans_up_its_worktree(tmp_path):
+    """执行 `test_rejected_write_worker_cleans_up_its_worktree` 的内部逻辑。"""
+    (tmp_path / "README.md").write_text("main workspace\n", encoding="utf-8")
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "add", "README.md"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-c", "user.name=Moka Test", "-c", "user.email=moka@example.test", "commit", "-m", "fixture"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+    started = threading.Event()
+    release = threading.Event()
+    agent = build_agent(
+        tmp_path,
+        [],
+        model_client_factory=lambda: BlockingModelClient(
+            ["<final>Blocked.</final>"], started, release
+        ),
+        max_concurrent_workers=1,
+        max_pending_workers=0,
+    )
+
+    first = agent.worker_manager.spawn("Occupier", "wait", subagent_type="Explore")
+    assert first["status"] == "started"
+    assert started.wait(timeout=1)
+
+    rejected = agent.worker_manager.spawn(
+        "Rejected write",
+        "write something",
+        subagent_type="worker",
+        write_scope=["notes"],
+    )
+
+    assert rejected["status"] == "rejected"
+    assert not (tmp_path / ".worktrees" / "agent_2").exists()
+    events = read_jsonl(agent.session_event_bus.path)
+    assert any(
+        event["event"] == "worker_worktree_removed" and event["worker_id"] == "agent_2"
+        for event in events
+    )
+    release.set()
+
+
+def test_resume_does_not_restart_terminal_workers(tmp_path):
+    """执行 `test_resume_does_not_restart_terminal_workers` 的内部逻辑。"""
+    first = build_agent(
+        tmp_path,
+        [],
+        model_client_factory=lambda: ScriptedModelClient(["<final>First done.</final>"]),
+    )
+    payload = first.worker_manager.spawn("First", "finish", subagent_type="Explore")
+    assert payload["status"] == "started"
+    deadline = time.monotonic() + 3
+    while time.monotonic() < deadline:
+        if first.worker_manager.to_dict()["items"][0]["status"] == "completed":
+            break
+        time.sleep(0.01)
+    assert first.worker_manager.to_dict()["items"][0]["status"] == "completed"
+    session_id = first.session["id"]
+    events_before = read_jsonl(first.session_event_bus.path)
+
+    resumed = build_agent(
+        tmp_path,
+        [],
+        model_client_factory=lambda: ScriptedModelClient(["<final>Resumed.</final>"]),
+    )
+    resumed.resume_session(session_id)
+
+    item = resumed.worker_manager.to_dict()["items"][0]
+    assert item["status"] == "completed"
+    assert item["execution_sequence"] == 1
+    assert resumed.worker_manager.to_dict()["metrics"]["completed"] == 1
+    # 终态 Worker 不重建执行实体，resume 不向同一事件文件追加任何内容。
+    assert resumed.worker_manager._tasks == {}
+    assert read_jsonl(resumed.session_event_bus.path) == events_before
+
+
+def test_unhandled_worker_thread_exception_is_recorded(tmp_path):
+    """执行 `test_unhandled_worker_thread_exception_is_recorded` 的内部逻辑。"""
+    agent = build_agent(tmp_path, [])
+    # 让钩子能按属主匹配到当前 manager（多 manager 进程里 fallback 不可靠）。
+    agent.worker_manager._tasks["agent_9"] = None
+
+    def boom():
+        raise RuntimeError("boom")
+
+    thread = threading.Thread(target=boom, name="pico-worker-agent_9", daemon=True)
+    thread.start()
+    thread.join()
+
+    deadline = time.monotonic() + 2
+    while time.monotonic() < deadline:
+        if agent.worker_manager.to_dict()["metrics"]["unhandled_thread_exception"] == 1:
+            break
+        time.sleep(0.01)
+    assert agent.worker_manager.to_dict()["metrics"]["unhandled_thread_exception"] == 1
+    events = read_jsonl(agent.session_event_bus.path)
+    assert any(
+        event["event"] == "worker_thread_exception" and event["worker_id"] == "agent_9"
+        for event in events
+    )

@@ -8,6 +8,7 @@ from .plan_mode import PlanModeController
 from .session_events import SessionEventBus
 from .todo_ledger import TodoLedger
 from .worker_manager import WorkerManager
+from .worker_recovery import recover_workers_after_resume
 from .workspace import now
 
 
@@ -53,6 +54,7 @@ def _rebind(runtime, emit_started):
     runtime.session["memory"] = runtime.memory.to_dict()
     runtime.todo_ledger = TodoLedger(runtime)
     runtime.worker_manager = WorkerManager(runtime)
+    recover_workers_after_resume(runtime.worker_manager)
     runtime._active_tool_profile_name = (
         "plan"
         if runtime.runtime_mode == "plan"

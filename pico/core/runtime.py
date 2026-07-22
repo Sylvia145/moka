@@ -100,6 +100,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         max_concurrent_workers=2,
         max_pending_tasks=16,
         max_pending_workers=None,
+        worker_timeout_seconds=60,
     ):
         """初始化对象状态。"""
         self.model_client = model_client
@@ -112,6 +113,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         pending_limit = max_pending_tasks if max_pending_workers is None else max_pending_workers
         self.max_pending_tasks = max(0, int(pending_limit))
         self.max_pending_workers = self.max_pending_tasks
+        self.worker_timeout_seconds = max(1, int(worker_timeout_seconds))
         self.model_client_router = model_client_router or ModelClientRouter(model_client)
         self.abort_requested = False
         self.ask_user_callback = ask_user_callback

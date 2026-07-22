@@ -28,6 +28,7 @@ def build_child_runtime(parent, subagent_type, write_scope, workspace_root=None)
         ask_user_callback=getattr(parent, "ask_user_callback", None),
         max_concurrent_workers=getattr(parent, "max_concurrent_workers", 2),
         max_pending_tasks=getattr(parent, "max_pending_tasks", 16),
+        worker_timeout_seconds=getattr(parent, "worker_timeout_seconds", 60),
     )
     child.set_tool_profile("readonly" if subagent_type == "Explore" else "worker")
     child.refresh_prefix(force=True)
