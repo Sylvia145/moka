@@ -118,7 +118,6 @@ BASE_TOOL_SPECS = {
 def build_tool_registry(agent):
     # 工具不是动态发现的，而是显式注册的。
     # 这样模型看到的是一个有边界、可审计的动作集合。
-    """执行 `build_tool_registry` 的内部逻辑。"""
     tools = {
         name: RegisteredTool(
             name=name,
@@ -133,12 +132,10 @@ def build_tool_registry(agent):
 
 
 def tool_example(name):
-    """执行 `tool_example` 的内部逻辑。"""
     return _tool_example(name)
 
 
 def validate_tool(agent, name, args):
-    """执行 `validate_tool` 的内部逻辑。"""
     args = args or {}
 
     schema_cls = _TOOL_SCHEMAS.get(name)
@@ -196,7 +193,6 @@ def validate_tool(agent, name, args):
 
 
 def tool_list_files(agent, args):
-    """执行 `tool_list_files` 的内部逻辑。"""
     path = agent.path(args.get("path", "."))
     if not path.is_dir():
         raise ValueError("path is not a directory")
@@ -212,12 +208,10 @@ def tool_list_files(agent, args):
     return "\n".join(lines) or "(empty)"
 
 def _visible_entries(path):
-    """执行 `_visible_entries` 的内部逻辑。"""
     return [item for item in sorted(path.iterdir(), key=lambda item: (item.is_file(), item.name.lower())) if item.name not in IGNORED_PATH_NAMES]
 
 
 def tool_read_file(agent, args):
-    """执行 `tool_read_file` 的内部逻辑。"""
     path = agent.path(args["path"])
     if not path.is_file():
         raise ValueError("path is not a file")

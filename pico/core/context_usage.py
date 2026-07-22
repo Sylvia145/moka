@@ -10,11 +10,9 @@ DEFAULT_CONTEXT_WINDOW = 200_000
 TOKEN_ESTIMATION_METHOD = "typed_content_heuristic_v1"
 
 def estimate_tokens(chars):
-    """执行 `estimate_tokens` 的内部逻辑。"""
     return max(0, (int(chars) + 3) // 4)
 
 def detect_content_type(text: str) -> str:
-    """执行 `detect_content_type` 的内部逻辑。"""
     if not text:
         return "mixed"
     sample = str(text)[:2000]
@@ -27,7 +25,6 @@ def detect_content_type(text: str) -> str:
     return "mixed"
 
 def estimate_tokens_typed(text: str, content_type: str = "mixed") -> int:
-    """执行 `estimate_tokens_typed` 的内部逻辑。"""
     chars = len(str(text))
     if content_type == "code":
         return max(0, (chars * 10 + 31) // 32)
@@ -94,7 +91,6 @@ class ContextUsageAnalyzer:
         }
 
     def _context_window(self):
-        """执行 `_context_window` 的内部逻辑。"""
         client_window = int(getattr(getattr(self.agent, "model_client", None), "context_window", 0) or 0)
         if client_window: return client_window
         model = str(getattr(getattr(self.agent, "model_client", None), "model", "")).lower()
@@ -102,7 +98,6 @@ class ContextUsageAnalyzer:
         return DEFAULT_CONTEXT_WINDOW
 
     def _tools_chars(self):
-        """执行 `_tools_chars` 的内部逻辑。"""
         total = 0
         for name, tool in self.agent.available_tools().items():
             fields = ", ".join(f"{key}: {value}" for key, value in tool.schema.items())
@@ -111,21 +106,17 @@ class ContextUsageAnalyzer:
         return total
 
     def _prompt_hash(self, rendered):
-        """执行 `_prompt_hash` 的内部逻辑。"""
         text = "\n\n".join(section.rendered for section in rendered.values()).strip()
         return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
     def _provider(self):
-        """执行 `_provider` 的内部逻辑。"""
         client = getattr(self.agent, "model_client", None)
         return str(getattr(client, "provider", "") or client.__class__.__name__ if client else "")
 
     def _provider_base_url(self):
-        """执行 `_provider_base_url` 的内部逻辑。"""
         return sanitize_url(getattr(getattr(self.agent, "model_client", None), "base_url", ""))
 
     def _last_identity(self):
-        """执行 `_last_identity` 的内部逻辑。"""
         metadata = dict(getattr(self.agent, "last_prompt_metadata", {}) or {})
         usage = dict(metadata.get("context_usage", {}) or {})
         identity = dict(usage.get("current_identity", {}) or {})

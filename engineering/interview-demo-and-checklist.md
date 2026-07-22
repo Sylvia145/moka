@@ -26,7 +26,7 @@ API key，结果可复现。有 key 再补一个真实 one-shot。
 ```
 
 讲一句："这是全量测试，含 engine 状态机、权限沙箱、记忆、MCP、context 压缩、
-final readiness 等 60 个测试文件。Windows 和 POSIX 都跑。"
+final readiness 等 62 个测试文件。Windows 和 POSIX 都跑。"
 
 ### 场景 1：one-shot 工具调用链（核心，2 分钟）
 
@@ -102,7 +102,7 @@ worker 结果结构化回传，主 agent 能解释改动来源（见 ADR-002/ADR
 
 ## 三、测试状态的标准回答（必被问）
 
-> "我的测试不是'全绿'这么简单。全量 535 passed / 10 skipped / 0 failed。这 535
+> "我的测试不是'全绿'这么简单。全量 544 passed / 10 skipped / 0 failed。这 544
 > 是从 baseline 506 passed / 36 failed 一路修上来的——我把 36 个失败拆成三类：
 > **环境差异**（比如缺 textual 依赖）、**平台差异**（Windows 路径分隔符、cmd.exe
 > 引号规则）、**真实代码缺陷**。能跨平台就修，不能修的用 `skipif` 明确标注
@@ -117,7 +117,7 @@ worker 结果结构化回传，主 agent 能解释改动来源（见 ADR-002/ADR
 | --- | --- |
 | "为什么不直接用 LangChain？" | 零核心依赖（仅标准库），Runtime/Engine/ToolExecutor 边界自己控制，LangChain 的抽象对本地 harness 是负担。 |
 | "你的 ReAct 和最小 ReAct 差在哪？" | 最小 ReAct 只证明"思考+行动"交替；Moka 处理的是循环之外的工程问题：工具越权、上下文膨胀、会话恢复、长输出、子任务隔离、结果验收（见 `01-overall-architecture.md`）。 |
-| "上下文怎么不膨胀？" | 五段式 prompt + 12000 预算 + `/compact` 压缩 + microcompact 保留最新工具结果 + 分层记忆，不是无限 transcript。 |
+| "上下文怎么不膨胀？" | 五段式 prompt + 60000 预算 + `/compact` 压缩 + microcompact 保留最新工具结果 + 分层记忆，不是无限 transcript。 |
 | "模型死循环调同一个工具怎么办？" | `repeated_tool_call` guard：相同调用直接拒绝并提示换工具或 final。 |
 | "工具部分成功怎么记录？" | shell exit != 0 但改了文件 → `partial_success`，trace 里 `workspace_changed=true`，final readiness 严格模式会 block。 |
 | "worker 写越界怎么办？" | `write_scope` + git worktree 隔离，越界写被 `write_scope_guard` 拒绝（D7/ADR-007）。 |
@@ -131,14 +131,14 @@ worker 结果结构化回传，主 agent 能解释改动来源（见 ADR-002/ADR
 
 | 项 | 值 |
 | --- | --- |
-| 测试文件数 | 60 |
-| 全量结果（`.venv`，exit 0） | **535 passed, 10 skipped, 0 failed** |
-| 真实 bug 修复（本次迭代） | D1 shell_env Windows 变量 / D2 dream 文件名 `:` / D7 provider 优先级 / D8 工具路径 `/` / D9 verification 分类器 / D11 SessionStore Windows 重试 |
+| 测试文件数 | 62 |
+| 全量结果（`.venv`，exit 0） | **544 passed, 10 skipped, 0 failed** |
+| 本次迭代改动（D1–D14） | D1 shell_env Windows 变量 / D2 dream 文件名 `:` / D3 Path.home 降级 / D4 rename drift / D5 平台分支 / D6 熵预算拆分 / D7 provider 优先级 / D8 工具路径 `/` / D9 verification 分类器 / D10 平台差异 skip / D11 SessionStore Windows 重试 / D12 provider 宿主 env 覆盖 / D13 worker watcher 竞态 / D14 kimi 集成 |
 | 平台分支修复 | shlex.quote 引号、pwd→cd、路径分隔符 |
 | 明确 skipif 的平台差异 | symlink 权限、bash fixture、git 路径归一化、真实会话 gate |
 | ADR | 7 篇（`engineering/decisions/ADR-*.md`） |
-| INC | 11 篇（`engineering/incidents/INC-*.md`） |
-| 迭代留痕 | 11 篇（`engineering/iterations/0*.md`） |
+| INC | 13 篇（`engineering/incidents/INC-*.md`） |
+| 迭代留痕 | 12 篇（`engineering/iterations/*.md`） |
 | CI | `.github/workflows/ci.yml`（Windows + Ubuntu，py3.11/3.12） |
 | 评测结果 | 确定性压缩 −14.09% token / 0 回归；LLM handoff +11.82%（负面，如实记录） |
 | 真实 provider dogfood | DeepSeek 5 场景 62/62 checks；39 次真实调用、89,657 in / 9,517 out tokens、cache hit 38/39（provider-billed，非估算） |
@@ -147,8 +147,8 @@ worker 结果结构化回传，主 agent 能解释改动来源（见 ADR-002/ADR
 
 - [ ] 跑一遍 `pytest -p no:cacheprovider -q`，记住最终数字（passed/skipped）。
 - [ ] 复述一遍"三层"（控制面/状态面/证据面）和"四层权限边界"。
-- [ ] 能一句话说清 2 个最硬的 bug 修复：provider 优先级（D7）、Windows 原子替换
-      （D11，关联 INC-0011）。
+- [ ] 能一句话说清 2 个最硬的 bug 修复：provider 宿主 env 覆盖（D12，INC-0012）、
+      Windows 原子替换（D11，关联 INC-0011）。
 - [ ] 打开 `.pico/runs/<run_id>/trace.jsonl` 和 `report.json`，能现场指认事件字段。
 - [ ] 准备好 3 个"为什么这么设计"的答案（Engine 拆出 Runtime、文本协议、熵预算）。
 - [ ] 确认 demo 命令在本机可跑（无 key 也能跑的场景 1–5）。

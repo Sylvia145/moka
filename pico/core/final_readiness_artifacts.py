@@ -40,8 +40,6 @@ _FILE_SUFFIXES = frozenset(
     ".csv .html .json .jsonl .js .jsx .md .py .sh .sql .toml "
     ".ts .tsx .txt .xml .yaml .yml".split()
 )
-
-
 def summarize_required_artifacts(task_state, workspace_root=None):
     """执行 `summarize_required_artifacts` 的内部逻辑。"""
     root = Path(workspace_root).resolve() if workspace_root else None
@@ -55,8 +53,6 @@ def summarize_required_artifacts(task_state, workspace_root=None):
         "declared_paths": paths,
         "missing_paths": missing,
     }
-
-
 def extract_required_artifact_paths(text, workspace_root=None):
     """执行 `extract_required_artifact_paths` 的内部逻辑。"""
     root = Path(workspace_root).resolve() if workspace_root else None
@@ -104,21 +100,15 @@ def extract_required_artifact_paths(text, workspace_root=None):
             if candidate not in paths:
                 paths.append(candidate)
     return paths
-
-
 def _line_negates_output(lowered_line):
     """执行 `_line_negates_output` 的内部逻辑。"""
     return any(marker in lowered_line for marker in _NEGATED_OUTPUT_MARKERS)
-
-
 def _starts_non_output_section(line, lowered_line):
     """执行 `_starts_non_output_section` 的内部逻辑。"""
     sectionish = line.startswith("#") or line.endswith(":")
     return sectionish and any(
         marker in lowered_line for marker in _NON_OUTPUT_SECTION_MARKERS
     )
-
-
 def _first_marker_index(lowered_line, markers):
     """执行 `_first_marker_index` 的内部逻辑。"""
     positions = [pos for marker in markers if (pos := lowered_line.find(marker)) >= 0]

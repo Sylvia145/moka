@@ -15,7 +15,6 @@ from .tool_result_artifacts import prepare_tool_result_observation
 def run_tool(agent, name, args):
     # 拒绝路径同样要写入元数据和治理日志；否则最终报告无法区分“未调用”与
     # “调用后被拦截”，会破坏审计证据的完整性。
-    """执行 `run_tool` 的内部逻辑。"""
     tool = agent.tools.get(name)
     if tool is None:
         agent._last_tool_result_metadata = _tool_result_metadata(
@@ -135,7 +134,6 @@ def run_tool(agent, name, args):
 
 
 def _run_shell_exit_code(result):
-    """执行 `_run_shell_exit_code` 的内部逻辑。"""
     match = re.search(r"exit_code:\s*(-?\d+)", str(result))
     return int(match.group(1)) if match else 0
 
@@ -145,7 +143,6 @@ def _tool_result_metadata(
     read_only=None, affected_paths=None, workspace_changed=False,
     workspace_fingerprint=None, diff_summary=None, **extra
 ):
-    """执行 `_tool_result_metadata` 的内部逻辑。"""
     metadata = {
         "tool_status": status,
         "tool_error_code": error_code,
@@ -163,7 +160,6 @@ def _tool_result_metadata(
 
 
 def _emit_permission_decision(agent, tool, args, decision):
-    """执行 `_emit_permission_decision` 的内部逻辑。"""
     agent.session_event_bus.emit(
         "permission_decision",
         {
@@ -178,10 +174,8 @@ def _emit_permission_decision(agent, tool, args, decision):
 
 
 def _emit_tool_policy_decision(agent, tool, args, decision):
-    """执行 `_emit_tool_policy_decision` 的内部逻辑。"""
     agent.session_event_bus.emit(
         "tool_policy_decision",
         {"tool_name": tool.name, "decision": decision.decision, "reason": decision.reason, "args": args or {}},
     )
-
 

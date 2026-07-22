@@ -87,5 +87,4 @@ def emit_continue_transition(agent, task_state, reason, **evidence):
     return emit_transition(agent, task_state, kind=CONTINUE_KIND, reason=reason, **evidence)
 
 def emit_terminal_transition(agent, task_state, reason, **evidence):
-    """执行 `emit_terminal_transition` 的内部逻辑。"""
     return emit_transition(agent, task_state, kind=TERMINAL_KIND, reason=reason, **evidence)
