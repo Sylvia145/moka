@@ -1,6 +1,6 @@
 """Pico 运行时实现模块。"""
 
-from ..core.worker_manager import dumps_payload
+from ..core.worker_tasks import dumps_payload
 
 AGENT_TOOL_NAMES = {"agent", "send_message", "task_stop"}
 
@@ -50,7 +50,7 @@ def tool_agent(agent, args):
             args["prompt"],
             subagent_type=args.get("subagent_type", "worker"),
             write_scope=args.get("write_scope", []),
-            timeout_seconds=args.get("timeout_seconds", 60),
+            timeout_seconds=args.get("timeout_seconds"),
         )
     )
 

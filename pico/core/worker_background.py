@@ -3,10 +3,49 @@
 import subprocess
 import threading
 import time
+import weakref
 
+from .worker_state import record_metric, record_queue_wait
 from .workspace import now
 
 ACTIVE_STATUSES = {"starting", "running", "stopping"}
+
+_worker_managers = weakref.WeakSet()
+_worker_excepthook_installed = False
+
+
+def register_worker_manager(manager):
+    """注册 manager 并在首次注册时安装 worker 线程异常钩子。"""
+    global _worker_excepthook_installed
+    _worker_managers.add(manager)
+    if _worker_excepthook_installed:
+        return
+    original_hook = threading.excepthook
+
+    def worker_excepthook(args):
+        thread = args.thread
+        thread_name = str(getattr(thread, "name", "")) if thread is not None else ""
+        if not thread_name.startswith("pico-worker"):
+            return
+        worker_id = thread_name.removeprefix("pico-worker-")
+        managers = list(_worker_managers)
+        manager = next(
+            (m for m in managers if worker_id in m._tasks), None
+        ) or (managers[-1] if managers else None)
+        if manager is not None:
+            try:
+                record_metric(manager, "unhandled_thread_exception")
+                manager.runtime.session_event_bus.emit(
+                    "worker_thread_exception",
+                    {"worker_id": worker_id, "exc": str(args.exc_value)},
+                )
+            except Exception:  # noqa: BLE001,S110 - 审计钩子尽力而为，不阻断原始处理
+                pass
+        if original_hook is not None:
+            original_hook(args)
+
+    threading.excepthook = worker_excepthook
+    _worker_excepthook_installed = True
 
 
 def admit_background_task(manager, task, prompt, action):
@@ -18,26 +57,36 @@ def admit_background_task(manager, task, prompt, action):
             "admitted_at": now(),
             "max_workers": manager.max_concurrent_workers,
             "max_pending": manager.max_pending_workers,
+            "execution_sequence": int(item.get("execution_sequence", 0)) + 1,
+            "prompt": str(prompt or ""),
         }
+        item["execution_sequence"] = item["admission"]["execution_sequence"]
         if _active_count(manager) < manager.max_concurrent_workers:
-            item["status"] = "starting"
-            item["updated_at"] = now()
-            item["admission"]["outcome"] = "started"
-            manager.record_metric("accepted")
+            manager.transition_worker_state(
+                task.id, {"idle", "completed", "failed", "stopped", "canceled"}, "starting",
+                reason="admission_capacity_available", actor="scheduler"
+            )
+            item["admission"].update({"outcome": "started", "started_at": now()})
+            record_metric(manager, "accepted")
             outcome = "started"
         elif _pending_count(manager) < manager.max_pending_workers:
-            item["status"] = "queued"
-            item["updated_at"] = now()
+            manager.transition_worker_state(
+                task.id, {"idle", "completed", "failed", "stopped", "canceled"}, "queued",
+                reason="admission_capacity_exhausted", actor="scheduler"
+            )
             item["admission"].update({"outcome": "queued", "queued_monotonic": time.monotonic()})
             task.state = {"prompt": str(prompt or ""), "action": action}
-            manager.record_metric("accepted")
-            manager.record_metric("queued")
+            record_metric(manager, "accepted")
+            record_metric(manager, "queued")
             outcome = "queued"
         else:
-            item["status"] = "rejected"
-            item["updated_at"] = now()
+            manager.transition_worker_state(
+                task.id, {"idle", "completed", "failed", "stopped", "canceled"}, "rejected",
+                reason="worker_queue_full", actor="scheduler"
+            )
             item["admission"]["outcome"] = "rejected"
-            manager.record_metric("rejected")
+            # 被拒绝的写 Worker 从未启动，清理提前创建的 worktree，避免资源泄漏。
+            remove_worktree(manager, task.id)
             outcome = "rejected"
     manager.runtime.session_event_bus.emit(
         "worker_submitted",
@@ -84,34 +133,64 @@ def create_worktree(manager, worker_id, subagent_type, scope):
     return target, base
 
 
+def remove_worktree(manager, worker_id):
+    """清理从未启动即终态的写 Worker 提前创建的 worktree，避免资源泄漏。
+
+    仅对 rejected 与 queued->canceled 调用：这些 Worker 从未产生可审核的变更，
+    父 Agent 无需 review 其 worktree。失败时通过 session event 暴露，不影响状态机。
+    """
+    item = manager._find_item(worker_id)
+    if item is None:
+        return False
+    worktree_value = str(item.get("worktree_path", "")).strip()
+    if not worktree_value:
+        return False
+    target = manager.runtime.root / worktree_value
+    try:
+        subprocess.run(
+            ["git", "worktree", "remove", "--force", str(target)],
+            cwd=manager.runtime.root,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        manager.runtime.session_event_bus.emit(
+            "worker_worktree_removed", {"worker_id": str(worker_id)}
+        )
+        return True
+    except subprocess.CalledProcessError:
+        manager.runtime.session_event_bus.emit(
+            "worker_worktree_remove_failed",
+            {"worker_id": str(worker_id), "path": worktree_value},
+        )
+        return False
+
+
+def cancel_queued_worker(manager, task_id, *, reason, actor):
+    """queued -> canceled 的单一入口：清状态、清理 worktree、通知并持久化。
+
+    不负责启动下一个 queued，由调用方决定（外部取消要释放队首，会话关闭不需要）。
+    """
+    item = manager._get_item(task_id)
+    committed = manager.transition_worker_state(
+        task_id, {"queued"}, "canceled", reason=reason, actor=actor
+    )
+    task = manager._tasks.get(str(task_id))
+    if task is not None:
+        task.state.clear()
+    remove_worktree(manager, task_id)
+    manager.runtime.session_event_bus.emit(
+        "worker_canceled", {"worker_id": str(task_id), "status": "canceled"}
+    )
+    if committed is not None:
+        manager.publish_terminal_notification(committed)
+    manager._save()
+    return item
+
+
 def can_run_background(manager):
     """执行 `can_run_background` 的内部逻辑。"""
     return getattr(manager.runtime, "model_client_factory", None) is not None
-
-
-def start_if_capacity(manager, task, prompt, action):
-    """执行 `start_if_capacity` 的内部逻辑。"""
-    with manager._lock:
-        if _active_count(manager) >= manager.max_concurrent_workers:
-            return False
-        item = manager._get_item(task.id)
-        item["status"] = "starting"
-        item["updated_at"] = now()
-    _start_background(manager, task, prompt, action)
-    return True
-
-
-def queue_task(manager, task, prompt, action):
-    """执行 `queue_task` 的内部逻辑。"""
-    item = manager._get_item(task.id)
-    with manager._lock:
-        item["status"] = "queued"
-        item["updated_at"] = now()
-        task.state = {"prompt": str(prompt or ""), "action": action}
-    manager.runtime.session_event_bus.emit(
-        "worker_queued", {"worker_id": task.id, "description": task.description}
-    )
-    manager._save()
 
 
 def start_next_queued(manager):
@@ -130,10 +209,11 @@ def start_next_queued(manager):
         queued_at = manager._get_item(next_task.id).get("admission", {}).get("queued_monotonic")
         next_task.state.clear()
         item = manager._get_item(next_task.id)
-        item["status"] = "starting"
-        item["updated_at"] = now()
+        manager.transition_worker_state(
+            next_task.id, {"queued"}, "starting", reason="queue_capacity_released", actor="scheduler"
+        )
         item.setdefault("admission", {})["started_at"] = now()
-        manager.record_queue_wait(queued_at)
+        record_queue_wait(manager, queued_at)
     _start_background(manager, next_task, prompt, action)
 
 
@@ -152,17 +232,18 @@ def shutdown_workers(manager, timeout):
         item = manager._get_item(task.id)
         if item.get("status") in ACTIVE_STATUSES:
             request_stop(task)
-            with manager._lock:
-                item["status"] = "stopping"
-                item["updated_at"] = now()
+            committed = manager.transition_worker_state(
+                task.id, ACTIVE_STATUSES, "canceled", reason="session_shutdown", actor="session_lifecycle"
+            )
+            if committed is not None:
+                manager.publish_terminal_notification(committed)
             manager.runtime.session_event_bus.emit(
                 "worker_stop_requested", {"worker_id": item["id"], "status": "stopping"}
             )
         elif item.get("status") == "queued":
-            with manager._lock:
-                item["status"] = "canceled"
-                item["updated_at"] = now()
-            task.state.clear()
+            cancel_queued_worker(
+                manager, task.id, reason="session_shutdown", actor="session_lifecycle"
+            )
     if tasks:
         manager._save()
     deadline = time.monotonic() + float(timeout)
@@ -206,9 +287,11 @@ def _watch_timeout(manager, task):
             return
         if item.get("status") == "running":
             request_stop(task)
-            if manager.transition_terminal(
-                task.id, "timed_out", reason="execution_timeout", actor="timeout_watcher"
+            if manager.transition_worker_state(
+                task.id, {"running"}, "timed_out", reason="execution_timeout", actor="timeout_watcher"
             ) is not None:
+                item = manager._get_item(task.id)
+                manager.publish_terminal_notification(item)
                 manager.runtime.session_event_bus.emit("worker_timed_out", {"worker_id": task.id})
                 manager._save()
                 start_next_queued(manager)

@@ -4,20 +4,18 @@ import time
 
 from .worker_artifacts import build_change_handoff, collect_worker_artifacts
 from .worker_background import start_next_queued
-from .worker_notifications import render_worker_notification
 from .workspace import clip, now
 
 
 def run_worker(manager, task, prompt, action):
     """执行 `run_worker` 的内部逻辑。"""
     item = manager._get_item(task.id)
+    # cancel/timeout 可能在工作线程真正拿到 CPU 前先提交终态；不得把终态回写。
+    if manager.transition_worker_state(
+        task.id, {"starting"}, "running", reason="worker_thread_started", actor="worker_thread"
+    ) is None:
+        return
     with manager._lock:
-        # cancel/timeout 可能在工作线程真正拿到 CPU 前先提交终态；不得把终态
-        # 回写成 running。
-        if item.get("status") != "starting":
-            return
-        item["status"] = "running"
-        item["updated_at"] = now()
         item["notification_drained"] = False
     manager.runtime.session_event_bus.emit(
         "worker_started",
@@ -36,8 +34,12 @@ def run_worker(manager, task, prompt, action):
     change_handoff = build_change_handoff(
         task.runtime.root, item.get("base_commit", ""), artifacts
     )
-    committed = manager.transition_terminal(
-        task.id, status, reason="worker_execution_returned", actor="worker_thread"
+    change_handoff["idempotency_key"] = (
+        f"{task.id}:{int(item.get('execution_sequence', 0))}:handoff"
+    )
+    committed = manager.transition_worker_state(
+        task.id, {"running", "stopping"}, status,
+        reason="worker_execution_returned", actor="worker_thread"
     )
     if committed is not None:
         with manager._lock:
@@ -60,10 +62,6 @@ def run_worker(manager, task, prompt, action):
                 "updated_at": now(),
                 }
             )
-        manager._notifications.put((task.id, render_worker_notification(committed)))
-        manager.runtime.session_event_bus.emit(
-            "worker_finished",
-            {"worker_id": task.id, "status": status, "duration_ms": committed["duration_ms"]},
-        )
+        manager.publish_terminal_notification(committed)
     manager._save()
     start_next_queued(manager)
