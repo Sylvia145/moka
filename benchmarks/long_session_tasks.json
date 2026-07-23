@@ -10,11 +10,11 @@
         "<tool>{\"name\":\"read_file\",\"args\":{\"path\":\"src/profile.py\",\"start\":1,\"end\":80}}</tool>",
         "<tool name=\"patch_file\" path=\"src/profile.py\"><old_text>def getUserName(user):</old_text><new_text>def get_user_name(user):</new_text></tool>",
         "<tool>{\"name\":\"read_file\",\"args\":{\"path\":\"src/main.py\",\"start\":1,\"end\":120}}</tool>",
-        "<tool name=\"patch_file\" path=\"src/main.py\"><old_text>from src.profile import getUserName\nfrom src.report import render_user\n\n\ndef greeting(user):\n    return f\"Hello, {getUserName(user)}\"</old_text><new_text>from src.profile import get_user_name\nfrom src.report import render_user\n\n\ndef greeting(user):\n    return f\"Hello, {get_user_name(user)}\"</new_text></tool>",
+        "<tool name=\"patch_file\" path=\"src/main.py\"><old_text>from src.profile import getUserName\nfrom src.report import render_user\n\n\ndef greeting(user):\n    \"\"\"执行 `greeting` 的内部逻辑。\"\"\"\n    return f\"Hello, {getUserName(user)}\"</old_text><new_text>from src.profile import get_user_name\nfrom src.report import render_user\n\n\ndef greeting(user):\n    \"\"\"执行 `greeting` 的内部逻辑。\"\"\"\n    return f\"Hello, {get_user_name(user)}\"</new_text></tool>",
         "<tool>{\"name\":\"read_file\",\"args\":{\"path\":\"src/report.py\",\"start\":1,\"end\":120}}</tool>",
-        "<tool name=\"patch_file\" path=\"src/report.py\"><old_text>from src.profile import getUserName\n\n\ndef render_user(user):\n    return f\"User: {getUserName(user)}\"</old_text><new_text>from src.profile import get_user_name\n\n\ndef render_user(user):\n    return f\"User: {get_user_name(user)}\"</new_text></tool>",
+        "<tool name=\"patch_file\" path=\"src/report.py\"><old_text>from src.profile import getUserName\n\n\ndef render_user(user):\n    \"\"\"执行 `render_user` 的内部逻辑。\"\"\"\n    return f\"User: {getUserName(user)}\"</old_text><new_text>from src.profile import get_user_name\n\n\ndef render_user(user):\n    \"\"\"执行 `render_user` 的内部逻辑。\"\"\"\n    return f\"User: {get_user_name(user)}\"</new_text></tool>",
         "<tool>{\"name\":\"read_file\",\"args\":{\"path\":\"tests/test_profile.py\",\"start\":1,\"end\":120}}</tool>",
-        "<tool name=\"patch_file\" path=\"tests/test_profile.py\"><old_text>from src.main import greeting, report\nfrom src.profile import getUserName\n\n\ndef test_greeting_uses_user_name():\n    assert greeting({\"name\": \" ada \"}) == \"Hello, Ada\"\n    assert getUserName({\"name\": \"grace\"}) == \"Grace\"\n    assert report({\"name\": \"alan\"}) == \"User: Alan\"\n</old_text><new_text>from src.main import greeting, report\nfrom src.profile import get_user_name\n\n\ndef test_greeting_uses_user_name():\n    assert greeting({\"name\": \" ada \"}) == \"Hello, Ada\"\n    assert get_user_name({\"name\": \"grace\"}) == \"Grace\"\n    assert report({\"name\": \"alan\"}) == \"User: Alan\"\n</new_text></tool>",
+        "<tool name=\"patch_file\" path=\"tests/test_profile.py\"><old_text>from src.main import greeting, report\nfrom src.profile import getUserName\n\n\ndef test_greeting_uses_user_name():\n    \"\"\"执行 `test_greeting_uses_user_name` 的内部逻辑。\"\"\"\n    assert greeting({\"name\": \" ada \"}) == \"Hello, Ada\"\n    assert getUserName({\"name\": \"grace\"}) == \"Grace\"\n    assert report({\"name\": \"alan\"}) == \"User: Alan\"\n</old_text><new_text>from src.main import greeting, report\nfrom src.profile import get_user_name\n\n\ndef test_greeting_uses_user_name():\n    \"\"\"执行 `test_greeting_uses_user_name` 的内部逻辑。\"\"\"\n    assert greeting({\"name\": \" ada \"}) == \"Hello, Ada\"\n    assert get_user_name({\"name\": \"grace\"}) == \"Grace\"\n    assert report({\"name\": \"alan\"}) == \"User: Alan\"\n</new_text></tool>",
         "<tool>{\"name\":\"run_shell\",\"args\":{\"command\":\"python3 -m pytest tests/test_profile.py -q\"}}</tool>",
         "<final>Renamed getUserName to get_user_name and verified the focused test.</final>"
       ],
@@ -22,7 +22,7 @@
       "step_budget": 24,
       "context_window_override": 8000,
       "expected_artifact": "src/main.py imports and calls get_user_name, with no getUserName left under src",
-      "verifier": "grep -r \"getUserName\" src/ && exit 1 || grep \"get_user_name\" src/main.py",
+      "verifier": "python3 -c \"from src import profile; from pathlib import Path; assert not hasattr(profile, 'getUserName'); assert hasattr(profile, 'get_user_name'); assert 'get_user_name' in Path('src/main.py').read_text(encoding='utf-8')\"",
       "category": "long_session"
     },
     {
@@ -52,10 +52,10 @@
       "fixture_repo": "tests/fixtures/long_session_health_endpoint",
       "scripted_outputs": [
         "<tool>{\"name\":\"read_file\",\"args\":{\"path\":\"app.py\",\"start\":1,\"end\":200}}</tool>",
-        "<tool name=\"patch_file\" path=\"app.py\"><old_text>@app.route(\"/\")\ndef index():\n    return {\"status\": \"running\"}, 200\n</old_text><new_text>@app.route(\"/\")\ndef index():\n    return {\"status\": \"running\"}, 200\n\n\n@app.route(\"/health\")\ndef health():\n    return {\"status\": \"ok\"}, 200\n</new_text></tool>",
+        "<tool name=\"patch_file\" path=\"app.py\"><old_text>@app.route(\"/\")\ndef index():\n    \"\"\"执行 `index` 的内部逻辑。\"\"\"\n    return {\"status\": \"running\"}, 200\n</old_text><new_text>@app.route(\"/\")\ndef index():\n    \"\"\"执行 `index` 的内部逻辑。\"\"\"\n    return {\"status\": \"running\"}, 200\n\n\n@app.route(\"/health\")\ndef health():\n    \"\"\"返回服务健康状态。\"\"\"\n    return {\"status\": \"ok\"}, 200\n</new_text></tool>",
         "<tool>{\"name\":\"read_file\",\"args\":{\"path\":\"app.py\",\"start\":1,\"end\":200}}</tool>",
         "<tool>{\"name\":\"read_file\",\"args\":{\"path\":\"tests/test_app.py\",\"start\":1,\"end\":120}}</tool>",
-        "<tool name=\"patch_file\" path=\"tests/test_app.py\"><old_text>def test_index():\n    response = app.test_client().get(\"/\")\n    assert response.status_code == 200\n</old_text><new_text>def test_index():\n    response = app.test_client().get(\"/\")\n    assert response.status_code == 200\n\n\ndef test_health():\n    response = app.test_client().get(\"/health\")\n    assert response.status_code == 200\n    assert response.get_json() == {\"status\": \"ok\"}\n</new_text></tool>",
+        "<tool name=\"patch_file\" path=\"tests/test_app.py\"><old_text>def test_index():\n    \"\"\"执行 `test_index` 的内部逻辑。\"\"\"\n    response = app.test_client().get(\"/\")\n    assert response.status_code == 200\n</old_text><new_text>def test_index():\n    \"\"\"执行 `test_index` 的内部逻辑。\"\"\"\n    response = app.test_client().get(\"/\")\n    assert response.status_code == 200\n\n\ndef test_health():\n    \"\"\"验证健康检查端点。\"\"\"\n    response = app.test_client().get(\"/health\")\n    assert response.status_code == 200\n    assert response.get_json() == {\"status\": \"ok\"}\n</new_text></tool>",
         "<tool>{\"name\":\"read_file\",\"args\":{\"path\":\"tests/test_app.py\",\"start\":1,\"end\":120}}</tool>",
         "<tool>{\"name\":\"run_shell\",\"args\":{\"command\":\"python3 -m pytest tests/test_app.py::test_health -q\"}}</tool>",
         "<tool>{\"name\":\"run_shell\",\"args\":{\"command\":\"python3 -m pytest tests/test_app.py -q\"}}</tool>",
@@ -116,7 +116,7 @@
       "step_budget": 20,
       "context_window_override": 8000,
       "expected_artifact": "requirements.txt pins requests==2.31 and all three source files parse",
-      "verifier": "grep \"requests==2.31\" requirements.txt && python3 -c \"import ast; [ast.parse(open(f).read()) for f in ['src/client.py','src/api.py','src/fetcher.py']]\"",
+      "verifier": "python3 -c \"import ast; from pathlib import Path; assert Path('requirements.txt').read_text(encoding='utf-8').strip() == 'requests==2.31'; [ast.parse(Path(f).read_text(encoding='utf-8')) for f in ['src/client.py','src/api.py','src/fetcher.py']]\"",
       "category": "long_session"
     }
   ]

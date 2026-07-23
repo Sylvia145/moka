@@ -187,6 +187,16 @@ def test_run_shell_uses_allowlisted_environment_only(tmp_path):
     assert "missing" in result
 
 
+def test_run_shell_supports_python3_alias_on_every_platform(tmp_path):
+    """脚本化基准中的 python3 调用在 Windows 也必须可执行。"""
+    agent = build_agent(tmp_path, [], approval_policy="auto")
+
+    result = agent.run_tool("run_shell", {"command": 'python3 -c "print(\'portable\')"', "timeout": 20})
+
+    assert "exit_code: 0" in result
+    assert "portable" in result
+
+
 def test_shell_env_keeps_windows_system_variables_for_subprocess(tmp_path):
     # shell=True 在 Windows 上依赖 ComSpec/SystemRoot/PATHEXT 来定位 cmd 和系统
     # 目录；allowlist 过滤若漏掉它们，命令会执行但 returncode 恒为 1。
