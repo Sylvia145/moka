@@ -6,9 +6,11 @@ import argparse
 import concurrent.futures
 import csv
 import json
+import os
 import shutil
 import statistics
 import subprocess
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from types import MethodType
@@ -895,7 +897,7 @@ def _run_long_session_task(
     report_path = agent.current_run_dir / "report.json" if agent.current_run_dir else None
     trace_path = agent.current_run_dir / "trace.jsonl" if agent.current_run_dir else None
     verifier = subprocess.run(
-        task["verifier"],
+        _portable_verifier_command(task["verifier"]),
         cwd=workspace,
         shell=True,
         capture_output=True,
@@ -914,6 +916,14 @@ def _run_long_session_task(
         verification_status=verification_status,
         allow_verification_override=True,
     )
+
+
+def _portable_verifier_command(command):
+    """让基准中的 Python 3 验证命令在 Windows 使用当前解释器。"""
+    command = str(command or "").strip()
+    if os.name == "nt" and command.startswith("python3 "):
+        return f'"{sys.executable}" {command.removeprefix("python3 ")}'
+    return command
 
 
 def _model_client_for_long_session_task(

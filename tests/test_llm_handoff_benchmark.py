@@ -8,7 +8,6 @@ import pytest
 
 from pico.evaluation.context_cost import generate_report, run_paired_experiment
 
-
 ROOT = Path(__file__).resolve().parents[1]
 TASKS_PATH = ROOT / "benchmarks" / "long_session_tasks.json"
 
@@ -111,7 +110,7 @@ def test_live_mode_routes_through_provider_client_factory(tmp_path):
 
 def test_live_mode_without_provider_config_reports_clear_blocked_error(monkeypatch, tmp_path):
     """执行 `test_live_mode_without_provider_config_reports_clear_blocked_error` 的内部逻辑。"""
-    import pico.evaluation.context_cost as context_cost
+    from pico.evaluation import context_cost
 
     monkeypatch.setattr(
         context_cost,
@@ -242,24 +241,26 @@ def test_generate_report_includes_all_repeats_in_llm_handoff_comparison():
     assert "Net-negative tasks: task-a#0" in report
 
 
-@pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="fixture tasks shell out with POSIX-only commands",
-)
-def test_fixture_verifiers_pass_after_scripted_correct_state(tmp_path):
-    """执行 `test_fixture_verifiers_pass_after_scripted_correct_state` 的内部逻辑。"""
+def test_context_compression_fixture_verifiers_pass_for_all_five_paired_tasks(tmp_path):
+    """验证五个任务的上下文压缩成对评测均无回归。"""
     tasks = _load_long_session_tasks()
     payload = run_paired_experiment(
         tasks=tasks,
-        variants=["full_orchestrator"],
+        variants=["no_context_reduction", "full_orchestrator"],
         mode="scripted",
         provider=None,
         repetitions=1,
         output_dir=tmp_path / "work",
     )
 
-    assert len(payload["rows"]) == 5
+    assert len(payload["rows"]) == 10
     assert all(row["verification_status"] == "passed" for row in payload["rows"])
+    metrics = payload["summary"]["estimated_proxy_only"]
+    assert metrics["paired_task_count"] == 5
+    assert metrics["quality_regression_count"] == 0
+    assert metrics["verifier_pass_rate_control"] == 1.0
+    assert metrics["verifier_pass_rate_treatment"] == 1.0
+    assert metrics["median_uncached_input_delta_pct"] < 0
 
 
 @pytest.mark.skipif(

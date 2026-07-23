@@ -50,6 +50,7 @@ from .schemas import (
     WriteFileArgs,
     first_error_message,
 )
+from .shell_command import normalize_shell_command
 from .todos import (
     TODO_TOOL_SPECS,
     tool_todo_add,
@@ -228,7 +229,6 @@ def tool_read_file(agent, args):
 
 
 def tool_search(agent, args):
-    """执行 `tool_search` 的内部逻辑。"""
     pattern = str(args.get("pattern", "")).strip()
     if not pattern:
         raise ValueError("pattern must not be empty")
@@ -273,7 +273,7 @@ def tool_search(agent, args):
 
 def tool_run_shell(agent, args):
     """执行 `tool_run_shell` 的内部逻辑。"""
-    command = str(args.get("command", "")).strip()
+    command = normalize_shell_command(args.get("command", ""))
     if not command:
         raise ValueError("command must not be empty")
     timeout = int(args.get("timeout", 20))
