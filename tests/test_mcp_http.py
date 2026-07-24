@@ -1,127 +1,15 @@
 """Pico 自动化测试模块。"""
-import json
-import threading
-import time
-from contextlib import contextmanager
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-
 import pytest
 
 from pico import Pico, SessionStore, WorkspaceContext
+from pico.evaluation.mcp_http_fault_server import http_mcp_server
 from pico.testing import ScriptedModelClient
 from pico.tools import McpServerConfig
 from pico.tools.mcp import create_mcp_client
-from pico.tools.mcp_http import McpHttpError, McpOutcomeUnknownError
-
-
-@contextmanager
-def http_mcp_server(mode="json", *, expire_first=False, require_token=None):
-    """执行 `http_mcp_server` 的内部逻辑。"""
-    state = {
-        "mode": mode,
-        "expire_first": expire_first,
-        "require_token": require_token,
-        "calls": [],
-        "initialize_count": 0,
-        "tool_call_count": 0,
-    }
-
-    class Handler(BaseHTTPRequestHandler):
-        def do_POST(self):
-            """执行 `do_POST` 的内部逻辑。"""
-            length = int(self.headers.get("Content-Length", 0))
-            request = json.loads(self.rfile.read(length).decode("utf-8"))
-            state["calls"].append({"request": request, "headers": dict(self.headers)})
-            if state["require_token"] and self.headers.get("Authorization") != f"Bearer {state['require_token']}":
-                self.send_response(401)
-                self.end_headers()
-                return
-            method = request["method"]
-            if method == "initialize":
-                state["initialize_count"] += 1
-                return self._send_json(
-                    request.get("id"),
-                    {"protocolVersion": "2025-11-25", "capabilities": {}, "serverInfo": {"name": "http", "version": "1"}},
-                    session="session-1",
-                )
-            if "id" not in request:
-                self.send_response(202)
-                self.end_headers()
-                return
-            if state["expire_first"] and method == "tools/list":
-                state["expire_first"] = False
-                self.send_response(404)
-                self.end_headers()
-                return
-            if method == "tools/list":
-                result = {
-                    "tools": [
-                        {
-                            "name": "echo",
-                            "description": "Echo text",
-                            "inputSchema": {
-                                "type": "object",
-                                "properties": {"text": {"type": "string"}},
-                                "required": ["text"],
-                            },
-                        }
-                    ]
-                }
-                if state["mode"] == "sse":
-                    return self._send_sse(request["id"], result)
-                if state["mode"] == "large":
-                    return self._send_large()
-                return self._send_json(request["id"], result)
-            if method == "tools/call":
-                state["tool_call_count"] += 1
-                if state["mode"] == "timeout":
-                    time.sleep(0.2)
-                text = request["params"]["arguments"].get("text", "")
-                return self._send_json(request["id"], {"content": [{"type": "text", "text": text}]})
-            self._send_json(request["id"], {})
-
-        def _send_json(self, request_id, result, session=None):
-            """执行 `_send_json` 的内部逻辑。"""
-            body = json.dumps({"jsonrpc": "2.0", "id": request_id, "result": result}).encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            if session:
-                self.send_header("Mcp-Session-Id", session)
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-
-        def _send_sse(self, request_id, result):
-            """执行 `_send_sse` 的内部逻辑。"""
-            body = f"event: message\ndata: {json.dumps({'jsonrpc': '2.0', 'id': request_id, 'result': result})}\n\n".encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "text/event-stream")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-
-        def _send_large(self):
-            """执行 `_send_large` 的内部逻辑。"""
-            body = b"x" * 256
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-
-        def log_message(self, _format, *_args):
-            """执行 `log_message` 的内部逻辑。"""
-            return
-
-    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        yield state, f"http://127.0.0.1:{server.server_port}/mcp"
-    finally:
-        server.shutdown()
-        thread.join(timeout=1)
-        server.server_close()
+from pico.tools.mcp_http import (
+    McpHttpError,
+    McpOutcomeUnknownError,
+)
 
 
 def _config(url, **kwargs):
@@ -169,21 +57,46 @@ def test_streamable_http_recovers_expired_session_for_read_operation():
         client.close()
 
 
-def test_streamable_http_does_not_retry_side_effect_when_result_is_unknown():
-    """执行 `test_streamable_http_does_not_retry_side_effect_when_result_is_unknown` 的内部逻辑。"""
-    with http_mcp_server("timeout") as (state, url):
+@pytest.mark.parametrize(
+    ("mode", "cause_code"),
+    [
+        ("timeout", "mcp_http_timeout"),
+        ("disconnect", "mcp_http_connect_failed"),
+        ("truncated", "mcp_invalid_response"),
+        ("server_error", "mcp_http_server_error"),
+    ],
+)
+def test_streamable_http_does_not_retry_side_effect_when_result_is_unknown(mode, cause_code):
+    """结果未知的所有故障窗口均只允许一次可能有副作用的调用。"""
+    with http_mcp_server(mode) as (state, url):
         client = create_mcp_client(_config(url, max_retries=3))
 
-        with pytest.raises(McpOutcomeUnknownError, match="mcp_outcome_unknown"):
+        with pytest.raises(McpOutcomeUnknownError, match="mcp_outcome_unknown") as error:
             client.call_tool("echo", {"text": "write once"})
 
+        assert error.value.cause_code == cause_code
         assert state["tool_call_count"] == 1
+        assert len(state["side_effects"]) == 1
+        assert len({effect["request_id"] for effect in state["side_effects"]}) == 1
         client.close()
 
 
-def test_streamable_http_outcome_unknown_is_preserved_in_agent_trace_metadata(tmp_path):
-    """执行 `test_streamable_http_outcome_unknown_is_preserved_in_agent_trace_metadata` 的内部逻辑。"""
-    with http_mcp_server("timeout") as (_state, url):
+def test_streamable_http_retries_read_operation_after_transient_server_errors():
+    """只读 tools/list 保留按配置重试的能力。"""
+    with http_mcp_server(list_failures=2) as (state, url):
+        client = create_mcp_client(_config(url, max_retries=3))
+
+        assert client.list_tools()[0]["name"] == "echo"
+        tool_list_calls = [call for call in state["calls"] if call["request"]["method"] == "tools/list"]
+        assert len(tool_list_calls) == 3
+        assert state["tool_call_count"] == 0
+        client.close()
+
+
+@pytest.mark.parametrize("mode", ["timeout", "disconnect", "truncated", "server_error"])
+def test_streamable_http_outcome_unknown_is_preserved_in_agent_trace_metadata(tmp_path, mode):
+    """结果未知必须进入 Agent 工具元数据，供 Trace 与指标消费。"""
+    with http_mcp_server(mode) as (state, url):
         agent = Pico(
             model_client=ScriptedModelClient([]),
             workspace=WorkspaceContext.build(tmp_path),
@@ -194,6 +107,7 @@ def test_streamable_http_outcome_unknown_is_preserved_in_agent_trace_metadata(tm
 
         assert "mcp_outcome_unknown" in agent.run_tool("mcp__remote__echo", {"text": "write once"})
         assert agent._last_tool_result_metadata["tool_error_code"] == "mcp_outcome_unknown"
+        assert state["tool_call_count"] == 1
         agent.mcp_clients["remote"].close()
 
 
@@ -215,7 +129,8 @@ def test_streamable_http_uses_environment_token_without_exposing_value(monkeypat
 def test_streamable_http_limits_response_size():
     """执行 `test_streamable_http_limits_response_size` 的内部逻辑。"""
     with http_mcp_server("large") as (_state, url):
-        client = create_mcp_client(_config(url, max_response_bytes=64))
+        # 256B 能容纳 initialize(约140B) 与 tools/list 正常响应(约197B)，仅 large 分支被拒。
+        client = create_mcp_client(_config(url, max_response_bytes=256))
 
         with pytest.raises(McpHttpError, match="mcp_response_too_large"):
             client.list_tools()
@@ -240,3 +155,118 @@ def test_streamable_http_does_not_expose_rejected_token(monkeypatch):
 
     assert token not in str(error.value)
     monkeypatch.delenv("MOKA_BAD_TOKEN")
+
+
+def test_streamable_http_idempotent_retry_dedups_side_effect_when_server_cooperates():
+    """服务端按 Idempotency-Key 去重时，重试不产生第二次副作用。"""
+    with http_mcp_server("disconnect", fail_first_call=True) as (state, url):
+        client = create_mcp_client(_config(url, max_idempotent_retries=1))
+
+        result = client.call_tool("echo", {"text": "write once"})
+        assert result["content"][0]["text"] == "write once"
+        assert state["tool_call_count"] == 2
+        assert len(state["side_effects"]) == 1
+        assert state["dedup_hits"] == 1
+        assert client.last_idempotent_retries == 1
+        client.close()
+
+
+def test_streamable_http_idempotent_retry_is_opt_out_by_default():
+    """默认配置不发送 Idempotency-Key，结果未知仍不重试。"""
+    with http_mcp_server("disconnect") as (state, url):
+        client = create_mcp_client(_config(url, max_retries=3))
+
+        with pytest.raises(McpOutcomeUnknownError, match="mcp_outcome_unknown") as error:
+            client.call_tool("echo", {"text": "write once"})
+
+        assert error.value.cause_code == "mcp_http_connect_failed"
+        assert state["tool_call_count"] == 1
+        assert len(state["side_effects"]) == 1
+        tools_call_headers = [
+            call["headers"] for call in state["calls"] if call["request"]["method"] == "tools/call"
+        ]
+        assert all("Idempotency-Key" not in headers for headers in tools_call_headers)
+        assert client.last_idempotent_retries == 0
+        client.close()
+
+
+def test_streamable_http_idempotent_key_is_stable_across_retries():
+    """同一次逻辑调用的重试请求携带同一个 Idempotency-Key。"""
+    with http_mcp_server("timeout", dedup_idempotent=False) as (state, url):
+        client = create_mcp_client(_config(url, max_idempotent_retries=1))
+
+        with pytest.raises(McpOutcomeUnknownError):
+            client.call_tool("echo", {"text": "write once"})
+
+        keys = [
+            call["headers"].get("Idempotency-Key")
+            for call in state["calls"] if call["request"]["method"] == "tools/call"
+    ]
+    assert len(keys) == 2
+    assert keys[0] == keys[1]
+    assert len(keys[0]) == 64
+    client.close()
+
+
+def test_streamable_http_idempotent_retry_still_raises_outcome_unknown_when_not_recovered():
+    """重试后仍无法确认结果时，保留 mcp_outcome_unknown 与重试计数。"""
+    with http_mcp_server("timeout", dedup_idempotent=False) as (state, url):
+        client = create_mcp_client(_config(url, max_idempotent_retries=1))
+
+        with pytest.raises(McpOutcomeUnknownError, match="mcp_outcome_unknown") as error:
+            client.call_tool("echo", {"text": "write once"})
+
+        assert error.value.cause_code == "mcp_http_timeout"
+        assert state["tool_call_count"] == 2
+        assert len(state["side_effects"]) == 2
+        assert client.last_idempotent_retries == 1
+        client.close()
+
+
+def test_streamable_http_idempotent_retry_does_not_retry_unauthorized(monkeypatch):
+    """授权拒绝属于确定性失败，不在幂等重试集合内。"""
+    token = "wrong-token"
+    monkeypatch.setenv("MOKA_WRONG_TOKEN", token)
+    with http_mcp_server(require_token="good") as (state, url):
+        client = create_mcp_client(_config(url, token_env="MOKA_WRONG_TOKEN", max_idempotent_retries=1))
+
+        with pytest.raises(McpHttpError, match="mcp_http_unauthorized"):
+            client.call_tool("echo", {"text": "write once"})
+
+        assert state["tool_call_count"] == 0
+        assert client.last_idempotent_retries == 0
+        client.close()
+    monkeypatch.delenv("MOKA_WRONG_TOKEN")
+
+
+def test_streamable_http_idempotency_key_is_unique_per_logical_call():
+    """相同参数的两次独立写操作携带不同幂等键，避免被服务端误去重。"""
+    with http_mcp_server() as (state, url):
+        client = create_mcp_client(_config(url, max_idempotent_retries=1))
+
+        client.call_tool("echo", {"text": "write once"})
+        client.call_tool("echo", {"text": "write once"})
+
+        assert state["tool_call_count"] == 2
+        assert len(state["side_effects"]) == 2
+        assert len(state["idempotent_keys_seen"]) == 2
+        assert state["idempotent_keys_seen"][0] != state["idempotent_keys_seen"][1]
+        client.close()
+
+
+def test_streamable_http_idempotent_retry_recorded_in_agent_trace_metadata(tmp_path):
+    """成功路径在 Agent 工具元数据中记录幂等重试次数。"""
+    with http_mcp_server("disconnect", fail_first_call=True) as (state, url):
+        agent = Pico(
+            model_client=ScriptedModelClient([]),
+            workspace=WorkspaceContext.build(tmp_path),
+            session_store=SessionStore(tmp_path / ".pico" / "sessions"),
+            approval_policy="auto",
+            mcp_servers=(_config(url, max_idempotent_retries=1),),
+        )
+
+        assert agent.run_tool("mcp__remote__echo", {"text": "write once"}) == "write once"
+        assert agent._last_tool_result_metadata["mcp_idempotent_retries"] == 1
+        assert state["tool_call_count"] == 2
+        assert len(state["side_effects"]) == 1
+        agent.mcp_clients["remote"].close()

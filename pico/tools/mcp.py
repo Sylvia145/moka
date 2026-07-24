@@ -13,6 +13,13 @@ class McpServerConfig:
     The first three fields preserve the original stdio positional API. Remote
     credentials are referenced by environment-variable name, never stored in
     this configuration object as a token value.
+
+    ``max_idempotent_retries`` is opt-in and only affects the
+    ``streamable_http`` transport: when > 0, an outcome-unknown ``tools/call``
+    is retried with the same ``Idempotency-Key`` header, so a cooperating
+    server can deduplicate the side effect. Default 0 keeps the exact
+    "tools/call never retries" contract (see ADR-006/ADR-008). stdio transport
+    has no idempotency-key header concept and ignores this field.
     """
 
     name: str
@@ -24,6 +31,7 @@ class McpServerConfig:
     token_env: str | None = None
     max_response_bytes: int = 1_000_000
     max_retries: int = 1
+    max_idempotent_retries: int = 0
 
 
 class McpClient(Protocol):
@@ -70,9 +78,20 @@ def build_mcp_tools(agent):
                 schema=dict(spec.get("inputSchema", {}) or {}),
                 description=str(spec.get("description", "MCP tool")),
                 risky=not bool(annotations.get("readOnlyHint", False)),
-                runner=lambda args, client=client, tool_name=tool_name: _call(client, tool_name, args),
+                runner=lambda args, client=client, tool_name=tool_name, agent=agent: _run_tool_call(
+                    agent, client, tool_name, args
+                ),
             )
     return tools
+
+
+def _run_tool_call(agent, client, tool_name: str, args: dict):
+    """执行 `_run_tool_call` 的内部逻辑。"""
+    result = _call(client, tool_name, args)
+    retries = getattr(client, "last_idempotent_retries", 0)
+    if retries:
+        agent._pending_tool_result_metadata = {"mcp_idempotent_retries": retries}
+    return result
 
 
 def _call(client: McpClient, tool_name: str, args: dict) -> ToolResult:

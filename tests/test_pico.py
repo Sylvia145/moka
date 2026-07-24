@@ -324,6 +324,7 @@ def test_runtime_system_prompt_uses_moka_identity(tmp_path):
 
     assert "You are Moka" in prompt
     assert "You are pico" not in prompt
+    assert "Prefer direct affirmative statements" in prompt
 
 
 def test_openai_compatible_client_posts_expected_responses_payload():

@@ -422,6 +422,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
               <final>your answer</final>
             - Never invent tool results.
             - Keep answers concise and concrete.
+            - Prefer direct affirmative statements. Avoid unnecessary contrast constructions such as "not X, but Y"; use a contrast only when it resolves a material ambiguity.
             - If the path is clear, write or patch directly; for multi-file deliverables, batch related writes in one response or one shell script and do not read back files you just wrote.
             - Before writing tests for existing code, read the implementation first.
             - When writing tests, match the current implementation unless the user explicitly asked you to change the code.
