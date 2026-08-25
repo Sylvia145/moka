@@ -4,10 +4,16 @@
 
 **轻量、本地、有记忆的终端 coding agent**
 
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-2ea44f)](LICENSE)
+[![Runtime](https://img.shields.io/badge/Runtime-Local-5b5bd6)](#moka-是什么)
+
 Moka 跑在本地仓库里，接上一个模型 provider，就能读代码、跑命令、改文件、
 保留运行证据，并把有价值的上下文沉淀成本地记忆。
 
 Moka 是基于 pico 二次开发的终端 coding agent，保留稳定内核并持续改进交互、兼容入口和工程体验。
+
+`moka` 启动 TUI，`moka --repl` 进入终端会话，`moka "任务描述"` 直接执行单次任务。
 
 </div>
 
@@ -29,6 +35,16 @@ Moka 是一个本地终端里的 coding agent，运行在你的仓库上下文�
 - **memory / dream**：把 daily log 整理成长期 topic，下次 session 可以继续用。
 
 Moka 关注本地 coding agent 的工程边界：配置清楚、任务能续接、结果能复盘。
+
+## 核心能力
+
+| 本地优先 | 工程化运行 | 可持续协作 |
+| --- | --- | --- |
+| 在当前仓库上下文中工作，配置、会话和记忆都保存在本地。 | 用统一的 Runtime、工具协议、权限策略和运行证据串起一次任务。 | 通过 session、working memory、durable memory 和 Dream 延续长期工作。 |
+
+| 多模型接入 | 终端体验 | 可靠性边界 |
+| --- | --- | --- |
+| 支持 OpenAI-compatible、Anthropic-compatible 与 DeepSeek provider profile。 | 同一运行时提供 TUI、REPL 和 one-shot 三种入口。 | 支持审批、可选 sandbox、任务 trace、评测与受控 worker。 |
 
 ## 界面
 
