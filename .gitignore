@@ -47,6 +47,7 @@ readme_intro_locked/
 !.pico.toml.example
 
 # Local docs not intended for publication
+.claude/skills/learn-docs/
 docs/**
 !docs/
 !docs/configuration.md
