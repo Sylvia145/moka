@@ -48,6 +48,7 @@ readme_intro_locked/
 
 # Local docs not intended for publication
 .claude/skills/learn-docs/
+.vscode/
 docs/**
 !docs/
 !docs/configuration.md
