@@ -29,6 +29,9 @@ htmlcov/
 
 # Local scratch space
 .local-notes/
+AGENTS.md
+engineering/
+notes/
 tmp/
 .worktrees/
 .pico/
@@ -49,22 +52,14 @@ readme_intro_locked/
 # Local docs not intended for publication
 .claude/skills/learn-docs/
 .vscode/
+assets/screenshots/pico-*.png
+scripts/collect_resume_metrics.py
 docs/**
 !docs/
 !docs/configuration.md
 !docs/memory.md
-!docs/project-guide.md
 !docs/skills.md
 !docs/sandbox.md
-!docs/architecture/
-!docs/architecture/Worker并发与生命周期现状.md
-!docs/architecture/MCP副作用结果未知保护.md
-!docs/design/
-!docs/design/有界Worker调度设计.md
-!docs/benchmark/
-!docs/benchmark/MCP远程故障注入与幂等重试.md
-!docs/benchmark/Worker并发与Backpressure.md
-!docs/benchmark/上下文压缩成对评测.md
 
 # OS files
 .DS_Store
