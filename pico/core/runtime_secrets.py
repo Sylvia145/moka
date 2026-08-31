@@ -16,6 +16,14 @@ WINDOWS_SHELL_ENV_NAMES = (
     "PATHEXT",
     "WINDIR",
     "ProgramFiles",
+    # PowerShell 启动会读取用户配置、临时目录和模块搜索路径；缺失时在
+    # GitHub Windows runner 上可能阻塞，导致只读管道命令超时。
+    "APPDATA",
+    "LOCALAPPDATA",
+    "PSModulePath",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
 )
 
 
