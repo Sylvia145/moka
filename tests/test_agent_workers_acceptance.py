@@ -862,7 +862,13 @@ def test_resume_does_not_restart_terminal_workers(tmp_path):
         time.sleep(0.01)
     assert first.worker_manager.to_dict()["items"][0]["status"] == "completed"
     session_id = first.session["id"]
+    # 终态状态转换与通知写入由同一工作线程顺序完成；先等通知落盘再建立恢复基线。
+    while time.monotonic() < deadline:
+        if any(event["event"] == "worker_finished" for event in read_jsonl(first.session_event_bus.path)):
+            break
+        time.sleep(0.01)
     events_before = read_jsonl(first.session_event_bus.path)
+    assert any(event["event"] == "worker_finished" for event in events_before)
 
     resumed = build_agent(
         tmp_path,

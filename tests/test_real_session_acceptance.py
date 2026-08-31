@@ -1,6 +1,7 @@
 """Pico 自动化测试模块。"""
 import json
 import importlib.util
+import os
 import sys
 from pathlib import Path
 
@@ -17,8 +18,8 @@ def _load_run_acceptance():
 
 
 @pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="real-session gate drives a live model run; not hermetic on Windows",
+    sys.platform == "win32" or os.environ.get("PICO_LIVE_SMOKE") != "1",
+    reason="真实会话验收需要显式 PICO_LIVE_SMOKE=1，且不在 Windows 常规 CI 运行",
 )
 def test_gate8_acceptance_harness_writes_real_session_evidence_bundle(tmp_path):
     """执行 `test_gate8_acceptance_harness_writes_real_session_evidence_bundle` 的内部逻辑。"""
