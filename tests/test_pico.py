@@ -2041,31 +2041,27 @@ def test_public_api_exports_resolve_through_package_path():
     assert Path(pico_pkg.__file__).as_posix().endswith("/pico/__init__.py")
 
 
-def test_reviewer_skeleton_docs_exist():
-    """执行 `test_reviewer_skeleton_docs_exist` 的内部逻辑。"""
-    release_readme = Path("release/v3/README.md")
-    review_pack = Path("release/v3/REVIEW.md")
-    testing = Path("release/v3/TESTING.md")
+def test_release_excludes_local_history_materials():
+    """发布树不包含本地开发过程材料，并由忽略规则持续保护。"""
+    ignored_paths = (
+        "release/v3/README.md",
+        "engineering/README.md",
+        "AGENTS.md",
+    )
 
-    assert release_readme.exists()
-    assert review_pack.exists()
-    assert testing.exists()
+    for relative_path in ignored_paths:
+        tracked = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", relative_path],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert tracked.returncode != 0
 
-    release_text = release_readme.read_text(encoding="utf-8")
-    assert "v3 release pack" in release_text
-    assert "release/v3/testing/" in release_text
-    assert "release/v3/learning/" in release_text
-
-    review_text = review_pack.read_text(encoding="utf-8")
-    assert "Project pitch" in review_text
-    assert "Architecture map" in review_text
-    assert "Benchmark evidence" in review_text
-    assert "Sample run artifact list" in review_text
-    assert "Harness boundaries" in review_text
-
-    testing_text = testing.read_text(encoding="utf-8")
-    assert "50 human scenarios" in testing_text
-    assert "scripts/run_v3_human_scenario_gate.py" in testing_text
+    ignore_text = Path(".gitignore").read_text(encoding="utf-8")
+    assert "release/" in ignore_text
+    assert "engineering/" in ignore_text
+    assert "AGENTS.md" in ignore_text
 
 
 def test_package_import_surface_includes_cli_entrypoints():
