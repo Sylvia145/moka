@@ -2,6 +2,7 @@
 import json
 import hashlib
 import subprocess
+import sys
 
 from pico.features.memory_lint import lint_memory_dir
 
@@ -63,7 +64,7 @@ def test_memory_lint_dirty_fixture_reports_exactly_five_findings():
 def test_memory_lint_cli_returns_one_for_findings():
     """执行 `test_memory_lint_cli_returns_one_for_findings` 的内部逻辑。"""
     result = subprocess.run(
-        ["uv", "run", "python", "-m", "pico.features.memory_lint", "tests/fixtures/memory_lint_dirty"],
+        [sys.executable, "-m", "pico.features.memory_lint", "tests/fixtures/memory_lint_dirty"],
         check=False,
         capture_output=True,
         text=True,
