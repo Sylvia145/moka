@@ -272,7 +272,9 @@ def test_shell_policy_allows_head_tail_grep_after_pipe(tmp_path):
         "python3 --version 2>&1 | head -3",
         "echo a; echo b | grep b",
     ):
-        result = agent.run_tool("run_shell", {"command": command, "timeout": 20})
+        # Windows CI runner 上 PowerShell 冷启动偶发超过 20s；这三个是微秒级命令，
+        # 放宽到 60s 只是消化加载抖动，翻译出错仍会以非零退出码或超时快速失败。
+        result = agent.run_tool("run_shell", {"command": command, "timeout": 60})
         assert "exit_code: 0" in result, f"command should run, got: {result[:200]}"
 
     rejected_after_seq = agent.run_tool(

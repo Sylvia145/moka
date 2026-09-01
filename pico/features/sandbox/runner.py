@@ -50,6 +50,8 @@ class SandboxRunner:
             encoding="utf-8",
             errors="replace",
             timeout=timeout,
+            # 与 tool_run_shell 同理：不要继承调用方可能长期打开的 stdin 管道。
+            stdin=subprocess.DEVNULL,
             env=env,
         )
 
@@ -65,6 +67,8 @@ class SandboxRunner:
             encoding="utf-8",
             errors="replace",
             timeout=timeout,
+            # 与 tool_run_shell 同理：不要继承调用方可能长期打开的 stdin 管道。
+            stdin=subprocess.DEVNULL,
             env=env,
         )
 
