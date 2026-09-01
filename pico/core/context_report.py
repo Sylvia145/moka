@@ -66,7 +66,10 @@ class ContextReportBuilder:
             "selected_sources": [str(note.get("source", "")).strip() for note in selected_notes],
             "selected_kinds": [str(note.get("kind", "episodic")).strip() or "episodic" for note in selected_notes],
             "selected_durable_count": sum(
-                1 for note in selected_notes if (str(note.get("kind", "episodic")).strip() or "episodic") == "durable"
+                1
+                for note in selected_notes
+                if (str(note.get("kind", "episodic")).strip() or "episodic")
+                in {"durable", "fact", "procedure", "guardrail"}
             ),
             "raw_chars": relevant.raw_chars,
             "rendered_chars": relevant.rendered_chars,

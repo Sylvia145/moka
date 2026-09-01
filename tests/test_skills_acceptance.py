@@ -4,10 +4,10 @@ import os
 import subprocess
 import sys
 
-from pico.testing import ScriptedModelClient
 from pico import Pico, SessionStore, WorkspaceContext
 from pico.cli import handle_repl_command
 from pico.features import skills as skillslib
+from pico.testing import ScriptedModelClient
 
 
 def build_agent(tmp_path, outputs):
@@ -128,15 +128,12 @@ def test_memory_slash_commands_use_kairos_assets(tmp_path):
     assert "User preferences" in output
 
 
-def test_dream_slash_command_consolidates_daily_log_into_memory_files(tmp_path):
-    """执行 `test_dream_slash_command_consolidates_daily_log_into_memory_files` 的内部逻辑。"""
+def test_dream_slash_command_generates_gated_candidates_without_writing_topics(tmp_path):
+    """执行 `test_dream_slash_command_generates_gated_candidates_without_writing_topics` 的内部逻辑。"""
     agent = build_agent(
         tmp_path,
         [
-            '<tool>{"name":"read_file","args":{"path":".pico/memory/MEMORY.md","start":1,"end":50}}</tool>',
-            '<tool>{"name":"write_file","args":{"path":".pico/memory/MEMORY.md","content":"# Durable Memory Index\\n\\n- [User Preferences](topics/user-preferences.md): User preferences\\n"}}</tool>',
-            '<tool>{"name":"write_file","args":{"path":".pico/memory/topics/user-preferences.md","content":"# User Preferences\\n\\n## Notes\\n- Prefers concise reports.\\n"}}</tool>',
-            "<final>Dream consolidation complete.</final>",
+            '<final><memory-candidate topic="user-preferences" kind="fact">Prefers concise reports.</memory-candidate>Dream candidate generated.</final>',
         ],
     )
     handle_repl_command(agent, "/remember Prefers concise reports.")
@@ -145,11 +142,11 @@ def test_dream_slash_command_consolidates_daily_log_into_memory_files(tmp_path):
 
     assert handled is True
     assert should_exit is False
-    assert "Dream consolidation complete" in output
-    assert "User preferences" in (tmp_path / ".pico" / "memory" / "MEMORY.md").read_text(encoding="utf-8")
-    assert "Prefers concise reports" in (tmp_path / ".pico" / "memory" / "topics" / "user-preferences.md").read_text(encoding="utf-8")
-    # dream prompt 是发给 dream 子 agent 的，加了 read step 后总 prompt 数 +1，索引相应调整
-    assert "Dream: Memory Consolidation" in agent.model_client.prompts[-4]
+    assert "Dream candidate generated" in output
+    assert "User preferences" not in (tmp_path / ".pico" / "memory" / "MEMORY.md").read_text(encoding="utf-8")
+    assert not (tmp_path / ".pico" / "memory" / "topics" / "user-preferences.md").exists()
+    assert agent.memory.durable_store.last_lifecycle["rejected"][0]["reason"] == "missing_verification_evidence"
+    assert any("Dream: Memory Consolidation" in prompt for prompt in agent.model_client.prompts)
 
 
 def test_dream_cannot_write_outside_memory_directory(tmp_path):

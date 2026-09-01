@@ -8,8 +8,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ..features import memory as memorylib, skills as skillslib
-from .context_report import ContextReportBuilder, RELEVANT_MEMORY_LIMIT
+from ..features import memory as memorylib
+from ..features import skills as skillslib
+from .context_report import RELEVANT_MEMORY_LIMIT, ContextReportBuilder
 from .context_sections import (
     CURRENT_REQUEST_SECTION,
     MIN_SECTION_BUDGETS,
@@ -125,6 +126,21 @@ class ContextManager:
         selected_notes = []
         if memory_enabled and relevant_memory_enabled and hasattr(self.agent, "memory") and hasattr(self.agent.memory, "retrieval_candidates"):
             selected_notes = self.agent.memory.retrieval_candidates(user_message, limit=RELEVANT_MEMORY_LIMIT)
+            task_state = getattr(self.agent, "current_task_state", None)
+            retrieval = dict(getattr(self.agent.memory, "last_retrieval", {}) or {})
+            if task_state is not None and hasattr(self.agent, "emit_trace"):
+                event = "memory_retrieved" if selected_notes else "memory_abstained"
+                self.agent.emit_trace(
+                    task_state,
+                    event,
+                    {
+                        "query_hash": retrieval.get("query_hash", ""),
+                        "selected_note_ids": [note.get("note_id", "") for note in selected_notes],
+                        "rejected_reasons": [note.get("reject_reason", "") for note in retrieval.get("rejected", [])],
+                        "injected_tokens": sum(int(note.get("injected_tokens", 0)) for note in selected_notes),
+                        "store_status": retrieval.get("store_status", "ready"),
+                    },
+                )
 
         if not context_reduction_enabled:
             rendered = self._render_sections_without_reduction(section_texts, selected_notes=selected_notes)
@@ -306,7 +322,7 @@ class ContextManager:
                 break
             per_note_budget -= 1
 
-        if len(rendered) > budget and budget > 0:
+        if len(rendered) > budget > 0:
             rendered = tail_clip(raw, budget)
             rendered_notes = [rendered]
 

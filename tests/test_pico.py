@@ -1,26 +1,27 @@
 """Pico 自动化测试模块。"""
-import os
 import io
 import json
+import os
 import subprocess
 import sys
 import urllib.error
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 import pico as pico_pkg
 import pico.providers as providers_pkg
-import pytest
-from pico.testing import ScriptedModelClient
 from pico import (
     AnthropicCompatibleModelClient,
-    Pico,
     OpenAICompatibleModelClient,
+    Pico,
     SessionStore,
     WorkspaceContext,
     build_welcome,
 )
 from pico.providers import ProviderError
+from pico.testing import ScriptedModelClient
 
 
 def build_workspace(tmp_path):
@@ -607,10 +608,10 @@ def test_openai_compatible_client_extracts_text_from_event_stream():
         def read(self):
             """执行 `read` 的内部逻辑。"""
             return (
-                'data: {"type":"response.created","response":{"id":"resp_1","output":[]}}\n'
-                'data: {"type":"response.completed","response":{"output":[{"content":[{"text":"<final>stream ok</final>"}]}]}}\n'
-                "data: [DONE]\n"
-            ).encode("utf-8")
+                b'data: {"type":"response.created","response":{"id":"resp_1","output":[]}}\n'
+                b'data: {"type":"response.completed","response":{"output":[{"content":[{"text":"<final>stream ok</final>"}]}]}}\n'
+                b"data: [DONE]\n"
+            )
 
     client = OpenAICompatibleModelClient(
         model="right.codes/codex-mini",
@@ -642,14 +643,14 @@ def test_openai_compatible_client_extracts_text_from_event_stream_deltas():
         def read(self):
             """执行 `read` 的内部逻辑。"""
             return (
-                'event: response.output_text.delta\n'
-                'data: {"type":"response.output_text.delta","delta":"<final>"}\n'
-                'event: response.output_text.delta\n'
-                'data: {"type":"response.output_text.delta","delta":"OK"}\n'
-                'event: response.output_text.done\n'
-                'data: {"type":"response.output_text.done","text":"<final>OK</final>"}\n'
-                "data: [DONE]\n"
-            ).encode("utf-8")
+                b'event: response.output_text.delta\n'
+                b'data: {"type":"response.output_text.delta","delta":"<final>"}\n'
+                b'event: response.output_text.delta\n'
+                b'data: {"type":"response.output_text.delta","delta":"OK"}\n'
+                b'event: response.output_text.done\n'
+                b'data: {"type":"response.output_text.done","text":"<final>OK</final>"}\n'
+                b"data: [DONE]\n"
+            )
 
     client = OpenAICompatibleModelClient(
         model="right.codes/codex-mini",
@@ -850,10 +851,9 @@ def test_build_agent_uses_openai_provider_and_model_override(tmp_path):
             "OPENAI_MODEL": "env-model",
         },
         clear=False,
-    ):
-        with patch("pico.cli.OpenAICompatibleModelClient") as mock_openai:
-            fake_client = mock_openai.return_value
-            agent = pico_pkg.build_agent(args)
+    ), patch("pico.cli.OpenAICompatibleModelClient") as mock_openai:
+        fake_client = mock_openai.return_value
+        agent = pico_pkg.build_agent(args)
 
     mock_openai.assert_called_once()
     assert mock_openai.call_args.kwargs["model"] == "override-model"
@@ -911,13 +911,12 @@ def test_build_agent_uses_anthropic_provider_and_openai_key_fallback(tmp_path):
             "OPENAI_API_KEY": "sk-openai-fallback",
         },
         clear=True,
-    ):
-        with patch(
-            "pico.cli.OpenAICompatibleModelClient",
-            side_effect=AssertionError("openai client should not be used"),
-        ), patch("pico.cli.AnthropicCompatibleModelClient") as mock_anthropic:
-            fake_client = mock_anthropic.return_value
-            agent = pico_pkg.build_agent(args)
+    ), patch(
+        "pico.cli.OpenAICompatibleModelClient",
+        side_effect=AssertionError("openai client should not be used"),
+    ), patch("pico.cli.AnthropicCompatibleModelClient") as mock_anthropic:
+        fake_client = mock_anthropic.return_value
+        agent = pico_pkg.build_agent(args)
 
     mock_anthropic.assert_called_once()
     assert mock_anthropic.call_args.kwargs["model"] == "claude-sonnet-4-5-20250929"
@@ -979,13 +978,12 @@ def test_build_agent_uses_deepseek_provider_and_env_configuration(tmp_path):
         os.environ,
         {"ANTHROPIC_API_KEY": "sk-anthropic", "OPENAI_API_KEY": "sk-openai"},
         clear=True,
-    ):
-        with patch(
-            "pico.cli.OpenAICompatibleModelClient",
-            side_effect=AssertionError("openai client should not be used"),
-        ), patch("pico.cli.AnthropicCompatibleModelClient") as mock_anthropic:
-            fake_client = mock_anthropic.return_value
-            agent = pico_pkg.build_agent(args)
+    ), patch(
+        "pico.cli.OpenAICompatibleModelClient",
+        side_effect=AssertionError("openai client should not be used"),
+    ), patch("pico.cli.AnthropicCompatibleModelClient") as mock_anthropic:
+        fake_client = mock_anthropic.return_value
+        agent = pico_pkg.build_agent(args)
 
     mock_anthropic.assert_called_once()
     assert mock_anthropic.call_args.kwargs["model"] == "deepseek-v4-pro"
@@ -1051,10 +1049,9 @@ def test_build_agent_uses_openai_provider_by_default(tmp_path):
             "OPENAI_API_KEY": "sk-test",
         },
         clear=False,
-    ):
-        with patch("pico.cli.OpenAICompatibleModelClient") as mock_openai:
-            fake_client = mock_openai.return_value
-            agent = pico_pkg.build_agent(args)
+    ), patch("pico.cli.OpenAICompatibleModelClient") as mock_openai:
+        fake_client = mock_openai.return_value
+        agent = pico_pkg.build_agent(args)
 
     mock_openai.assert_called_once()
     assert mock_openai.call_args.kwargs["model"] == "gpt-5.4"
@@ -1691,6 +1688,12 @@ def test_explicit_memory_promotion_persists_durable_memory_topics(tmp_path):
         "project-conventions: Preserve local agent state under .pico/.",
         "key-decisions: Keep durable memory topic-based and lightweight.",
     ]
+    metadata_path = tmp_path / ".pico" / "memory" / "topics" / "project-conventions.metadata.jsonl"
+    metadata_rows = [json.loads(line) for line in metadata_path.read_text(encoding="utf-8").splitlines()]
+    assert all(row["kind"] == "fact" for row in metadata_rows)
+    assert all(row["evidence"]["run_id"] == agent.current_task_state.run_id for row in metadata_rows)
+    assert all(row["evidence"]["trace_event_id"].startswith("span_") for row in metadata_rows)
+    assert report["memory_lifecycle"]["evidence_coverage"] == 1.0
 
 
 def test_final_memory_tags_are_appended_to_daily_log(tmp_path):
@@ -1809,11 +1812,11 @@ def test_auto_dream_runs_in_background_after_session_gate(tmp_path):
 
     post_report = json.loads(agent.run_store.report_path(agent.current_task_state).read_text(encoding="utf-8"))
     trace = agent.run_store.trace_path(agent.current_task_state).read_text(encoding="utf-8")
-    assert "Project memory" in (tmp_path / ".pico" / "memory" / "MEMORY.md").read_text(encoding="utf-8")
+    assert "Project memory" not in (tmp_path / ".pico" / "memory" / "MEMORY.md").read_text(encoding="utf-8")
     assert agent.last_memory_maintenance["auto_dream"]["status"] == "finished"
-    assert post_report["memory_maintenance"]["auto_dream"]["changed_files"] == [".pico/memory/MEMORY.md"]
+    assert post_report["memory_maintenance"]["auto_dream"]["changed_files"] == []
     assert "memory_auto_dream_finished" in trace
-    assert ".pico/memory/MEMORY.md" in trace
+    assert "memory_auto_dream_finished" in trace
 
 
 def test_background_auto_dream_failure_restores_lock_and_reports_error(tmp_path, monkeypatch):

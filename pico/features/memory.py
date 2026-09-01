@@ -8,11 +8,13 @@ session history 负责保存完整事件流；这个模块只保存更小的一�
 import hashlib
 import json
 import os
+import re
 import subprocess
 import threading
+import uuid
 from collections import Counter
+from contextlib import contextmanager
 from datetime import date, datetime, timezone
-import re
 from pathlib import Path
 
 from ..core.workspace import WorkspaceContext, clip, now
@@ -26,6 +28,8 @@ MAX_MEMORY_INDEX_CHARS = 10000
 MAX_ENTRYPOINT_LINES = 200
 ENTRYPOINT_NAME = "MEMORY.md"
 LOCK_FILE_NAME = ".consolidate-lock"
+DURABLE_WRITE_LOCK_FILE_NAME = ".durable-write.lock"
+DURABLE_TRANSACTION_FILE_NAME = ".durable-transaction.json"
 HOLDER_STALE_S = 3600
 # 单次 dream 最多消化的 session 数。超出时 dream prompt 只列最近 N 个，
 # 防止 75+ session ID 撑爆模型上下文导致 empty_response。
@@ -34,6 +38,14 @@ DREAM_SESSION_CAP = 30
 DREAM_MIN_NEW_TOKENS = 4096
 _WORKSPACE_FINGERPRINT_CACHE = {}
 MAX_ANCHOR_HASH_BYTES = 10 * 1024 * 1024
+DURABLE_KINDS = {"fact", "procedure", "guardrail"}
+DURABLE_STATUSES = {
+    "candidate", "active", "superseded", "stale", "quarantined", "expired", "tombstoned", "legacy_unverified",
+}
+
+
+class MemoryStoreBusyError(RuntimeError):
+    """持久记忆正在提交，读取方应放弃本轮注入。"""
 
 DURABLE_MEMORY_INTENT_PATTERN = re.compile(r"(?i)\b(capture|remember|save|store|persist|note)\b")
 DURABLE_MEMORY_INTENT_ZH_PATTERN = re.compile(r"(记住|保存|记录|沉淀|长期记忆|持久记忆)")
@@ -570,24 +582,17 @@ Do not exhaustively read transcripts. Look only for things you already suspect m
 
 ## Phase 3 - Consolidate
 
-For each thing worth remembering, write or update a memory file using the memory file format and type conventions from the Auto Memory section. Use the memory file format and type conventions as the source of truth for what to save, how to structure it, and what NOT to save.
+For each thing worth remembering, produce a compact candidate only. Do not write topic files, metadata, or the index. The runtime will apply the shared evidence gate after a verifier confirms the candidate.
 
 Focus on:
-- Merging new signal into existing topic files rather than creating near-duplicates.
+- Merging new signal into existing topics rather than creating near-duplicates.
 - Converting relative dates ("yesterday", "last week") to absolute dates so they remain interpretable after time passes.
 - Deleting contradicted facts; if current evidence disproves an old memory, fix it at the source.
 - Keeping secrets, raw command output, stack traces, and transient task state out of memory files.
 
-## Phase 4 - Prune and index
+## Phase 4 - Candidate output
 
-Update `{ENTRYPOINT_NAME}` so it stays under {MAX_ENTRYPOINT_LINES} lines and under ~25KB. It is an index, not a dump; each entry should be one line under ~150 characters, like `- [Title](file.md) — one-line hook`. Never write memory content directly into it.
-
-- Remove pointers to memories that are now stale, wrong, or superseded.
-- Demote verbose index entries into topic files.
-- Add pointers to newly important memories.
-- Resolve contradictions by fixing the wrong memory file, not by adding a second contradictory entry.
-
-Return a brief summary of what you consolidated, updated, or pruned. If nothing changed, say so.{extra_section}"""
+Return each candidate exactly as `<memory-candidate topic="project-conventions" kind="fact">text</memory-candidate>`, then a brief summary. Valid kinds are `fact`, `procedure`, and `guardrail`. If nothing qualifies, return only the summary.{extra_section}"""
 
 
 def reject_durable_reason(note_text, redacted_value="<redacted>"):
@@ -646,14 +651,46 @@ def extract_durable_promotions(user_message, final_answer, redacted_value="<reda
     return promotions, rejections
 
 
-def promote_durable_memory(agent, user_message, final_answer):
+def promote_durable_memory(agent, task_state, user_message, final_answer):
     """执行 `promote_durable_memory` 的内部逻辑。"""
     promotions, rejections = extract_durable_promotions(user_message, final_answer)
-    promoted, superseded = agent.memory.promote_durable(promotions)
+    candidates = []
+    for topic, text in promotions:
+        source_path = task_state.changed_paths[-1] if getattr(task_state, "changed_paths", []) else None
+        created = agent.emit_trace(
+            task_state,
+            "memory_candidate_created",
+            {"topic": topic, "kind": "fact", "source_path": source_path},
+        )
+        candidates.append(
+            {
+                "topic": topic,
+                "text": text,
+                "kind": "fact",
+                "scope": "workspace_fingerprint",
+                "evidence": {
+                    "session_id": str(agent.session.get("id", "")),
+                    "run_id": task_state.run_id,
+                    "trace_event_id": str(created.get("event_id", "") or created.get("span_id", "")) or "memory_candidate_created",
+                    "verifier_status": "passed" if task_state.status == "completed" else "unverified",
+                    "source_path": source_path,
+                    "evidence_anchor_hash": compute_anchor_hash(_source_path_for_evidence(agent.root, source_path)) if source_path else None,
+                },
+            }
+        )
+    promoted, superseded = agent.memory.promote_durable(candidates)
+    lifecycle = dict(getattr(agent.memory.durable_store, "last_lifecycle", {})) if agent.memory.durable_store else {}
+    for item in lifecycle.get("rejected", []):
+        agent.emit_trace(task_state, "memory_rejected", {"reason": item.get("reason", ""), "topic": item.get("candidate", {}).get("topic", "")})
+    for item in promoted:
+        agent.emit_trace(task_state, "memory_promoted", {"memory": item})
+    for item in superseded:
+        agent.emit_trace(task_state, "memory_superseded", {"relationship": item})
     agent.session["memory"] = agent.memory.to_dict()
     agent.last_durable_promotions = promoted
-    agent.last_durable_rejections = rejections
+    agent.last_durable_rejections = rejections + [item.get("reason", "") for item in lifecycle.get("rejected", [])]
     agent.last_durable_superseded = superseded
+    agent.last_memory_lifecycle = lifecycle
     return promoted, rejections, superseded
 
 
@@ -666,26 +703,43 @@ def run_dream(agent, quiet=False, session_ids=None):
     before_notes = _dream_topic_notes(agent.memory_dir)
     before_snapshot = _memory_file_snapshot(agent)
     dream_prompt = build_dream_prompt(agent.memory_dir, transcript_dir=str(agent.session_store.root), session_ids=session_ids)
-    try:
-        memory_scope = Path(agent.memory_dir).resolve().relative_to(agent.root)
-    except ValueError:
-        memory_scope = Path(".pico") / "memory"
     dream_agent = Pico(
         model_client=agent.model_client,
         workspace=WorkspaceContext.build(agent.root),
         session_store=agent.session_store,
         approval_policy="auto",
+        read_only=True,
         max_steps=max(agent.max_steps, 20),
         max_new_tokens=max(agent.max_new_tokens, DREAM_MIN_NEW_TOKENS),
         secret_env_names=agent.secret_env_names,
         feature_flags={**agent.feature_flags, "memory": False, "relevant_memory": False},
-        write_scope=[str(memory_scope)],
+        # Dream 仅生成候选，不能绕过 durable memory 的证据晋升门禁直接写入主题文件。
+        write_scope=[],
         memory_dir=agent.memory_dir,
         auto_dream=False,
     )
     dream_agent.set_tool_profile("dream")
     dream_agent.refresh_prefix(force=True)
     result = dream_agent.ask(dream_prompt)
+    dream_candidates = []
+    for match in re.finditer(r'<memory-candidate\s+topic="([^"]+)"\s+kind="([^"]+)">(.*?)</memory-candidate>', result, re.DOTALL):
+        topic, kind, text = match.groups()
+        dream_candidates.append(
+            {
+                "topic": topic.strip(),
+                "text": text.strip(),
+                "kind": kind.strip(),
+                "scope": "workspace_fingerprint",
+                "evidence": {
+                    "session_id": str(agent.session.get("id", "")),
+                    "run_id": str(getattr(getattr(agent, "current_task_state", None), "run_id", "dream")),
+                    "trace_event_id": "dream_candidate",
+                    "verifier_status": "unverified",
+                },
+            }
+        )
+    if dream_candidates:
+        agent.memory.promote_durable(dream_candidates)
     record_consolidation(agent.memory_dir)
     dream_report = build_dream_report(before_notes, _dream_topic_notes(agent.memory_dir))
     report_path = write_dream_report(agent.memory_dir, dream_report)
@@ -701,6 +755,7 @@ def run_dream(agent, quiet=False, session_ids=None):
             "memory_dir": str(agent.memory_dir),
             "changed_files": changed_files,
             "dream_report_path": str(report_path),
+            "candidate_count": len(dream_candidates),
         },
     )
     agent.memory.state = normalize_memory_state(agent.memory.state, agent.root)
@@ -810,12 +865,80 @@ class DurableMemoryStore:
         """执行 `_metadata_path` 的内部逻辑。"""
         return self.topics_dir / f"{topic}.metadata.jsonl"
 
+    @property
+    def _write_lock_path(self):
+        return self.root / DURABLE_WRITE_LOCK_FILE_NAME
+
+    @property
+    def _transaction_path(self):
+        return self.root / DURABLE_TRANSACTION_FILE_NAME
+
+    def _recover_interrupted_transaction(self):
+        """从提交前快照恢复跨文件写入，避免读取半写入状态。"""
+        if not self._transaction_path.exists():
+            return False
+        try:
+            payload = json.loads(self._transaction_path.read_text(encoding="utf-8"))
+            before = payload.get("before", {})
+            for relative_path, content in before.items():
+                path = self.root / relative_path
+                if content is None:
+                    path.unlink(missing_ok=True)
+                else:
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    temporary = path.with_name(path.name + ".recovery.tmp")
+                    temporary.write_text(str(content), encoding="utf-8")
+                    os.replace(temporary, path)
+        except (OSError, json.JSONDecodeError):
+            raise MemoryStoreBusyError("memory_store_busy")
+        finally:
+            self._transaction_path.unlink(missing_ok=True)
+        return True
+
+    @contextmanager
+    def _write_transaction(self, contents):
+        """以排他锁、事务日志和原子替换提交相关记忆文件。"""
+        self.root.mkdir(parents=True, exist_ok=True)
+        self.topics_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            handle = os.open(self._write_lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError as exc:
+            raise MemoryStoreBusyError("memory_store_busy") from exc
+        try:
+            with os.fdopen(handle, "w", encoding="utf-8") as lock_file:
+                lock_file.write(str(os.getpid()))
+            self._recover_interrupted_transaction()
+            before = {
+                str(path.relative_to(self.root)): (path.read_text(encoding="utf-8") if path.exists() else None)
+                for path in contents
+            }
+            self._transaction_path.write_text(
+                json.dumps({"transaction_id": uuid.uuid4().hex, "before": before}, ensure_ascii=False, sort_keys=True),
+                encoding="utf-8",
+            )
+            yield
+            for path, content in contents.items():
+                path.parent.mkdir(parents=True, exist_ok=True)
+                temporary = path.with_name(path.name + f".{uuid.uuid4().hex}.tmp")
+                temporary.write_text(content, encoding="utf-8")
+                os.replace(temporary, path)
+            self._transaction_path.unlink(missing_ok=True)
+        finally:
+            self._write_lock_path.unlink(missing_ok=True)
+
+    def _ensure_readable_snapshot(self):
+        """读取只接受完整事务快照；遇到活动写锁时显式放弃。"""
+        if self._write_lock_path.exists():
+            raise MemoryStoreBusyError("memory_store_busy")
+        self._recover_interrupted_transaction()
+
     def topic_slugs(self):
         """执行 `topic_slugs` 的内部逻辑。"""
         return [topic["topic"] for topic in self.load_index()]
 
     def load_index(self):
         """执行 `load_index` 的内部逻辑。"""
+        self._ensure_readable_snapshot()
         if not self.index_path.exists():
             return []
         lines = self.index_path.read_text(encoding="utf-8").splitlines()
@@ -846,6 +969,7 @@ class DurableMemoryStore:
 
     def _load_topic_metadata(self, topic):
         """执行 `_load_topic_metadata` 的内部逻辑。"""
+        self._ensure_readable_snapshot()
         path = self._metadata_path(topic)
         if not path.exists():
             return {}
@@ -862,13 +986,17 @@ class DurableMemoryStore:
                 rows[note_id] = row
         return rows
 
+    def _metadata_text(self, rows):
+        """执行 `_metadata_text` 的内部逻辑。"""
+        ordered = sorted(rows.values(), key=lambda row: str(row.get("note_id", "")))
+        lines = [json.dumps(row, ensure_ascii=False, sort_keys=True) for row in ordered]
+        return "\n".join(lines).rstrip() + ("\n" if lines else "")
+
     def _write_topic_metadata(self, topic, rows):
         """执行 `_write_topic_metadata` 的内部逻辑。"""
         path = self._metadata_path(topic)
         self.topics_dir.mkdir(parents=True, exist_ok=True)
-        ordered = sorted(rows.values(), key=lambda row: str(row.get("note_id", "")))
-        lines = [json.dumps(row, ensure_ascii=False, sort_keys=True) for row in ordered]
-        path.write_text("\n".join(lines).rstrip() + ("\n" if lines else ""), encoding="utf-8")
+        path.write_text(self._metadata_text(rows), encoding="utf-8")
 
     def _default_note_metadata(self, topic, note_text, topic_path=None):
         """执行 `_default_note_metadata` 的内部逻辑。"""
@@ -876,10 +1004,14 @@ class DurableMemoryStore:
         created_at = datetime.fromtimestamp(topic_path.stat().st_mtime).astimezone().isoformat() if topic_path.exists() else now()
         return {
             "note_id": _note_id_for(topic, note_text),
-            "status": "active",
+            "kind": "fact",
+            "status": "legacy_unverified",
             "supersedes": None,
             "evidence": {
                 "session_id": "legacy",
+                "run_id": None,
+                "trace_event_id": None,
+                "verifier_status": None,
                 "source_path": None,
                 "created_at": created_at,
                 "evidence_anchor_hash": None,
@@ -892,7 +1024,8 @@ class DurableMemoryStore:
         note_id = _note_id_for(topic, note_text)
         row = dict(metadata.get(note_id) or self._default_note_metadata(topic, note_text, topic_path=topic_path))
         row["note_id"] = note_id
-        row.setdefault("status", "active")
+        row.setdefault("kind", "fact")
+        row.setdefault("status", "legacy_unverified" if row.get("evidence", {}).get("session_id") == "legacy" else "active")
         row.setdefault("supersedes", None)
         default_evidence = self._default_note_metadata(topic, note_text, topic_path=topic_path)["evidence"]
         evidence = row.get("evidence") if isinstance(row.get("evidence"), dict) else {}
@@ -960,7 +1093,7 @@ class DurableMemoryStore:
             r"^(.+?)使用.+$",
         )
         for pattern in patterns:
-            match = re.match(pattern, text, re.I)
+            match = re.match(pattern, text, re.IGNORECASE)
             if match:
                 subject = " ".join(_tokenize(match.group(1)))
                 return subject or None
@@ -984,18 +1117,16 @@ class DurableMemoryStore:
         ranked.sort(key=lambda item: item[0], reverse=True)
         return [note for _, note in ranked[:limit]]
 
-    def _write_index(self, topics):
-        """执行 `_write_index` 的内部逻辑。"""
-        self.root.mkdir(parents=True, exist_ok=True)
-        self.topics_dir.mkdir(parents=True, exist_ok=True)
+    def _index_text(self, topics):
+        """执行 `_index_text` 的内部逻辑。"""
         lines = ["# Durable Memory Index", ""]
         for topic in topics:
             lines.append(f"- [{topic['topic']}](topics/{topic['topic']}.md): {topic['title']}")
             lines.append(f"  - summary: {topic['summary']}")
             lines.append(f"  - tags: {', '.join(topic['tags'])}")
-        self.index_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+        return "\n".join(lines).rstrip() + "\n"
 
-    def _write_topic(self, topic, notes, metadata=None):
+    def _topic_text(self, topic, notes):
         """执行 `_write_topic` 的内部逻辑。"""
         self.topics_dir.mkdir(parents=True, exist_ok=True)
         meta = DURABLE_TOPIC_DEFAULTS[topic]
@@ -1011,24 +1142,62 @@ class DurableMemoryStore:
         ]
         for note in notes:
             lines.append(f"- {note}")
-        path = self._topic_path(topic)
-        path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-        metadata = dict(metadata or self._load_topic_metadata(topic))
-        for note in notes:
-            row = self._metadata_for_note(topic, note, metadata, topic_path=path)
-            metadata[row["note_id"]] = row
-        self._write_topic_metadata(topic, metadata)
+        return "\n".join(lines).rstrip() + "\n"
+
+    def _normalize_candidate(self, candidate):
+        """兼容旧元组调用，并收敛外部候选的生命周期字段。"""
+        if isinstance(candidate, (tuple, list)) and len(candidate) == 2:
+            topic, text = candidate
+            return {
+                "topic": str(topic), "text": str(text), "kind": "fact", "scope": "workspace_fingerprint",
+                "evidence": {"session_id": "manual", "run_id": "manual", "trace_event_id": "manual", "verifier_status": "passed"},
+            }
+        if not isinstance(candidate, dict):
+            return None
+        result = dict(candidate)
+        result["topic"] = str(result.get("topic", "")).strip()
+        result["text"] = str(result.get("text", "")).strip()
+        result["kind"] = str(result.get("kind", "fact")).strip() or "fact"
+        result["scope"] = str(result.get("scope", "workspace_fingerprint")).strip() or "workspace_fingerprint"
+        result["evidence"] = dict(result.get("evidence") or {})
+        return result
+
+    @staticmethod
+    def _candidate_rejection(candidate):
+        if not candidate or candidate.get("topic") not in DURABLE_TOPIC_DEFAULTS:
+            return "invalid_topic"
+        if not candidate.get("text"):
+            return "empty"
+        if candidate.get("kind") not in DURABLE_KINDS:
+            return "invalid_kind"
+        if should_quarantine(candidate["text"]):
+            return "quarantined"
+        evidence = candidate.get("evidence", {})
+        if str(evidence.get("verifier_status", "")).lower() not in {"passed", "verified", "manual"}:
+            return "missing_verification_evidence"
+        if not all(str(evidence.get(key, "")).strip() for key in ("run_id", "trace_event_id")):
+            return "missing_evidence"
+        return ""
 
     def promote(self, promotions):
         """执行 `promote` 的内部逻辑。"""
         if not promotions:
+            self.last_lifecycle = {"candidates": 0, "promoted": 0, "rejected": [], "superseded": [], "evidence_coverage": 0.0}
             return [], []
         topics = {topic["topic"]: topic for topic in self.load_index()}
         topic_notes = {slug: [note["text"] for note in self.load_topic_notes(slug)] for slug in topics}
         topic_metadata = {slug: self._load_topic_metadata(slug) for slug in topics}
         results = []
         superseded = []
-        for topic, note_text in promotions:
+        rejected = []
+        for raw_candidate in promotions:
+            candidate = self._normalize_candidate(raw_candidate)
+            reason = self._candidate_rejection(candidate)
+            if reason:
+                rejected.append({"candidate": candidate or {}, "reason": reason})
+                continue
+            topic = candidate["topic"]
+            note_text = candidate["text"]
             meta = DURABLE_TOPIC_DEFAULTS[topic]
             topics.setdefault(
                 topic,
@@ -1062,14 +1231,30 @@ class DurableMemoryStore:
                 existing.append(note_text)
             new_meta = self._metadata_for_note(topic, note_text, metadata)
             new_meta["status"] = "active"
-            if should_quarantine(note_text):
-                new_meta["status"] = "quarantined"
+            new_meta["kind"] = candidate["kind"]
+            evidence = dict(new_meta.get("evidence") or {})
+            evidence.update(candidate["evidence"])
+            evidence.setdefault("session_id", "")
+            evidence.setdefault("source_path", None)
+            evidence.setdefault("evidence_anchor_hash", None)
+            evidence.setdefault("created_at", now())
+            new_meta["evidence"] = evidence
+            new_meta["scope"] = candidate["scope"]
             new_meta["supersedes"] = supersedes
             metadata[new_meta["note_id"]] = new_meta
             results.append(f"{topic}: {note_text}")
-        self._write_index([topics[slug] for slug in sorted(topics)])
+        contents = {self.index_path: self._index_text([topics[slug] for slug in sorted(topics)])}
         for topic, notes in topic_notes.items():
-            self._write_topic(topic, notes, metadata=topic_metadata.get(topic, {}))
+            contents[self._topic_path(topic)] = self._topic_text(topic, notes)
+            contents[self._metadata_path(topic)] = self._metadata_text(topic_metadata.get(topic, {}))
+        with self._write_transaction(contents):
+            pass
+        active_rows = [row for rows in topic_metadata.values() for row in rows.values() if row.get("status") == "active"]
+        covered = sum(1 for row in active_rows if all(str((row.get("evidence") or {}).get(key, "")).strip() for key in ("run_id", "trace_event_id", "verifier_status")))
+        self.last_lifecycle = {
+            "candidates": len(promotions), "promoted": len(results), "rejected": rejected, "superseded": superseded,
+            "evidence_coverage": covered / len(active_rows) if active_rows else 1.0,
+        }
         return results, superseded
 
 
@@ -1183,7 +1368,7 @@ def _query_hash(query):
 
 def _note_id_for(topic_slug, note_text):
     """执行 `_note_id_for` 的内部逻辑。"""
-    return hashlib.sha256(f"{topic_slug}\n{note_text}".encode("utf-8")).hexdigest()[:12]
+    return hashlib.sha256(f"{topic_slug}\n{note_text}".encode()).hexdigest()[:12]
 
 
 def _note_layer(note):
@@ -1208,8 +1393,10 @@ def _retrieval_note_id(note):
 def _retrieval_reject_reason(note, workspace_root=None):
     """执行 `_retrieval_reject_reason` 的内部逻辑。"""
     status = str(note.get("status", "active")).strip() or "active"
-    if status == "quarantined":
+    if status in {"quarantined", "expired", "tombstoned"}:
         return "quarantined"
+    if status == "legacy_unverified":
+        return "legacy_unverified"
     if status == "superseded":
         return "superseded"
     if bool(note.get("stale_evidence")):
@@ -1228,6 +1415,13 @@ def _retrieval_record(note, score, reject_reason=""):
     enriched["note_id"] = _retrieval_note_id(enriched)
     enriched["layer"] = _note_layer(enriched)
     enriched["score"] = float(score)
+    evidence = enriched.get("evidence") if isinstance(enriched.get("evidence"), dict) else {}
+    enriched["evidence_refs"] = {
+        key: evidence.get(key)
+        for key in ("run_id", "trace_event_id", "verifier_status", "session_id", "source_path", "evidence_anchor_hash")
+    }
+    enriched["lifecycle_status"] = str(enriched.get("status", "active") or "active")
+    enriched["injected_tokens"] = max(1, (len(str(enriched.get("text", ""))) + 3) // 4) if not reject_reason else 0
     if reject_reason:
         enriched["reject_reason"] = reject_reason
     return enriched
@@ -1535,7 +1729,11 @@ def retrieval_view_structured(state, query, limit=3, workspace_root=None):
     """执行 `retrieval_view_structured` 的内部逻辑。"""
     selected = []
     rejected = []
-    for _, score, note in _ranked_retrieval_notes(state, query, workspace_root):
+    try:
+        ranked_notes = _ranked_retrieval_notes(state, query, workspace_root)
+    except MemoryStoreBusyError:
+        return {"selected": [], "rejected": [], "query_hash": _query_hash(query), "store_status": "memory_store_busy"}
+    for _, score, note in ranked_notes:
         reject_reason = _retrieval_reject_reason(note, workspace_root)
         if reject_reason:
             rejected.append(_retrieval_record(note, score, reject_reason=reject_reason))
@@ -1544,7 +1742,7 @@ def retrieval_view_structured(state, query, limit=3, workspace_root=None):
             selected.append(_retrieval_record(note, score))
         else:
             rejected.append(_retrieval_record(note, score, reject_reason="below_limit"))
-    return {"selected": selected, "rejected": rejected, "query_hash": _query_hash(query)}
+    return {"selected": selected, "rejected": rejected, "query_hash": _query_hash(query), "store_status": "ready"}
 
 
 def retrieval_candidates(state, query, limit=3, workspace_root=None):

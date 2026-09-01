@@ -155,7 +155,7 @@ def _emit_terminal_artifacts(
         stop_reason=task_state.stop_reason,
     )
     if maintain_memory:
-        agent.promote_durable_memory(user_message, final)
+        agent.promote_durable_memory(task_state, user_message, final)
         maintain_memory_safely(agent, task_state, final)
     checkpoint = agent.create_checkpoint(
         task_state, user_message, trigger=checkpoint_trigger

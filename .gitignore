@@ -60,6 +60,8 @@ docs/**
 !docs/memory.md
 !docs/skills.md
 !docs/sandbox.md
+!docs/benchmark/
+!docs/benchmark/可审计分层经验记忆.md
 
 # OS files
 .DS_Store

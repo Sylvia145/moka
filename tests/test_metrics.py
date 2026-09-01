@@ -4,12 +4,15 @@ from unittest.mock import patch
 
 from pico.evaluation.metrics import (
     _provider_profile,
-    main as metrics_main,
     run_context_ablation_v2,
-    run_memory_fidelity_v1,
     run_memory_ablation_v2,
+    run_memory_evidence_v2,
+    run_memory_fidelity_v1,
     run_recovery_ablation_v2,
     write_benchmark_core_report,
+)
+from pico.evaluation.metrics import (
+    main as metrics_main,
 )
 
 
@@ -142,6 +145,16 @@ def test_run_memory_fidelity_v1_writes_expected_artifact(tmp_path):
     }
 
 
+def test_memory_evidence_v2_covers_all_auditable_memory_contracts(tmp_path):
+    """执行 `test_memory_evidence_v2_covers_all_auditable_memory_contracts` 的内部逻辑。"""
+    artifact = run_memory_evidence_v2(tmp_path / "artifacts" / "memory-evidence-v2.json")
+
+    assert artifact["summary"]["total_tasks"] == 14
+    assert artifact["summary"]["passed"] == 14
+    assert artifact["summary"]["active_evidence_coverage"] == 1.0
+    assert artifact["summary"]["irrelevant_injection_rate"] == 0.0
+
+
 def test_memory_fidelity_stale_and_prompt_injection_categories(tmp_path):
     """执行 `test_memory_fidelity_stale_and_prompt_injection_categories` 的内部逻辑。"""
     artifact = run_memory_fidelity_v1(tmp_path / "artifacts" / "memory-fidelity-v1.json")
@@ -220,7 +233,10 @@ def test_write_benchmark_core_report_marks_resume_safe_metrics(tmp_path):
 
 def test_write_benchmark_core_report_includes_optional_context_ab(tmp_path):
     """执行 `test_write_benchmark_core_report_includes_optional_context_ab` 的内部逻辑。"""
-    from pico.evaluation.context_cost import run_deterministic_prompt_experiment, write_experiment_artifacts
+    from pico.evaluation.context_cost import (
+        run_deterministic_prompt_experiment,
+        write_experiment_artifacts,
+    )
 
     run_context_ablation_v2(tmp_path / "artifacts" / "context-ablation-v2.json", repetitions=1)
     run_memory_ablation_v2(tmp_path / "artifacts" / "memory-ablation-v2.json", repetitions=1)

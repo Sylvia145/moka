@@ -4,39 +4,40 @@ Pico 在此统一持有会话、工作区上下文、记忆、检查点和持久
 位于 ``core.engine``，工具执行与模型输出解析则保留在职责更单一的辅助模块中。
 """
 
+import hashlib
 import json
 import os
 import textwrap
 import uuid
-import hashlib
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from ..features import memory as memorylib, skills as skillslib
+from ..features import memory as memorylib
+from ..features import skills as skillslib
 from ..features.sandbox import SandboxConfig, SandboxRunner
+from ..tools import registry as toolkit
+from . import model_output, tool_executor
 from .compact import CompactManager
 from .context_manager import ContextManager
 from .context_orchestrator import ContextOrchestrator
 from .engine import Engine
-from . import model_output, tool_executor
 from .model_router import ModelClientRouter
-from .plan_mode import PlanModeController
 from .permissions import PermissionChecker
+from .plan_mode import PlanModeController
 from .run_store import RunStore
-from .runtime_consumers import default_runtime_consumers
 from .runtime_checkpoints import RuntimeCheckpointsMixin
+from .runtime_consumers import default_runtime_consumers
 from .runtime_events import build_runtime_event
 from .runtime_secrets import REDACTED_VALUE, RuntimeSecretsMixin
 from .session_events import SessionEventBus
 from .session_lifecycle import clear_runtime_session, resume_runtime_session
-from .session_store import SessionStore as SessionStore  # noqa: F401
-from .tool_repetition import is_repeated_tool_call
-from .tool_profiles import build_tool_profiles
+from .session_store import SessionStore as SessionStore
 from .todo_ledger import TodoLedger
+from .tool_profiles import build_tool_profiles
+from .tool_repetition import is_repeated_tool_call
 from .turn_history import TurnHistoryBuilder
 from .worker_manager import WorkerManager
-from ..tools import registry as toolkit
 from .workspace import MAX_HISTORY, WorkspaceContext, clip, now
 
 DEFAULT_SHELL_ENV_ALLOWLIST = (
@@ -234,6 +235,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         self.last_durable_promotions = []
         self.last_durable_rejections = []
         self.last_durable_superseded = []
+        self.last_memory_lifecycle = {}
         self.last_memory_maintenance = memorylib.default_memory_maintenance_audit(
             auto_dream=self.auto_dream
         )
@@ -732,9 +734,9 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
             user_message, final_answer, redacted_value=REDACTED_VALUE
         )
 
-    def promote_durable_memory(self, user_message, final_answer):
+    def promote_durable_memory(self, task_state, user_message, final_answer):
         """执行 `promote_durable_memory` 的内部逻辑。"""
-        return memorylib.promote_durable_memory(self, user_message, final_answer)
+        return memorylib.promote_durable_memory(self, task_state, user_message, final_answer)
 
     def ask(self, user_message):
         """执行 `ask` 的内部逻辑。"""
@@ -811,6 +813,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
             "durable_promotions": list(self.last_durable_promotions),
             "durable_rejections": list(self.last_durable_rejections),
             "durable_superseded": list(self.last_durable_superseded),
+            "memory_lifecycle": dict(self.last_memory_lifecycle),
             "memory_maintenance": dict(self.last_memory_maintenance),
             "redacted_env": self.detected_secret_env_summary(),
             "compactions": list(self.session.get("compactions", [])),
