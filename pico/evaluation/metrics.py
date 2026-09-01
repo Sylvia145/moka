@@ -30,6 +30,7 @@ DEFAULT_MEMORY_ABLATION_V2_PATH = Path("artifacts/memory-ablation-v2.json")
 DEFAULT_RECOVERY_ABLATION_V2_PATH = Path("artifacts/recovery-ablation-v2.json")
 DEFAULT_MEMORY_FIDELITY_V1_PATH = LOCAL_BENCHMARK_ARTIFACT_DIR / "memory-fidelity-v1.json"
 DEFAULT_MEMORY_EVIDENCE_V2_PATH = LOCAL_BENCHMARK_ARTIFACT_DIR / "memory-evidence-v2.json"
+DEFAULT_MEMORY_CROSS_SESSION_V1_PATH = LOCAL_BENCHMARK_ARTIFACT_DIR / "memory-cross-session-v1.json"
 DEFAULT_DREAM_QUALITY_V1_PATH = LOCAL_BENCHMARK_ARTIFACT_DIR / "dream-quality-v1.json"
 DEFAULT_MEMORY_LIVE_SMOKE_V1_PATH = LOCAL_BENCHMARK_ARTIFACT_DIR / "memory-live-smoke-v1.json"
 DEFAULT_MEMORY_AGENT_EVAL_V1_PATH = LOCAL_BENCHMARK_ARTIFACT_DIR / "memory-agent-eval-v1.json"
@@ -43,6 +44,7 @@ RUN_NAMES = (
     "memory_ablation",
     "memory_fidelity",
     "memory_evidence",
+    "memory_cross_session",
     "memory_agent_eval",
     "memory_challenge",
     "recovery_ablation",
@@ -751,6 +753,105 @@ def run_memory_evidence_v2(artifact_path=DEFAULT_MEMORY_EVIDENCE_V2_PATH):
         "irrelevant_injection_rate": 0.0,
     }
     return _write_json_artifact(artifact_path, {"schema_version": 2, "artifact_type": "memory-evidence-v2", "summary": summary, "rows": rows})
+
+
+def _record_cross_session(store, session_id):
+    """写入最小 Session 工件，确保评测边界可由 SessionStore 复查。"""
+    store.save({"id": session_id, "history": [], "created_at": "2026-09-01T00:00:00+00:00"})
+
+
+def _cross_session_candidate(topic, text, session_id, run_id, **overrides):
+    """构造带来源 Session 的已验证候选。"""
+    candidate = _memory_evidence_candidate(topic, text)
+    candidate["evidence"].update(
+        {"session_id": session_id, "run_id": run_id, "trace_event_id": f"trace-{session_id}"}
+    )
+    candidate.update(overrides)
+    return candidate
+
+
+def run_memory_cross_session_v1(artifact_path=DEFAULT_MEMORY_CROSS_SESSION_V1_PATH):
+    """运行三条独立 Session 边界上的确定性记忆链路。"""
+    rows = []
+    with tempfile.TemporaryDirectory(prefix="pico-memory-cross-session-v1-") as temp_dir:
+        root = Path(temp_dir)
+        store = SessionStore(root / ".pico" / "sessions")
+
+        _record_cross_session(store, "recall-a")
+        session_a = LayeredMemory(workspace_root=root)
+        session_a.promote_durable([
+            _cross_session_candidate("project-conventions", "Cross session uses verified convention.", "recall-a", "run-recall-a")
+        ])
+        _record_cross_session(store, "recall-b")
+        session_b = LayeredMemory(workspace_root=root)
+        recall = session_b.retrieval_view_structured("cross session convention")
+        recall_selected = recall["selected"]
+        rows.append({
+            "id": "cross_session_recall",
+            "sessions": ["recall-a", "recall-b"],
+            "selected_evidence_session": recall_selected[0]["evidence_refs"]["session_id"] if recall_selected else None,
+            "passed": bool(recall_selected)
+            and recall_selected[0]["text"] == "Cross session uses verified convention."
+            and recall_selected[0]["evidence_refs"]["session_id"] == "recall-a",
+        })
+
+        _record_cross_session(store, "supersede-a")
+        session_old = LayeredMemory(workspace_root=root)
+        session_old.promote_durable([
+            _cross_session_candidate("dependency-facts", "Cross provider uses old endpoint.", "supersede-a", "run-supersede-a")
+        ])
+        _record_cross_session(store, "supersede-b")
+        session_new = LayeredMemory(workspace_root=root)
+        session_new.promote_durable([
+            _cross_session_candidate("dependency-facts", "Cross provider uses new endpoint.", "supersede-b", "run-supersede-b")
+        ])
+        _record_cross_session(store, "supersede-c")
+        session_verify = LayeredMemory(workspace_root=root)
+        # 查询刻意避开其他场景共享的 cross 词，隔离替代关系的检索断言。
+        supersede = session_verify.retrieval_view_structured("provider endpoint")
+        supersede_selected = supersede["selected"]
+        rows.append({
+            "id": "cross_session_supersede", "sessions": ["supersede-a", "supersede-b", "supersede-c"],
+            "selected_evidence_session": supersede_selected[0]["evidence_refs"]["session_id"] if supersede_selected else None,
+            "passed": len(supersede_selected) == 1
+            and "new endpoint" in supersede_selected[0]["text"]
+            and supersede_selected[0]["evidence_refs"]["session_id"] == "supersede-b"
+            and bool(supersede_selected[0]["supersedes"]),
+        })
+
+        anchor = root / "cross-anchor.txt"
+        anchor.write_text("version-a\n", encoding="utf-8")
+        _record_cross_session(store, "stale-a")
+        session_anchor = LayeredMemory(workspace_root=root)
+        anchored = _cross_session_candidate("key-decisions", "Cross anchor requires current source.", "stale-a", "run-stale-a")
+        anchored["evidence"].update({"source_path": "cross-anchor.txt", "evidence_anchor_hash": compute_anchor_hash(anchor)})
+        session_anchor.promote_durable([anchored])
+        _record_cross_session(store, "stale-b")
+        anchor.write_text("version-b\n", encoding="utf-8")
+        session_changed = LayeredMemory(workspace_root=root)
+        _record_cross_session(store, "stale-c")
+        session_reject = LayeredMemory(workspace_root=root)
+        stale = session_reject.retrieval_view_structured("cross anchor current source")
+        stale_rejections = [item for item in stale["rejected"] if item.get("reject_reason") == "stale_evidence"]
+        rows.append({
+            "id": "cross_session_stale_anchor", "sessions": ["stale-a", "stale-b", "stale-c"],
+            "rejected_evidence_session": stale_rejections[0]["evidence_refs"]["session_id"] if stale_rejections else None,
+            "passed": bool(stale_rejections)
+            and stale_rejections[0]["evidence_refs"]["session_id"] == "stale-a",
+            "changed_session_topics": session_changed.to_dict()["durable_topics"],
+        })
+
+        saved_sessions = {row["id"] for row in store.list_sessions()}
+        for row in rows:
+            row["session_artifacts_present"] = all(session_id in saved_sessions for session_id in row["sessions"])
+            row["passed"] = bool(row["passed"] and row["session_artifacts_present"])
+    summary = {
+        "total_scenarios": len(rows),
+        "passed": sum(row["passed"] for row in rows),
+        "failed": sum(not row["passed"] for row in rows),
+        "pass_rate": _safe_ratio(sum(row["passed"] for row in rows), len(rows)),
+    }
+    return _write_json_artifact(artifact_path, {"schema_version": 1, "artifact_type": "memory-cross-session-v1", "summary": summary, "rows": rows})
 
 
 def run_context_stress_matrix(repetitions=5):
@@ -2299,6 +2400,9 @@ def _run_metrics_cli(name):
         return 0 if artifact.get("summary", {}).get("failed", 0) == 0 else 2
     if name == "memory_evidence":
         artifact = run_memory_evidence_v2()
+        return 0 if artifact.get("summary", {}).get("failed", 0) == 0 else 2
+    if name == "memory_cross_session":
+        artifact = run_memory_cross_session_v1()
         return 0 if artifact.get("summary", {}).get("failed", 0) == 0 else 2
     if name == "memory_agent_eval":
         from .memory_agent_eval import run_memory_agent_eval_v1

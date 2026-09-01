@@ -6,6 +6,7 @@ from pico.evaluation.metrics import (
     _provider_profile,
     run_context_ablation_v2,
     run_memory_ablation_v2,
+    run_memory_cross_session_v1,
     run_memory_evidence_v2,
     run_memory_fidelity_v1,
     run_recovery_ablation_v2,
@@ -153,6 +154,23 @@ def test_memory_evidence_v2_covers_all_auditable_memory_contracts(tmp_path):
     assert artifact["summary"]["passed"] == 14
     assert artifact["summary"]["active_evidence_coverage"] == 1.0
     assert artifact["summary"]["irrelevant_injection_rate"] == 0.0
+
+
+def test_memory_cross_session_v1_preserves_session_boundaries(tmp_path):
+    """执行 `test_memory_cross_session_v1_preserves_session_boundaries` 的内部逻辑。"""
+    artifact = run_memory_cross_session_v1(tmp_path / "artifacts" / "memory-cross-session-v1.json")
+
+    assert artifact["summary"] == {
+        "total_scenarios": 3,
+        "passed": 3,
+        "failed": 0,
+        "pass_rate": 1.0,
+    }
+    assert all(row["session_artifacts_present"] for row in artifact["rows"])
+    rows = {row["id"]: row for row in artifact["rows"]}
+    assert rows["cross_session_recall"]["selected_evidence_session"] == "recall-a"
+    assert rows["cross_session_supersede"]["selected_evidence_session"] == "supersede-b"
+    assert rows["cross_session_stale_anchor"]["rejected_evidence_session"] == "stale-a"
 
 
 def test_memory_fidelity_stale_and_prompt_injection_categories(tmp_path):
