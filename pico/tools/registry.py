@@ -291,8 +291,8 @@ def tool_run_shell(agent, args):
             errors="replace",
             check=False,
             timeout=timeout,
-            # 这里传入的是过滤后的环境变量，而不是直接继承整个父 shell 环境，
-            # 目的是减少敏感信息被意外带进命令执行环境的风险。
+            # 工具 shell 不继承调用方 stdin（CI 的打开管道会阻塞到超时），且只用过滤后的环境变量。
+            stdin=subprocess.DEVNULL,
             env=agent.shell_env(),
         )
     else:
