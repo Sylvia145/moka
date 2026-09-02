@@ -473,6 +473,8 @@ def handle_repl_command(agent, user_input):
         return True, False, HELP_DETAILS
     if user_input == "/memory":
         return True, False, agent.memory_command_text()
+    if command_name == "memory-evidence":
+        return True, False, agent.memory_evidence_text(command_args or None)
     if user_input == "/working-memory":
         return True, False, agent.memory_text()
     if user_input.startswith("/remember"):

@@ -607,6 +607,43 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
             return index
         return "No durable memories yet. Use /remember <text> and /dream to consolidate daily logs."
 
+    def memory_evidence_text(self, query=None):
+        """渲染只读的记忆检索证据视图。"""
+        if query is None:
+            retrieval = dict(self.memory.last_retrieval or {})
+            if not retrieval:
+                return "Memory evidence: no retrieval recorded. Use /memory-evidence <query> after a task."
+        else:
+            retrieval = self.memory.retrieval_view_structured(str(query))
+        lines = [
+            "Memory evidence:",
+            f"- query_hash: {retrieval.get('query_hash', '') or '-'}",
+            f"- store_status: {retrieval.get('store_status', 'ready')}",
+        ]
+        for section, notes in (("selected", retrieval.get("selected", [])), ("rejected", retrieval.get("rejected", []))):
+            lines.append(f"- {section}: {len(notes)}")
+            for note in notes:
+                evidence = dict(note.get("evidence_refs") or {})
+                text = str(note.get("text", ""))
+                # 隔离的密钥形态内容只显示审计状态，避免查看器再次泄露敏感值。
+                if memorylib.reject_durable_reason(text, redacted_value=REDACTED_VALUE):
+                    text = REDACTED_VALUE
+                else:
+                    text = self.redact_text(text)
+                lines.extend(
+                    [
+                        f"  - note_id: {note.get('note_id', '-')}",
+                        f"    text: {text or '-'}",
+                        f"    kind: {note.get('kind', '-')}",
+                        f"    lifecycle_status: {note.get('lifecycle_status', note.get('status', '-'))}",
+                        f"    injected_tokens: {note.get('injected_tokens', 0)}",
+                        f"    reject_reason: {note.get('reject_reason', '-') or '-'}",
+                        f"    evidence: session_id={evidence.get('session_id', '-') or '-'}, run_id={evidence.get('run_id', '-') or '-'}, trace_event_id={evidence.get('trace_event_id', '-') or '-'}, verifier_status={evidence.get('verifier_status', '-') or '-'}",
+                        f"    source: path={evidence.get('source_path', '-') or '-'}, anchor_hash={evidence.get('evidence_anchor_hash', '-') or '-'}",
+                    ]
+                )
+        return "\n".join(lines)
+
     def run_dream(self, quiet=False, session_ids=None):
         """执行 `run_dream` 的内部逻辑。"""
         return memorylib.run_dream(self, quiet=quiet, session_ids=session_ids)

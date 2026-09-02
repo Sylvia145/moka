@@ -22,6 +22,7 @@ SLASH_COMMANDS: tuple[SlashCommand, ...] = (
     SlashCommand("dream", "/dream", "Consolidate durable memory."),
     SlashCommand("history", "/history", "List saved sessions."),
     SlashCommand("memory", "/memory", "Show durable memory index."),
+    SlashCommand("memory-evidence", "/memory-evidence [query]", "Show selected and rejected memory evidence."),
     SlashCommand("mode", "/mode", "Show runtime mode."),
     SlashCommand("model", "/model [name]", "Show or switch the current model."),
     SlashCommand("plan", "/plan <topic>", "Enter plan mode."),

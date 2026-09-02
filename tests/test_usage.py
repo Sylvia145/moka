@@ -1,10 +1,11 @@
 """Pico 自动化测试模块。"""
-from pathlib import Path
 import json
+from pathlib import Path
+
 import pytest
 
-from pico.testing import ScriptedModelClient
 from pico import Pico, SessionStore, WorkspaceContext
+from pico.testing import ScriptedModelClient
 
 
 def build_agent(tmp_path, outputs=None, **kwargs):
@@ -59,6 +60,59 @@ def test_usage_command_sanitizes_base_url_host(tmp_path):
     assert "base url host: example.com:8443" in output
     assert "secret" not in output
     assert "api_key" not in output
+
+
+def test_memory_evidence_command_renders_selected_rejected_and_redacts(tmp_path):
+    """执行 `test_memory_evidence_command_renders_selected_rejected_and_redacts` 的内部逻辑。"""
+    from pico.cli import handle_repl_command
+
+    agent = build_agent(tmp_path, [])
+    agent.memory.promote_durable(
+        [
+            {
+                "topic": "project-conventions",
+                "text": "Verified convention uses pytest.",
+                "kind": "fact",
+                "scope": "workspace_fingerprint",
+                "evidence": {
+                    "session_id": "session-a",
+                    "run_id": "run-a",
+                    "trace_event_id": "trace-a",
+                    "verifier_status": "passed",
+                },
+            },
+        ]
+    )
+    agent.memory.append_note(
+        "api key sk-AAAAAAAAAAAAAAAAAAAA must stay hidden.",
+        tags=("api", "key"),
+        kind="guardrail",
+    )
+    agent.memory.state["episodic_notes"][-1]["status"] = "quarantined"
+
+    handled, _, output = handle_repl_command(agent, "/memory-evidence pytest api key")
+
+    assert handled is True
+    assert "Memory evidence:" in output
+    assert "selected:" in output
+    assert "rejected:" in output
+    assert "session_id=session-a" in output
+    assert "sk-AAAAAAAAAAAAAAAAAAAA" not in output
+    assert "<redacted>" in output
+
+
+def test_memory_evidence_command_reports_empty_history_without_mutation(tmp_path):
+    """执行 `test_memory_evidence_command_reports_empty_history_without_mutation` 的内部逻辑。"""
+    from pico.cli import handle_repl_command
+
+    agent = build_agent(tmp_path, [])
+    before = agent.memory.to_dict()
+
+    handled, _, output = handle_repl_command(agent, "/memory-evidence")
+
+    assert handled is True
+    assert output.startswith("Memory evidence: no retrieval recorded.")
+    assert agent.memory.to_dict() == before
 
 
 def test_usage_command_handles_malformed_sanitized_base_url(tmp_path):

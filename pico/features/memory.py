@@ -51,14 +51,16 @@ DURABLE_MEMORY_INTENT_PATTERN = re.compile(r"(?i)\b(capture|remember|save|store|
 DURABLE_MEMORY_INTENT_ZH_PATTERN = re.compile(r"(记住|保存|记录|沉淀|长期记忆|持久记忆)")
 DURABLE_MEMORY_LIST_PREFIX_PATTERN = re.compile(r"^(?:[-*]|\d+[.)])\s+")
 DURABLE_MEMORY_LINE_PATTERNS = (
-    ("project-conventions", re.compile(r"(?i)^Project convention:\s*(.+)$")),
-    ("key-decisions", re.compile(r"(?i)^Decision:\s*(.+)$")),
-    ("dependency-facts", re.compile(r"(?i)^Dependency:\s*(.+)$")),
-    ("user-preferences", re.compile(r"(?i)^Preference:\s*(.+)$")),
-    ("project-conventions", re.compile(r"^项目约定：\s*(.+)$")),
-    ("key-decisions", re.compile(r"^决策：\s*(.+)$")),
-    ("dependency-facts", re.compile(r"^依赖：\s*(.+)$")),
-    ("user-preferences", re.compile(r"^偏好：\s*(.+)$")),
+    ("project-conventions", "fact", re.compile(r"(?i)^Project convention:\s*(.+)$")),
+    ("key-decisions", "procedure", re.compile(r"(?i)^Decision:\s*(.+)$")),
+    ("dependency-facts", "fact", re.compile(r"(?i)^Dependency:\s*(.+)$")),
+    ("project-conventions", "guardrail", re.compile(r"(?i)^Guardrail:\s*(.+)$")),
+    ("user-preferences", "fact", re.compile(r"(?i)^Preference:\s*(.+)$")),
+    ("project-conventions", "fact", re.compile(r"^项目约定：\s*(.+)$")),
+    ("key-decisions", "procedure", re.compile(r"^决策：\s*(.+)$")),
+    ("dependency-facts", "fact", re.compile(r"^依赖：\s*(.+)$")),
+    ("project-conventions", "guardrail", re.compile(r"^护栏：\s*(.+)$")),
+    ("user-preferences", "fact", re.compile(r"^偏好：\s*(.+)$")),
 )
 SECRET_SHAPED_TEXT_PATTERN = re.compile(r"(?i)(\b(api[_ -]?key|token|secret|password)\b|sk-[A-Za-z0-9_-]{6,})")
 DREAM_NOISE_PATTERN = re.compile(r"(?i)\b(user said hi|assistant acknowledged|acknowledged|hello|said hi)\b")
@@ -627,16 +629,24 @@ def reject_durable_reason(note_text, redacted_value="<redacted>"):
 
 def extract_durable_promotions(user_message, final_answer, redacted_value="<redacted>"):
     """执行 `extract_durable_promotions` 的内部逻辑。"""
+    candidates, rejections = extract_durable_promotion_candidates(
+        user_message, final_answer, redacted_value=redacted_value
+    )
+    return [(item["topic"], item["text"]) for item in candidates], rejections
+
+
+def extract_durable_promotion_candidates(user_message, final_answer, redacted_value="<redacted>"):
+    """提取带类型的 durable memory 候选，并保持旧晋升接口兼容。"""
     user_text = str(user_message or "")
     if not (DURABLE_MEMORY_INTENT_PATTERN.search(user_text) or DURABLE_MEMORY_INTENT_ZH_PATTERN.search(user_text)):
         return [], []
-    promotions = []
+    candidates = []
     rejections = []
     for line in str(final_answer or "").splitlines():
         text = DURABLE_MEMORY_LIST_PREFIX_PATTERN.sub("", line.strip(), count=1)
         if not text or redacted_value in text:
             continue
-        for topic, pattern in DURABLE_MEMORY_LINE_PATTERNS:
+        for topic, kind, pattern in DURABLE_MEMORY_LINE_PATTERNS:
             match = pattern.match(text)
             if not match:
                 continue
@@ -646,16 +656,18 @@ def extract_durable_promotions(user_message, final_answer, redacted_value="<reda
                 if reason:
                     rejections.append(f"{topic}:{reason}")
                     break
-                promotions.append((topic, note_text))
+                candidates.append({"topic": topic, "text": note_text, "kind": kind})
             break
-    return promotions, rejections
+    return candidates, rejections
 
 
 def promote_durable_memory(agent, task_state, user_message, final_answer):
     """执行 `promote_durable_memory` 的内部逻辑。"""
-    promotions, rejections = extract_durable_promotions(user_message, final_answer)
+    promotions, rejections = extract_durable_promotion_candidates(user_message, final_answer)
     candidates = []
-    for topic, text in promotions:
+    for promotion in promotions:
+        topic = promotion["topic"]
+        text = promotion["text"]
         source_path = task_state.changed_paths[-1] if getattr(task_state, "changed_paths", []) else None
         created = agent.emit_trace(
             task_state,
@@ -666,7 +678,7 @@ def promote_durable_memory(agent, task_state, user_message, final_answer):
             {
                 "topic": topic,
                 "text": text,
-                "kind": "fact",
+                "kind": promotion["kind"],
                 "scope": "workspace_fingerprint",
                 "evidence": {
                     "session_id": str(agent.session.get("id", "")),

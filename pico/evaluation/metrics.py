@@ -31,6 +31,7 @@ DEFAULT_RECOVERY_ABLATION_V2_PATH = Path("artifacts/recovery-ablation-v2.json")
 DEFAULT_MEMORY_FIDELITY_V1_PATH = LOCAL_BENCHMARK_ARTIFACT_DIR / "memory-fidelity-v1.json"
 DEFAULT_MEMORY_EVIDENCE_V2_PATH = LOCAL_BENCHMARK_ARTIFACT_DIR / "memory-evidence-v2.json"
 DEFAULT_MEMORY_CROSS_SESSION_V1_PATH = LOCAL_BENCHMARK_ARTIFACT_DIR / "memory-cross-session-v1.json"
+DEFAULT_MEMORY_E2E_DEMO_V1_PATH = LOCAL_BENCHMARK_ARTIFACT_DIR / "memory-e2e-demo-v1.json"
 DEFAULT_DREAM_QUALITY_V1_PATH = LOCAL_BENCHMARK_ARTIFACT_DIR / "dream-quality-v1.json"
 DEFAULT_MEMORY_LIVE_SMOKE_V1_PATH = LOCAL_BENCHMARK_ARTIFACT_DIR / "memory-live-smoke-v1.json"
 DEFAULT_MEMORY_AGENT_EVAL_V1_PATH = LOCAL_BENCHMARK_ARTIFACT_DIR / "memory-agent-eval-v1.json"
@@ -45,6 +46,7 @@ RUN_NAMES = (
     "memory_fidelity",
     "memory_evidence",
     "memory_cross_session",
+    "memory_e2e_demo",
     "memory_agent_eval",
     "memory_challenge",
     "recovery_ablation",
@@ -2403,6 +2405,11 @@ def _run_metrics_cli(name):
         return 0 if artifact.get("summary", {}).get("failed", 0) == 0 else 2
     if name == "memory_cross_session":
         artifact = run_memory_cross_session_v1()
+        return 0 if artifact.get("summary", {}).get("failed", 0) == 0 else 2
+    if name == "memory_e2e_demo":
+        from .memory_e2e_demo import run_memory_e2e_demo_v1
+
+        artifact = run_memory_e2e_demo_v1(DEFAULT_MEMORY_E2E_DEMO_V1_PATH)
         return 0 if artifact.get("summary", {}).get("failed", 0) == 0 else 2
     if name == "memory_agent_eval":
         from .memory_agent_eval import run_memory_agent_eval_v1
