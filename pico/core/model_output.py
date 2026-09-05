@@ -24,6 +24,46 @@ def parse(raw):
     return "retry", retry_notice("missing <tool> or <final> tag")
 
 
+def parse_native(raw_text, tool_calls=None):
+    """解码一次原生 function-calling 的模型返回。
+
+    与 `parse` 的区别：原生模式后端返回结构化 `tool_calls`，且允许模型直接用
+    无标签的纯文本作为最终回答（不需要 `<final>` 包裹）。当客户端声明支持原生
+    tools 时走这条解码，文本协议只在模型"没遵守"或后端降级时才被复用。
+
+    返回值与 `parse` 一致：`(kind, payload)`，kind 是
+    `tool` / `tools` / `final` / `retry`。
+    """
+    calls = list(tool_calls or [])
+    tools = []
+    for call in calls:
+        name = str(call.get("name", "") or "").strip()
+        args = call.get("args")
+        if not name:
+            return "retry", retry_notice("tool call missing a name")
+        if not isinstance(args, dict):
+            if isinstance(args, str):
+                try:
+                    args = json.loads(args)
+                except json.JSONDecodeError:
+                    return "retry", retry_notice("tool call arguments must be valid JSON")
+            else:
+                return "retry", retry_notice("tool call arguments must be an object")
+        tools.append({"name": name, "args": args})
+    if tools:
+        return _tool_kind(tools)
+
+    text = str(raw_text or "")
+    if not text.strip():
+        return "retry", retry_notice("empty response")
+    # 兼容：即便在原生模式，模型偶尔仍会吐文本协议标签（例如后端悄悄把 tools
+    # 当成普通参数忽略）。此时复用文本解析，让动作仍可被识别执行。
+    if "<tool" in text or "<final" in text:
+        return parse(text)
+    # 原生模式的默认语义：无标签纯文本就是最终回答，不再强制 <final> 包裹。
+    return "final", text.strip()
+
+
 def retry_notice(problem=None):
     """执行 `retry_notice` 的内部逻辑。"""
     detail = f" Problem: {problem}." if problem else ""

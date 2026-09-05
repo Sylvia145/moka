@@ -369,6 +369,21 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         profile = self.active_tool_profile
         return {name: tool for name, tool in self.tools.items() if profile.allows(name)}
 
+    def native_tools_enabled(self):
+        """是否走原生 function-calling：客户端声明 supports_tool_calls，
+        且未被后端拒收而降级。两条轨道只改“怎么表达动作”，工具负载与执行器完全复用。"""
+        return bool(
+            getattr(self.model_client, "supports_tool_calls", False)
+            and not getattr(self, "_tools_disabled", False)
+        )
+
+    def disable_native_tools(self, force_refresh=True):
+        """关闭原生 function-calling，降级回文本协议。
+        provider 拒收 tools 参数时触发；默认强制刷新为文本轨前缀。"""
+        self._tools_disabled = True
+        if force_refresh:
+            self.refresh_prefix(force=True)
+
     def tool_signature(self):
         """执行 `tool_signature` 的内部逻辑。"""
         payload = []
@@ -407,22 +422,32 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
                 "<final>Done.</final>",
             ]
         )
-        # prefix 可以理解成 agent 的“工作手册”：
-        # 它是谁、工具怎么调用、当前仓库是什么状态，都写在这里。
+        # 输出协议按轨道切换：原生轨（客户端声明 supports_tool_calls）直接调用平台
+        # 注入的函数、纯文本作答；文本轨（降级/哑后端）沿用 <tool>/<final> 标签。
+        native = self.native_tools_enabled()
+        protocol_rules = (
+            "- You act by calling the tools the platform exposes to you; each tool takes typed arguments.\n"
+            "- Call a tool when you need a workspace fact or an effect; never invent tool results.\n"
+            "- When you have the final answer, reply in plain text only — do not wrap it in <tool> or <final> tags."
+            if native
+            else (
+                "- Return one or more <tool>...</tool> calls, or one <final>...</final>.\n"
+                "- Tool calls must look like:\n"
+                '  <tool>{"name":"tool_name","args":{...}}</tool>\n'
+                "- For write_file and patch_file with multi-line text, prefer XML style:\n"
+                '  <tool name="write_file" path="file.py"><content>...</content></tool>\n'
+                "- Final answers must look like:\n"
+                "  <final>your answer</final>"
+            )
+        )
+        examples_section = f"Valid response examples:\n{examples}" if not native else ""
         text = textwrap.dedent(
             f"""\
             You are Moka, a small local coding agent working inside a local repository.
 
             Rules:
             - Use tools instead of guessing about the workspace.
-            - Return one or more <tool>...</tool> calls, or one <final>...</final>.
-            - Tool calls must look like:
-              <tool>{{"name":"tool_name","args":{{...}}}}</tool>
-            - For write_file and patch_file with multi-line text, prefer XML style:
-              <tool name="write_file" path="file.py"><content>...</content></tool>
-            - Final answers must look like:
-              <final>your answer</final>
-            - Never invent tool results.
+            {protocol_rules}
             - Keep answers concise and concrete.
             - Prefer direct affirmative statements. Avoid unnecessary contrast constructions such as "not X, but Y"; use a contrast only when it resolves a material ambiguity.
             - If the path is clear, write or patch directly; for multi-file deliverables, batch related writes in one response or one shell script and do not read back files you just wrote.
@@ -440,8 +465,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
             Tools:
             {tool_text}
 
-            Valid response examples:
-            {examples}
+            {examples_section}
 
             {self.workspace.text()}
             """
@@ -892,6 +916,7 @@ class Pico(RuntimeSecretsMixin, RuntimeCheckpointsMixin):
         return answer.strip().lower() in {"y", "yes"}
 
     parse = staticmethod(model_output.parse)
+    parse_native = staticmethod(model_output.parse_native)
     retry_notice = staticmethod(model_output.retry_notice)
     parse_xml_tool = staticmethod(model_output.parse_xml_tool)
     parse_attrs = staticmethod(model_output.parse_attrs)

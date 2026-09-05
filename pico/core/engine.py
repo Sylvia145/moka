@@ -18,6 +18,10 @@ from .context_replacements import commit_proposed_replacements
 from .model_errors import finish_model_error
 from .engine_helpers import (
     execute_tool_payload,
+    finish_aborted,
+    handle_native_tools_unavailable,
+    native_request,
+    parse_model_output,
     request_step_limit_summary,
     should_retry_model_error,
 )
@@ -127,14 +131,7 @@ class Engine:
 
         while tool_steps < agent.max_steps and attempts < max_attempts:
             if agent.abort_requested:
-                yield from finish_stopped_run(
-                    self,
-                    task_state,
-                    user_message,
-                    "Stopped after abort request.",
-                    "aborted",
-                    run_started_at,
-                )
+                yield from finish_aborted(self, task_state, user_message, run_started_at)
                 return
             yield from self._drain_worker_notification_events()
             attempts += 1
@@ -249,6 +246,9 @@ class Engine:
                 prompt_cache_key = prompt_metadata.get("prompt_cache_key")
                 prompt_cache_retention = "in_memory"
 
+            # 双轨请求：原生客户端带 tools 声明并解码 tool_calls；文本轨（降级后）不传。
+            native_mode, tools_defs = native_request(agent)
+
             model_started_at = time.monotonic()
             try:
                 result = complete_model(
@@ -257,18 +257,17 @@ class Engine:
                     agent.max_new_tokens,
                     prompt_cache_key=prompt_cache_key,
                     prompt_cache_retention=prompt_cache_retention,
+                    tools=tools_defs,
                 )
             except Exception as exc:
                 if agent.abort_requested:
-                    yield from finish_stopped_run(
-                        self,
-                        task_state,
-                        user_message,
-                        "Stopped after abort request.",
-                        "aborted",
-                        run_started_at,
-                    )
+                    yield from finish_aborted(self, task_state, user_message, run_started_at)
                     return
+                # 后端不认 tools 参数 → 关闭原生轨，按文本协议重发本 attempt。
+                if tools_defs and handle_native_tools_unavailable(
+                    agent, task_state, exc, model_started_at
+                ):
+                    continue
                 if should_retry_model_error(exc, provider_retries):
                     code = getattr(exc, "code", type(exc).__name__)
                     provider_retries[code] = provider_retries.get(code, 0) + 1
@@ -305,14 +304,7 @@ class Engine:
                 )
                 return
             if agent.abort_requested:
-                yield from finish_stopped_run(
-                    self,
-                    task_state,
-                    user_message,
-                    "Stopped after abort request.",
-                    "aborted",
-                    run_started_at,
-                )
+                yield from finish_aborted(self, task_state, user_message, run_started_at)
                 return
             raw = result.text
             completion_metadata = dict(
@@ -324,7 +316,7 @@ class Engine:
                 prompt_metadata.update(completion_metadata)
             agent.last_completion_metadata = completion_metadata
             agent.last_prompt_metadata = prompt_metadata
-            kind, payload = agent.parse(raw)
+            kind, payload = parse_model_output(agent, native_mode, raw, result.tool_calls)
             duration_ms = int((time.monotonic() - model_started_at) * 1000)
             agent.emit_trace(
                 task_state,
@@ -360,14 +352,7 @@ class Engine:
                     if agent.abort_requested:
                         break
                 if agent.abort_requested:
-                    yield from finish_stopped_run(
-                        self,
-                        task_state,
-                        user_message,
-                        "Stopped after abort request.",
-                        "aborted",
-                        run_started_at,
-                    )
+                    yield from finish_aborted(self, task_state, user_message, run_started_at)
                     return
                 emit_continue_transition(
                     agent, task_state, CONTINUE_TOOL_BATCH_EXECUTED,

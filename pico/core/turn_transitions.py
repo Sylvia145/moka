@@ -10,6 +10,7 @@ CONTINUE_PARSE_RETRY = "parse_retry"
 CONTINUE_TOOL_BATCH_EXECUTED = "tool_batch_executed"
 CONTINUE_PLAN_NOTICE = "plan_notice"
 CONTINUE_FINAL_READINESS_NOTICE = "final_readiness_notice"
+CONTINUE_NATIVE_TOOLS_UNAVAILABLE = "native_tools_unavailable"
 TERMINAL_FINAL_ANSWER_RETURNED = "final_answer_returned"
 TERMINAL_ABORTED = "aborted"
 TERMINAL_MODEL_ERROR = "model_error"
@@ -38,7 +39,6 @@ def build_transition(*, kind, reason, attempt_index, tool_call_count=0, tool_req
     if stop_reason:
         payload["stop_reason"] = str(stop_reason)
     return payload
-
 
 def reduce_transition_summary(summary, transition):
     """执行 `reduce_transition_summary` 的内部逻辑。"""

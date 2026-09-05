@@ -13,6 +13,7 @@ import urllib.error
 import urllib.request
 
 from ..core.content_blocks import ensure_model_input
+from .base import ModelResult
 from .errors import ProviderError, sanitize_url
 
 OPENAI_COMPATIBLE_USER_AGENT = "pico/0.1"
@@ -203,6 +204,97 @@ def _extract_usage_cache_details(data):
     }
 
 
+def _maybe_json_arguments(raw):
+    """把后端返回的 tool 参数统一成 dict。
+
+    OpenAI 系返回 JSON 字符串（`arguments`），Anthropic 返回已经是 dict 的
+    `input`。这里把字符串尝试解析为 dict；解析失败保留原字符串，由上层
+    `parse_native` 判为畸形参数并触发 retry，而不是在本层吞掉。
+    """
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            return raw
+        if isinstance(parsed, dict):
+            return parsed
+        return raw
+    return {}
+
+
+def _normalized_tool_calls(provider, raw_calls):
+    """把各协议的原生 tool 调用归一成 `{id, name, args}` 列表。"""
+    calls = []
+    for call in raw_calls:
+        name = str(call.get("name") or call.get("function", {}).get("name") or "").strip()
+        if not name:
+            continue
+        args = call.get("args", call.get("arguments", call.get("input")))
+        args = _maybe_json_arguments(args if args is not None else {})
+        calls.append(
+            {
+                "id": str(call.get("id") or call.get("call_id") or ""),
+                "name": name,
+                "args": args,
+            }
+        )
+    return calls
+
+
+def _extract_responses_tool_calls(data):
+    """从 OpenAI Responses（`/responses`）返回里抽取 `function_call` 项。"""
+    output = data.get("output") or []
+    raw_calls = []
+    for item in output:
+        if not isinstance(item, dict):
+            continue
+        if item.get("type") == "function_call":
+            raw_calls.append(
+                {
+                    "id": item.get("call_id") or item.get("id"),
+                    "name": item.get("name"),
+                    "arguments": item.get("arguments"),
+                }
+            )
+    return _normalized_tool_calls("openai", raw_calls)
+
+
+def _extract_chat_tool_calls(data):
+    """从 Chat Completions（`/chat/completions`）返回里抽取 `message.tool_calls`。"""
+    raw_calls = []
+    for choice in data.get("choices", []):
+        message = choice.get("message", {}) if isinstance(choice, dict) else {}
+        for call in message.get("tool_calls", []) or []:
+            function = call.get("function", {}) if isinstance(call, dict) else {}
+            raw_calls.append(
+                {
+                    "id": call.get("id") if isinstance(call, dict) else None,
+                    "name": function.get("name"),
+                    "arguments": function.get("arguments"),
+                }
+            )
+    return _normalized_tool_calls("openai_chat", raw_calls)
+
+
+def _extract_anthropic_tool_calls(data):
+    """从 Anthropic（`/messages`）返回里抽取 `content` 块中的 `tool_use`。"""
+    raw_calls = []
+    for block in data.get("content", []) or []:
+        if not isinstance(block, dict):
+            continue
+        if block.get("type") == "tool_use":
+            raw_calls.append(
+                {
+                    "id": block.get("id"),
+                    "name": block.get("name"),
+                    "input": block.get("input"),
+                }
+            )
+    return _normalized_tool_calls("anthropic", raw_calls)
+
+
 def _request_with_retries(provider, model, base_url, request, timeout, retry_budget=2):
     """执行 `_request_with_retries` 的内部逻辑。"""
     retry_count = 0
@@ -340,20 +432,33 @@ class OpenAICompatibleModelClient:
         # 当前只在明确支持 prompt cache 语义的后端上启用这条链路，
         # 避免对不支持的后端传一个“看起来统一、其实没意义”的伪参数。
         self.supports_prompt_cache = any(host in self.base_url for host in ("openai.com", "right.codes"))
+        # 真实 provider 走原生 function-calling（/responses 支持 tools 声明）。
+        # 个别网关若不支持 tools 参数，会由 engine 捕获错误后自动降级回文本协议。
+        self.supports_tool_calls = True
         self.last_completion_metadata = {}
 
-    def complete(self, prompt, max_new_tokens, prompt_cache_key=None, prompt_cache_retention=None):
-        """向 OpenAI-compatible `/responses` 接口发起一次模型调用。
+    def complete_result(
+        self,
+        prompt,
+        max_new_tokens,
+        *,
+        tools=None,
+        prompt_cache_key=None,
+        prompt_cache_retention=None,
+    ):
+        """向 OpenAI-compatible `/responses` 接口发起一次模型调用并返回结构化结果。
 
         为什么存在：
         runtime 不应该知道 HTTP 细节、SSE 细节、usage 字段长什么样，
-        更不应该自己去判断 prompt cache 参数要不要带。这个函数把这些后端
-        细节都包起来，对上层暴露统一的 `complete()` 行为。
+        更不应该自己去判断 prompt cache 参数要不要带。这个方法把这些后端
+        细节都包起来，对上层暴露统一的 `complete_result()` 行为：带 `tools`
+        声明时，后端若返回 `function_call` 项，以 `ModelResult.tool_calls`
+        结构化返回；否则文本语义与旧 `complete()` 完全一致。
 
         输入 / 输出：
-        - 输入：完整 prompt、最大输出 token，以及可选的 prompt cache 参数
-        - 输出：模型最终文本；同时把 usage / cached_tokens 等元数据写进
-          `self.last_completion_metadata`
+        - 输入：完整 prompt、最大输出 token、可选原生 tools 声明与缓存参数
+        - 输出：`ModelResult(text, metadata, tool_calls)`；usage/cached_tokens
+          等元数据同时写进 `self.last_completion_metadata`
 
         在 agent 链路里的位置：
         它位于 `Pico.ask()` 的模型调用阶段，是稳定前缀缓存复用链路真正
@@ -372,6 +477,19 @@ class OpenAICompatibleModelClient:
             "max_output_tokens": max_new_tokens,
             "stream": False,
         }
+        if tools:
+            # Responses 接口的 tools 声明是扁平的：name/description/parameters 直接
+            # 挂在顶层（不同于 Chat Completions 的 `function` 嵌套）。
+            payload["tools"] = [
+                {
+                    "type": "function",
+                    "name": tool["name"],
+                    "description": tool.get("description", ""),
+                    "parameters": tool.get("parameters", {"type": "object"}),
+                }
+                for tool in tools
+            ]
+            payload["tool_choice"] = "auto"
         if self.temperature is not None:
             payload["temperature"] = self.temperature
         # runtime 传入的是“稳定前缀”的签名，而不是整段 prompt 的签名。
@@ -408,9 +526,14 @@ class OpenAICompatibleModelClient:
             raise
 
         # 有些兼容后端返回普通 JSON，有些返回 SSE。
-        # 这里两种都接住，并尽量统一抽取文本和 usage/cache 元数据。
+        # 这里两种都接住，并尽量统一抽取文本、tool_calls 和 usage/cache 元数据。
         if content_type.startswith("text/event-stream") or body_text.lstrip().startswith("data:"):
             text, response_data = _extract_openai_response_from_sse(body_text)
+            tool_calls = (
+                _extract_responses_tool_calls(response_data)
+                if tools and isinstance(response_data, dict)
+                else []
+            )
             if isinstance(response_data, dict) and response_data:
                 # 这些元数据会一路传回 runtime，进入 trace 和 report，
                 # 用来观察 prompt cache 是否真的命中。
@@ -422,8 +545,12 @@ class OpenAICompatibleModelClient:
                     **request_metadata,
                     **_extract_usage_cache_details(response_data),
                 }
-            if text:
-                return text
+            if text or tool_calls:
+                return ModelResult(
+                    text=text,
+                    metadata=dict(self.last_completion_metadata),
+                    tool_calls=tool_calls or None,
+                )
             error = _provider_failure(
                 "openai",
                 self.model,
@@ -468,9 +595,14 @@ class OpenAICompatibleModelClient:
             **request_metadata,
             **_extract_usage_cache_details(data),
         }
+        tool_calls = _extract_responses_tool_calls(data) if tools else []
         text = _extract_openai_text(data)
-        if text:
-            return text
+        if text or tool_calls:
+            return ModelResult(
+                text=text,
+                metadata=dict(self.last_completion_metadata),
+                tool_calls=tool_calls or None,
+            )
         error = _provider_failure(
             "openai",
             self.model,
@@ -481,6 +613,16 @@ class OpenAICompatibleModelClient:
         )
         self.last_completion_metadata = error.to_metadata()
         raise error
+
+    def complete(self, prompt, max_new_tokens, prompt_cache_key=None, prompt_cache_retention=None):
+        """执行 `complete` 的内部逻辑。"""
+        result = self.complete_result(
+            prompt,
+            max_new_tokens,
+            prompt_cache_key=prompt_cache_key,
+            prompt_cache_retention=prompt_cache_retention,
+        )
+        return result.text
 
 
 def _extract_anthropic_text(data):
@@ -502,12 +644,26 @@ class AnthropicCompatibleModelClient:
         self.temperature = temperature
         self.timeout = timeout
         self.supports_prompt_cache = False
+        self.supports_tool_calls = True
         self.last_completion_metadata = {}
 
-    def complete(self, prompt, max_new_tokens, prompt_cache_key=None, prompt_cache_retention=None):
+    def complete_result(
+        self,
+        prompt,
+        max_new_tokens,
+        *,
+        tools=None,
+        prompt_cache_key=None,
+        prompt_cache_retention=None,
+    ):
         # 为了保持统一接口，runtime 仍然会传缓存参数进来；
         # 这里只是显式丢弃，因为当前 Anthropic-compatible 路径没有接缓存复用。
-        """执行 `complete` 的内部逻辑。"""
+        """执行 `complete_result` 的内部逻辑。
+
+        带 `tools` 声明时，Anthropic 用 `input_schema` 描述参数；后端以
+        `content` 块里的 `tool_use`（`input` 已是 dict）返回结构化调用。文本
+        语义与旧 `complete()` 一致。
+        """
         del prompt_cache_key, prompt_cache_retention
         self.last_completion_metadata = {}
         content, image_input_count = _anthropic_input_content(prompt)
@@ -522,6 +678,16 @@ class AnthropicCompatibleModelClient:
             "max_tokens": max_new_tokens,
             "stream": False,
         }
+        if tools:
+            payload["tools"] = [
+                {
+                    "name": tool["name"],
+                    "description": tool.get("description", ""),
+                    "input_schema": tool.get("parameters", {"type": "object"}),
+                }
+                for tool in tools
+            ]
+            payload["tool_choice"] = {"type": "auto"}
         if self.temperature is not None:
             payload["temperature"] = self.temperature
 
@@ -574,14 +740,19 @@ class AnthropicCompatibleModelClient:
             )
             self.last_completion_metadata = error.to_metadata()
             raise error
+        tool_calls = _extract_anthropic_tool_calls(data) if tools else []
         text = _extract_anthropic_text(data)
-        if text:
-            self.last_completion_metadata = {
-                "image_input_count": image_input_count,
-                **request_metadata,
-                **_extract_usage_cache_details(data),
-            }
-            return text
+        self.last_completion_metadata = {
+            "image_input_count": image_input_count,
+            **request_metadata,
+            **_extract_usage_cache_details(data),
+        }
+        if text or tool_calls:
+            return ModelResult(
+                text=text,
+                metadata=dict(self.last_completion_metadata),
+                tool_calls=tool_calls or None,
+            )
         error = _provider_failure(
             "anthropic",
             self.model,
@@ -592,6 +763,16 @@ class AnthropicCompatibleModelClient:
         )
         self.last_completion_metadata = error.to_metadata()
         raise error
+
+    def complete(self, prompt, max_new_tokens, prompt_cache_key=None, prompt_cache_retention=None):
+        """执行 `complete` 的内部逻辑。"""
+        result = self.complete_result(
+            prompt,
+            max_new_tokens,
+            prompt_cache_key=prompt_cache_key,
+            prompt_cache_retention=prompt_cache_retention,
+        )
+        return result.text
 
 
 class ChatCompletionsModelClient:
@@ -619,10 +800,28 @@ class ChatCompletionsModelClient:
         # Chat Completions 后端不提供与 Responses 等价的 prompt cache 语义，
         # 显式关闭缓存链路，避免传一个“看起来统一、其实没意义”的参数。
         self.supports_prompt_cache = False
+        self.supports_tool_calls = True
         self.last_completion_metadata = {}
 
-    def complete(self, prompt, max_new_tokens, prompt_cache_key=None, prompt_cache_retention=None):
-        """执行 `complete` 的内部逻辑。"""
+    def complete_result(
+        self,
+        prompt,
+        max_new_tokens,
+        *,
+        tools=None,
+        prompt_cache_key=None,
+        prompt_cache_retention=None,
+    ):
+        """执行一次 Chat Completions 调用并返回结构化结果。
+
+        与 `complete` 的关系：这是真正干活的入口。`tools`（原生 function-calling
+        声明）可选；传了且后端返回 `tool_calls` 时，结果以 `ModelResult.tool_calls`
+        返回，文本可能为空。返回的 `ModelResult` 附带 `complete()` 相同的元数据。
+
+        为什么存在：文本协议需要 "一段文本回复"，而原生 function calling 需要
+        "结构化工具调用"。两者都封装在这一个方法里，由上层（engine 双轨解码）按
+        客户端能力选择走哪条语义。
+        """
         del prompt_cache_key, prompt_cache_retention
         self.last_completion_metadata = {}
         model_input = ensure_model_input(prompt)
@@ -632,6 +831,19 @@ class ChatCompletionsModelClient:
             "max_tokens": max_new_tokens,
             "stream": False,
         }
+        if tools:
+            payload["tools"] = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": tool["name"],
+                        "description": tool.get("description", ""),
+                        "parameters": tool.get("parameters", {"type": "object"}),
+                    },
+                }
+                for tool in tools
+            ]
+            payload["tool_choice"] = "auto"
         if self.temperature is not None:
             payload["temperature"] = self.temperature
 
@@ -689,9 +901,14 @@ class ChatCompletionsModelClient:
             **request_metadata,
             **_extract_usage_cache_details(data),
         }
+        tool_calls = _extract_chat_tool_calls(data) if tools else []
         text = _extract_openai_text(data)
-        if text:
-            return text
+        if text or tool_calls:
+            return ModelResult(
+                text=text,
+                metadata=dict(self.last_completion_metadata),
+                tool_calls=tool_calls or None,
+            )
         error = _provider_failure(
             "openai_chat",
             self.model,
@@ -702,3 +919,8 @@ class ChatCompletionsModelClient:
         )
         self.last_completion_metadata = error.to_metadata()
         raise error
+
+    def complete(self, prompt, max_new_tokens, prompt_cache_key=None, prompt_cache_retention=None):
+        """执行 `complete` 的内部逻辑。"""
+        del prompt_cache_key, prompt_cache_retention
+        return self.complete_result(prompt, max_new_tokens).text

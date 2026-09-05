@@ -9,6 +9,12 @@ import time
 
 from ..providers.base import complete_model
 from ..providers.errors import ProviderError
+from ..tools.native import build_tool_definitions
+from .completion_governance import finish_stopped_run
+from .turn_transitions import (
+    CONTINUE_NATIVE_TOOLS_UNAVAILABLE,
+    emit_continue_transition,
+)
 from .workspace import clip, now
 
 
@@ -107,6 +113,39 @@ def should_retry_model_error(exc, provider_retries):
     return provider_retries.get(code, 0) < 1
 
 
+def is_tools_unsupported_error(exc):
+    """判断一次模型请求错误是否意味着“后端不接受原生 tools 参数”。
+
+    命中此判断时 engine 不应重试同一请求（继续带 tools 还是会失败），而应关闭
+    原生 function-calling、用文本协议重发本 attempt。判断保持保守：只把“明确的
+    客户端参数拒绝（4xx 或 invalid_request 之类）且报错文案提及 tools/functions”
+    当作降级信号，避免误吞 5xx、限流、超时等瞬时错误。
+    """
+    if not isinstance(exc, ProviderError):
+        return False
+    if getattr(exc, "retryable", False):
+        return False
+    http_status = getattr(exc, "http_status", None)
+    if http_status is not None and int(http_status) in (408, 429):
+        return False
+    code = str(getattr(exc, "code", "") or "").lower()
+    combined = f"{exc} {getattr(exc, 'body_excerpt', '')}".lower()
+    mentions_tooling = "tool" in combined or "function" in combined
+    if not mentions_tooling:
+        return False
+    client_error = (
+        http_status is not None and 400 <= int(http_status) < 500
+    ) or code in {
+        "invalid_request_error",
+        "bad_request",
+        "unsupported_parameter",
+        "unknown_parameter",
+        "parameter_error",
+        "validation_error",
+    }
+    return bool(client_error)
+
+
 _STEP_LIMIT_SUMMARY_NOTICE = (
     "You have hit the per-turn tool budget (max_steps). Do not call any more tools. "
     "Right now, return a single <final>...</final> answer in the user's language that "
@@ -137,7 +176,9 @@ def request_step_limit_summary(engine, task_state, user_message):
         )
         return None
     raw = (result.text or "").strip() if result else ""
-    kind, payload = agent.parse(raw)
+    kind, payload = parse_model_output(
+        agent, agent.native_tools_enabled(), raw, getattr(result, "tool_calls", None)
+    )
     duration_ms = int((time.monotonic() - started_at) * 1000)
     agent.emit_trace(
         task_state,
@@ -147,3 +188,62 @@ def request_step_limit_summary(engine, task_state, user_message):
     if kind == "final" and payload:
         return str(payload).strip()
     return None
+
+
+def native_request(agent):
+    """组装本次请求的双轨决策：返回 `(native_mode, tools_defs)`。
+
+    native_mode 为 True 表示按原生 function calling 请求（带 tools 声明、解码
+    结构化 tool_calls）；tools_defs 为 None 表示本次不传 tools——已降级/文本轨，
+    或原生轨下没有可见工具（空 tools 数组会被部分后端拒收）。
+    """
+    if not agent.native_tools_enabled():
+        return False, None
+    return True, build_tool_definitions(agent) or None
+
+
+def parse_model_output(agent, native_mode, raw, tool_calls):
+    """按轨解码一次模型返回：原生轨走 `parse_native`，文本轨走 `parse`。
+
+    原生轨允许模型用无标签纯文本直接作为最终回答（不需 `<final>`），并在模型仍吐
+    `<tool>/<final>` 标签时自动回退文本解析；文本轨则要求 `<final>` 包裹或 `<tool>`
+    动作。二者返回统一的 `(kind, payload)`。
+    """
+    if native_mode:
+        return agent.parse_native(raw, tool_calls)
+    return agent.parse(raw)
+
+
+def handle_native_tools_unavailable(agent, task_state, exc, model_started_at):
+    """后端拒绝原生 `tools` 参数时降级文本轨并落证据；返回是否已处理。
+
+    命中即表示继续带 tools 重发本 attempt 只会再次失败，因此不重试同一请求，而是
+    disable_native_tools() 让下一次 prefix 重建为 `<tool>/<final>` 文本指令。判断用
+    is_tools_unsupported_error 保持保守，避免误吞 5xx/限流/超时等瞬时错误。
+    """
+    if not is_tools_unsupported_error(exc):
+        return False
+    agent.disable_native_tools()
+    agent.emit_trace(
+        task_state,
+        "native_tools_disabled",
+        {
+            "code": getattr(exc, "code", ""),
+            "http_status": getattr(exc, "http_status", None),
+            "duration_ms": int((time.monotonic() - model_started_at) * 1000),
+        },
+    )
+    emit_continue_transition(agent, task_state, CONTINUE_NATIVE_TOOLS_UNAVAILABLE)
+    return True
+
+
+def finish_aborted(engine, task_state, user_message, run_started_at):
+    """Because an abort was requested, terminate the current turn as "aborted"."""
+    yield from finish_stopped_run(
+        engine,
+        task_state,
+        user_message,
+        "Stopped after abort request.",
+        "aborted",
+        run_started_at,
+    )
